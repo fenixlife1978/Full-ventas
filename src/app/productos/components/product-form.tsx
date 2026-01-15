@@ -32,7 +32,6 @@ import { useEffect } from 'react'
 
 const formSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido.'),
-  sku: z.string().min(1, 'El SKU es requerido.'),
   description: z.string().optional(),
   category: z.string().optional(),
   price: z.coerce.number().min(0, 'El precio no puede ser negativo.'),
@@ -65,7 +64,6 @@ export function ProductForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
-      sku: '',
       description: '',
       category: '',
       price: 0,
@@ -88,7 +86,6 @@ export function ProductForm({
     } else {
       form.reset({
         name: '',
-        sku: '',
         description: '',
         category: '',
         price: 0,
@@ -123,21 +120,8 @@ export function ProductForm({
               control={form.control}
               name="name"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="md:col-span-2">
                   <FormLabel className="text-foreground font-semibold">Nombre *</FormLabel>
-                  <FormControl>
-                    <Input {...field} className="border-border/50 focus:ring-ring" required />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="sku"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-foreground font-semibold">SKU *</FormLabel>
                   <FormControl>
                     <Input {...field} className="border-border/50 focus:ring-ring" required />
                   </FormControl>
@@ -303,3 +287,5 @@ export function ProductForm({
     </Dialog>
   )
 }
+
+    

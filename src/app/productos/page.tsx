@@ -7,8 +7,7 @@ import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { ProductForm, ProductFormValues } from './components/product-form'
 import { useCollection, useFirestore } from '@/firebase'
-import { collection, doc } from 'firebase/firestore'
-import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates'
+import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,7 +36,6 @@ export interface Product {
   id: string
   name: string
   description?: string
-  sku: string
   category?: string
   price: number
   cost?: number
@@ -81,7 +79,6 @@ export default function ProductosPage() {
       filtered = filtered.filter(
         p =>
           p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          p.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           p.description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
@@ -115,10 +112,10 @@ export default function ProductosPage() {
     setDeletingProduct(product)
   }
   
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deletingProduct && firestore) {
       const productRef = doc(firestore, 'products', deletingProduct.id)
-      deleteDocumentNonBlocking(productRef)
+      await deleteDoc(productRef)
       toast({
         title: 'Producto Eliminado',
         description: `El producto "${deletingProduct.name}" ha sido eliminado.`,
@@ -127,19 +124,18 @@ export default function ProductosPage() {
     }
   }
 
-  const handleFormSubmit = (values: ProductFormValues) => {
+  const handleFormSubmit = async (values: ProductFormValues) => {
     if (!firestore) return
     
     if (editingProduct) {
       const productRef = doc(firestore, 'products', editingProduct.id)
-      updateDocumentNonBlocking(productRef, values)
+      await updateDoc(productRef, values)
       toast({
         title: 'Producto Actualizado',
         description: 'El producto se ha actualizado exitosamente.',
       })
     } else {
-      const productsRef = collection(firestore, 'products')
-      addDocumentNonBlocking(productsRef, values)
+      await addDoc(collection(firestore, 'products'), values)
       toast({
         title: 'Producto Creado',
         description: 'El nuevo producto se ha creado exitosamente.',
@@ -169,7 +165,7 @@ export default function ProductosPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por nombre, SKU o descripción..."
+                  placeholder="Buscar por nombre o descripción..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 border-border/50 focus:ring-ring"
@@ -218,7 +214,6 @@ export default function ProductosPage() {
                       <div className="flex items-start justify-between">
                         <div>
                           <h3 className="text-lg font-semibold text-foreground">{product.name}</h3>
-                          <p className="text-sm text-muted-foreground">SKU: {product.sku}</p>
                         </div>
                         <div className="flex gap-2">
                           {product.stock <= (product.minStock || 0) && (
@@ -332,3 +327,5 @@ export default function ProductosPage() {
     </Layout>
   )
 }
+
+    
