@@ -17,11 +17,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { useMemoFirebase } from '@/firebase/provider'
 import { type Product } from '../productos/page'
 import { SaleForm, type SaleFormValues } from './components/sale-form'
 import Layout from '@/app/layout-app'
-import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
@@ -51,12 +57,16 @@ export interface Sale {
 
 export default function VentasPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [isPriceCheckerOpen, setIsPriceCheckerOpen] = useState(false)
   const [deletingSale, setDeletingSale] = useState<Sale | null>(null)
   const { toast } = useToast()
   const firestore = useFirestore()
 
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('today')
+  const [bcvRate, setBcvRate] = useState<number | null>(null);
+  const [selectedPriceCheckerProduct, setSelectedPriceCheckerProduct] = useState<Product | null>(null)
+
 
   const salesCollection = useMemoFirebase(() => {
     if (!firestore) return null
@@ -234,12 +244,15 @@ export default function VentasPage() {
     return labels[method] || method;
   };
   
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-VE', {
-     style: 'currency',
-     currency: 'USD',
-   }).format(value)
- }
+  const formatCurrency = (value: number, currency: 'USD' | 'VES' = 'USD') => {
+    if (currency === 'VES' && bcvRate) {
+        value = value * bcvRate;
+    }
+    const currencyToUse = currency === 'VES' ? 'VED' : 'USD';
+    const style = 'currency';
+
+    return new Intl.NumberFormat('es-VE', { style, currency: currencyToUse }).format(value);
+  };
 
  const isLoading = isLoadingSales || isLoadingProducts;
 
@@ -251,10 +264,16 @@ export default function VentasPage() {
             <h1 className="text-3xl md:text-4xl font-bold text-foreground">Ventas</h1>
             <p className="text-muted-foreground mt-2">Registra y gestiona las ventas diarias</p>
           </div>
-          <Button onClick={handleCreateNew} className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg">
-            <Plus className="mr-2" />
-            Nueva Venta
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setIsPriceCheckerOpen(true)} variant="outline" className="w-full sm:w-auto border-primary text-primary hover:bg-primary hover:text-primary-foreground shadow-lg">
+              <DollarSign className="mr-2" />
+              Consultar Precio
+            </Button>
+            <Button onClick={handleCreateNew} className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg">
+              <Plus className="mr-2" />
+              Nueva Venta
+            </Button>
+          </div>
         </header>
 
          {/* Summary Cards */}
@@ -352,13 +371,13 @@ export default function VentasPage() {
                         <div>
                           <p className="text-xs text-muted-foreground">Precio Unitario</p>
                           <p className="text-sm font-medium text-foreground">
-                            {formatCurrency(sale.unitPrice)}
+                            {formatCurrency(sale.unitPrice, 'USD')}
                           </p>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Total</p>
                           <p className="text-sm font-bold text-foreground">
-                            {formatCurrency(sale.totalAmount)}
+                            {formatCurrency(sale.totalAmount, 'USD')}
                           </p>
                         </div>
                       </div>
@@ -412,6 +431,65 @@ export default function VentasPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <Dialog open={isPriceCheckerOpen} onOpenChange={setIsPriceCheckerOpen}>
+            <DialogContent className="max-w-2xl bg-background border-border/50">
+                <DialogHeader>
+                    <DialogTitle className="text-2xl text-foreground">Consultor de Precios</DialogTitle>
+                    <DialogDescription>
+                        Selecciona un producto para ver su precio en Bs. y USD.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-6 py-4">
+                    <div className="grid grid-cols-3 items-center gap-4">
+                        <label htmlFor="bcv-rate-checker" className="text-right text-foreground">Tasa BCV</label>
+                        <Input
+                            id="bcv-rate-checker"
+                            type="number"
+                            placeholder="Tasa de cambio"
+                            value={bcvRate || ''}
+                            onChange={(e) => setBcvRate(parseFloat(e.target.value) || null)}
+                            className="col-span-2 border-border/50 focus:ring-ring"
+                        />
+                    </div>
+                     <div className="grid grid-cols-3 items-center gap-4">
+                        <label className="text-right text-foreground">Producto</label>
+                        <Select 
+                          onValueChange={(productId) => {
+                            const product = products?.find(p => p.id === productId)
+                            setSelectedPriceCheckerProduct(product || null)
+                          }}
+                          disabled={isLoadingProducts}
+                        >
+                            <SelectTrigger className="col-span-2 border-border/50 focus:ring-ring">
+                                <SelectValue placeholder={isLoadingProducts ? "Cargando..." : "Selecciona un producto"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {activeProducts.map(product => (
+                                    <SelectItem key={product.id} value={product.id}>
+                                        {product.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {selectedPriceCheckerProduct && bcvRate && (
+                        <Card className="col-span-3 mt-4 border-primary bg-primary/5">
+                            <CardContent className="pt-6 text-center">
+                                <p className="text-sm text-muted-foreground">{selectedPriceCheckerProduct.name}</p>
+                                <p className="text-6xl font-bold text-primary my-2">
+                                    {formatCurrency(selectedPriceCheckerProduct.price, 'VES')}
+                                </p>
+                                <p className="text-lg font-semibold text-muted-foreground">
+                                    {formatCurrency(selectedPriceCheckerProduct.price, 'USD')}
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   )
