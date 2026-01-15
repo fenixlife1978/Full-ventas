@@ -108,6 +108,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     };
   }, [firebaseApp, firestore, auth, userAuthState]);
 
+  if (userAuthState.isUserLoading) {
+    return null; // O un componente de carga global
+  }
+
   return (
     <FirebaseContext.Provider value={contextValue}>
       <FirebaseErrorListener />
