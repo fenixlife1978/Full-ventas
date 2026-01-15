@@ -19,6 +19,7 @@ import {
   Settings,
   Bot,
   Package,
+  DollarSign,
 } from 'lucide-react'
 import { UserProfile } from '@/components/user-profile'
 
@@ -49,6 +50,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <Link href="/productos">
                   <Package />
                   <span>Productos</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Ventas">
+                <Link href="/ventas">
+                  <DollarSign />
+                  <span>Ventas</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

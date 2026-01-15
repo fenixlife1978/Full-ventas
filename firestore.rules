@@ -6,22 +6,23 @@
  *
  * @section Core Philosophy
  * This ruleset implements a public, append-only data model for reports and a
- * mutable model for products. The core principle is that all reports are public
+ * mutable model for products and sales. The core principle is that all reports are public
  * and can be read by anyone, including anonymous users. Authenticated users are
  * permitted to create new reports, but once a report is created, it is immutable
  * and cannot be updated or deleted by anyone. This ensures data integrity and
  * prevents tampering in an environment where documents do not have explicit owners.
- * Products can be created, read, updated, and deleted by authenticated users.
+ * Products and sales can be created, read, updated, and deleted by authenticated users.
  *
  * @section Data Structure
- * The data is organized into two top-level collections:
+ * The data is organized into three top-level collections:
  * - /reports/{reportId}: Stores individual report documents.
  * - /products/{productId}: Stores individual product documents.
+ * - /sales/{saleId}: Stores individual sale documents.
  *
  * @section Key Security Decisions
  * - Public Read Access for Reports: All reports in the `/reports` collection are publicly readable
  *   to support application features that display report data to any user.
- * - Authenticated CRUD for Products: All operations on products require authentication.
+ * - Authenticated CRUD for Products and Sales: All operations on products and sales require authentication.
  * - Immutability for Reports: To prevent any user from modifying or deleting another user's report
  *   (especially since there is no `ownerId` field), all update and delete operations
  *   are explicitly denied for reports. This makes the `/reports` collection an append-only log.
@@ -32,7 +33,7 @@
  * status.
  *
  * @section Structural Segregation
- * Top-level collections `/reports` and `/products` are used because documents within them share
+ * Top-level collections are used because documents within them share
  * the same access level, making it efficient for list operations.
  */
 rules_version = '2';
@@ -84,6 +85,15 @@ service cloud.firestore {
      */
     match /products/{productId} {
       allow read, write: if isSignedIn();
+    }
+
+    /**
+     * @description Allows authenticated users to manage sales.
+     * @path /sales/{saleId}
+     * @allow (read, write) Any signed-in user can read, create, update, or delete sale documents.
+     */
+    match /sales/{saleId} {
+        allow read, write: if isSignedIn();
     }
   }
 }
