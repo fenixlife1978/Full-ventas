@@ -255,13 +255,17 @@ export default function VentasPage() {
   
   const formatCurrency = (value: number, currency: 'USD' | 'VES' = 'USD') => {
     if (currency === 'VES' && bcvRate) {
-        value = value * bcvRate;
+      value = value * bcvRate
+      return `Bs. ${new Intl.NumberFormat('es-VE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(value)}`
     }
-    const currencyToUse = currency === 'VES' ? 'VED' : 'USD';
-    const style = 'currency';
-
-    return new Intl.NumberFormat('es-VE', { style, currency: currencyToUse }).format(value);
-  };
+    return new Intl.NumberFormat('es-VE', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(value)
+  }
 
  const isLoading = isLoadingSales || isLoadingProducts || isLoadingSettings;
 

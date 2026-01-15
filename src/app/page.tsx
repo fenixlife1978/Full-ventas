@@ -156,9 +156,9 @@ export default function DashboardPage() {
   const isLoading = isLoadingProducts || isLoadingSales
   
   const formatCurrency = (value: number) => {
-     return new Intl.NumberFormat('es-ES', {
+    return new Intl.NumberFormat('es-VE', {
       style: 'currency',
-      currency: 'EUR',
+      currency: 'USD',
     }).format(value)
   }
 

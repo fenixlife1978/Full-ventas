@@ -288,9 +288,16 @@ export default function ComprasPage() {
 
   const formatCurrency = (value: number, currency: 'USD' | 'VES' = 'USD') => {
     if (currency === 'VES' && bcvRate) {
-        value = value * bcvRate;
+      value = value * bcvRate
+      return `Bs. ${new Intl.NumberFormat('es-VE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(value)}`
     }
-    return new Intl.NumberFormat('es-VE', { style: 'currency', currency: currency === 'VES' ? 'VED' : 'USD' }).format(value)
+    return new Intl.NumberFormat('es-VE', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(value)
   }
 
   const isLoading = isLoadingPurchases || isLoadingProducts || isLoadingSettings
