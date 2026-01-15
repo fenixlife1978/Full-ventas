@@ -154,29 +154,29 @@ export default function ProductosPage() {
     <div className="space-y-6 p-4 md:p-8">
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-[#00704a]">Productos</h1>
-          <p className="text-[#6b5d4f] mt-2">Gestiona el inventario de tu bodega</p>
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground">Productos</h1>
+          <p className="text-muted-foreground mt-2">Gestiona el inventario de tu bodega</p>
         </div>
-        <Button onClick={handleCreateNew} className="w-full sm:w-auto bg-[#00704a] hover:bg-[#005a3c] text-white shadow-lg">
+        <Button onClick={handleCreateNew} className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg">
           <Plus className="mr-2" />
           Agregar Producto
         </Button>
       </header>
 
-      <Card className="bg-white border-[#00704a] shadow-lg">
+      <Card className="bg-card border-border/50 shadow-sm">
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#6b5d4f]" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por nombre, SKU o descripción..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 border-[#00704a] focus:ring-[#00704a]"
+                  className="pl-10 border-border/50 focus:ring-ring"
                 />
               </div>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="border-[#00704a] focus:ring-[#00704a]">
+                <SelectTrigger className="border-border/50 focus:ring-ring">
                   <SelectValue placeholder="Todas las categorías" />
                 </SelectTrigger>
                 <SelectContent>
@@ -187,7 +187,7 @@ export default function ProductosPage() {
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="border-[#00704a] focus:ring-[#00704a]">
+                <SelectTrigger className="border-border/50 focus:ring-ring">
                   <SelectValue placeholder="Todos los estados" />
                 </SelectTrigger>
                 <SelectContent>
@@ -203,7 +203,7 @@ export default function ProductosPage() {
         <div className="grid grid-cols-1 gap-4">
           {isLoading ? (
              Array.from({ length: 3 }).map((_, i) => (
-                <Card key={i} className="bg-white border-[#00704a]">
+                <Card key={i} className="bg-card border-border/50">
                     <CardContent className="p-6">
                         <Skeleton className="h-24 w-full" />
                     </CardContent>
@@ -211,14 +211,14 @@ export default function ProductosPage() {
              ))
           ) : filteredProducts.length > 0 ? (
             filteredProducts.map(product => (
-              <Card key={product.id} className="bg-white border-[#00704a] hover:shadow-xl transition-shadow">
+              <Card key={product.id} className="bg-card border-border/50 hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div className="flex-1 space-y-2">
                       <div className="flex items-start justify-between">
                         <div>
-                          <h3 className="text-lg font-semibold text-[#00704a]">{product.name}</h3>
-                          <p className="text-sm text-[#6b5d4f]">SKU: {product.sku}</p>
+                          <h3 className="text-lg font-semibold text-foreground">{product.name}</h3>
+                          <p className="text-sm text-muted-foreground">SKU: {product.sku}</p>
                         </div>
                         <div className="flex gap-2">
                           {product.stock <= (product.minStock || 0) && (
@@ -227,34 +227,34 @@ export default function ProductosPage() {
                               Stock Bajo
                             </Badge>
                           )}
-                          <Badge variant={product.status === 'active' ? 'default' : 'secondary'} className={product.status === 'active' ? 'bg-[#00704a] text-white' : ''}>
+                          <Badge variant={product.status === 'active' ? 'default' : 'secondary'} className={product.status === 'active' ? 'bg-primary text-primary-foreground' : ''}>
                             {product.status === 'active' ? 'Activo' : 'Inactivo'}
                           </Badge>
                         </div>
                       </div>
                       {product.description && (
-                        <p className="text-sm text-[#6b5d4f]">{product.description}</p>
+                        <p className="text-sm text-muted-foreground">{product.description}</p>
                       )}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
                         <div>
-                          <p className="text-xs text-[#6b5d4f]">Categoría</p>
-                          <p className="text-sm font-medium text-[#00704a]">{product.category || 'N/A'}</p>
+                          <p className="text-xs text-muted-foreground">Categoría</p>
+                          <p className="text-sm font-medium text-foreground">{product.category || 'N/A'}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-[#6b5d4f]">Precio</p>
-                          <p className="text-sm font-medium text-[#00704a]">
+                          <p className="text-xs text-muted-foreground">Precio</p>
+                          <p className="text-sm font-medium text-foreground">
                              {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(product.price)}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-[#6b5d4f]">Stock</p>
-                          <p className="text-sm font-medium text-[#00704a]">
+                          <p className="text-xs text-muted-foreground">Stock</p>
+                          <p className="text-sm font-medium text-foreground">
                             {product.stock} {product.unit}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-[#6b5d4f]">Stock Mínimo</p>
-                          <p className="text-sm font-medium text-[#00704a]">{product.minStock || 0}</p>
+                          <p className="text-xs text-muted-foreground">Stock Mínimo</p>
+                          <p className="text-sm font-medium text-foreground">{product.minStock || 0}</p>
                         </div>
                       </div>
                     </div>
@@ -263,7 +263,7 @@ export default function ProductosPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleEdit(product)}
-                        className="flex-1 lg:flex-none border-[#00704a] text-[#00704a] hover:bg-[#00704a] hover:text-white"
+                        className="flex-1 lg:flex-none border-border text-foreground hover:bg-accent hover:text-accent-foreground"
                       >
                         <Edit className="mr-2" />
                         Editar
@@ -283,10 +283,10 @@ export default function ProductosPage() {
               </Card>
             ))
           ) : (
-            <Card className="bg-white border-[#00704a]">
+            <Card className="bg-card border-border/50">
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <Package className="h-12 w-12 text-[#00704a] mb-4" />
-                <p className="text-[#6b5d4f] text-center">
+                <Package className="h-12 w-12 text-primary mb-4" />
+                <p className="text-muted-foreground text-center">
                   {searchTerm || categoryFilter !== 'all' || statusFilter !== 'all'
                     ? 'No se encontraron productos con los filtros aplicados'
                     : 'No hay productos registrados. ¡Agrega tu primer producto!'}

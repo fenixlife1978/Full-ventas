@@ -14,7 +14,7 @@ import { collection } from 'firebase/firestore'
 import { useMemoFirebase } from '@/firebase/provider'
 import { type Product } from './productos/page'
 import { type Sale } from './ventas/page'
-import { startOfMonth, isToday, parseISO } from 'date-fns'
+import { startOfMonth, isToday } from 'date-fns'
 import Layout from './layout-app'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -39,9 +39,9 @@ const StatCard = ({
   color: string
   isLoading: boolean
 }) => (
-  <Card className="bg-white border-[#00704a] shadow-lg hover:shadow-xl transition-shadow">
+  <Card className="bg-card border-border/50 shadow-sm hover:shadow-md transition-shadow">
     <CardHeader className="flex flex-row items-center justify-between pb-2">
-      <CardTitle className="text-sm font-medium text-[#6b5d4f]">
+      <CardTitle className="text-sm font-medium text-muted-foreground">
         {title}
       </CardTitle>
       <Icon className={`h-5 w-5 ${color}`} />
@@ -54,9 +54,9 @@ const StatCard = ({
         </>
       ) : (
         <>
-          <div className="text-2xl font-bold text-[#00704a]">{value}</div>
+          <div className="text-2xl font-bold text-foreground">{value}</div>
           {subtitle && (
-            <p className="text-xs text-[#6b5d4f] mt-1">{subtitle}</p>
+            <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
           )}
         </>
       )}
@@ -216,7 +216,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Top Products */}
-        <Card className="bg-white border-border shadow-lg">
+        <Card className="bg-card border-border/50 shadow-sm">
           <CardHeader>
             <CardTitle className="text-xl text-foreground">
               Productos Más Vendidos (Este Mes)
@@ -240,7 +240,7 @@ export default function DashboardPage() {
                 {topProducts.map((product, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between border-b border-border pb-3 last:border-0"
+                    className="flex items-center justify-between border-b border-border/20 pb-3 last:border-0"
                   >
                     <div className="flex-1">
                       <p className="font-medium text-foreground">

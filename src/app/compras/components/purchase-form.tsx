@@ -118,9 +118,9 @@ export function PurchaseForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl bg-[#f7f4ed] border-[#00704a]">
+      <DialogContent className="max-w-2xl bg-background border-border/50">
         <DialogHeader>
-          <DialogTitle className="text-2xl text-[#00704a]">Registrar Nueva Compra</DialogTitle>
+          <DialogTitle className="text-2xl text-foreground">Registrar Nueva Compra</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form
@@ -133,10 +133,10 @@ export function PurchaseForm({
                 name="productId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-[#00704a] font-semibold">Producto *</FormLabel>
+                    <FormLabel className="text-foreground font-semibold">Producto *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingProducts}>
                       <FormControl>
-                        <SelectTrigger className="border-[#00704a] focus:ring-[#00704a]">
+                        <SelectTrigger className="border-border/50 focus:ring-ring">
                           <SelectValue placeholder={isLoadingProducts ? "Cargando..." : "Seleccionar producto"} />
                         </SelectTrigger>
                       </FormControl>
@@ -158,9 +158,9 @@ export function PurchaseForm({
                 name="quantity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-[#00704a] font-semibold">Cantidad *</FormLabel>
+                    <FormLabel className="text-foreground font-semibold">Cantidad *</FormLabel>
                     <FormControl>
-                      <Input type="number" step="1" min="1" {...field} className="border-[#00704a] focus:ring-[#00704a]" />
+                      <Input type="number" step="1" min="1" {...field} className="border-border/50 focus:ring-ring" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -172,9 +172,9 @@ export function PurchaseForm({
                 name="unitCost"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-[#00704a] font-semibold">Costo Unitario *</FormLabel>
+                    <FormLabel className="text-foreground font-semibold">Costo Unitario *</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" {...field} className="border-[#00704a] focus:ring-[#00704a]" />
+                      <Input type="number" step="0.01" {...field} className="border-border/50 focus:ring-ring" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -186,9 +186,9 @@ export function PurchaseForm({
                 name="supplier"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-[#00704a] font-semibold">Proveedor *</FormLabel>
+                    <FormLabel className="text-foreground font-semibold">Proveedor *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Nombre del proveedor" {...field} className="border-[#00704a] focus:ring-[#00704a]" />
+                      <Input placeholder="Nombre del proveedor" {...field} className="border-border/50 focus:ring-ring" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -200,10 +200,10 @@ export function PurchaseForm({
                 name="paymentMethod"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-[#00704a] font-semibold">Método de Pago</FormLabel>
+                    <FormLabel className="text-foreground font-semibold">Método de Pago</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger className="border-[#00704a] focus:ring-[#00704a]">
+                        <SelectTrigger className="border-border/50 focus:ring-ring">
                           <SelectValue placeholder="Seleccione un método de pago" />
                         </SelectTrigger>
                       </FormControl>
@@ -224,9 +224,9 @@ export function PurchaseForm({
                 name="invoiceNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-[#00704a] font-semibold">Nº Factura (Opcional)</FormLabel>
+                    <FormLabel className="text-foreground font-semibold">Nº Factura (Opcional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ej: F-2024-1234" {...field} className="border-[#00704a] focus:ring-[#00704a]" />
+                      <Input placeholder="Ej: F-2024-1234" {...field} className="border-border/50 focus:ring-ring" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -238,14 +238,14 @@ export function PurchaseForm({
                   name="purchaseDate"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel className="text-[#00704a] font-semibold">Fecha de Compra</FormLabel>
+                      <FormLabel className="text-foreground font-semibold">Fecha de Compra</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
                               variant={'outline'}
                               className={cn(
-                                'w-full pl-3 text-left font-normal border-[#00704a] focus:ring-[#00704a]',
+                                'w-full pl-3 text-left font-normal border-border/50 focus:ring-ring',
                                 !field.value && 'text-muted-foreground'
                               )}
                             >
@@ -281,11 +281,11 @@ export function PurchaseForm({
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[#00704a] font-semibold">Notas (Opcional)</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Notas (Opcional)</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Añada notas adicionales sobre la compra"
-                      className="resize-none border-[#00704a] focus:ring-[#00704a]"
+                      className="resize-none border-border/50 focus:ring-ring"
                       {...field}
                     />
                   </FormControl>
@@ -295,7 +295,7 @@ export function PurchaseForm({
             />
 
             {totalAmount > 0 && (
-                <div className="bg-[#00704a] text-white p-4 rounded-lg">
+                <div className="bg-primary text-primary-foreground p-4 rounded-lg">
                     <p className="text-lg font-bold">
                     Total: {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(totalAmount)}
                     </p>
@@ -303,10 +303,10 @@ export function PurchaseForm({
             )}
 
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1 border-[#00704a] text-[#00704a] hover:bg-[#00704a] hover:text-white">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1 border-border text-foreground hover:bg-accent hover:text-accent-foreground">
                     Cancelar
               </Button>
-              <Button type="submit" className="flex-1 bg-[#00704a] hover:bg-[#005a3c] text-white">
+              <Button type="submit" className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground">
                 Registrar Compra
               </Button>
             </DialogFooter>

@@ -115,9 +115,9 @@ export function SaleForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md bg-[#f7f4ed] border-[#00704a]">
+      <DialogContent className="max-w-md bg-background border-border/50">
         <DialogHeader>
-          <DialogTitle className="text-2xl text-[#00704a]">Registrar Nueva Venta</DialogTitle>
+          <DialogTitle className="text-2xl text-foreground">Registrar Nueva Venta</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form
@@ -129,10 +129,10 @@ export function SaleForm({
               name="productId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[#00704a] font-semibold">Producto *</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Producto *</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingProducts}>
                     <FormControl>
-                      <SelectTrigger className="border-[#00704a] focus:ring-[#00704a]">
+                      <SelectTrigger className="border-border/50 focus:ring-ring">
                         <SelectValue placeholder={isLoadingProducts ? "Cargando..." : "Selecciona un producto"} />
                       </SelectTrigger>
                     </FormControl>
@@ -150,18 +150,18 @@ export function SaleForm({
             />
 
             {selectedProduct && (
-                <Card className="bg-[#e8dcc4] border-[#00704a]">
+                <Card className="bg-muted border-border/50">
                     <CardContent className="pt-4">
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
-                          <p className="text-[#6b5d4f]">Precio:</p>
-                          <p className="font-semibold text-[#00704a]">
+                          <p className="text-muted-foreground">Precio:</p>
+                          <p className="font-semibold text-foreground">
                             {formatCurrency(selectedProduct.price)}
                           </p>
                         </div>
                         <div>
-                          <p className="text-[#6b5d4f]">Stock disponible:</p>
-                          <p className="font-semibold text-[#00704a]">
+                          <p className="text-muted-foreground">Stock disponible:</p>
+                          <p className="font-semibold text-foreground">
                             {selectedProduct.stock} {selectedProduct.unit}
                           </p>
                         </div>
@@ -175,9 +175,9 @@ export function SaleForm({
               name="quantity"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[#00704a] font-semibold">Cantidad *</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Cantidad *</FormLabel>
                   <FormControl>
-                    <Input type="number" step="1" min="1" {...field} className="border-[#00704a] focus:ring-[#00704a]" />
+                    <Input type="number" step="1" min="1" {...field} className="border-border/50 focus:ring-ring" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -185,11 +185,11 @@ export function SaleForm({
             />
 
             {selectedProduct && quantity > 0 && (
-                <Card className="bg-[#00704a] border-[#005a3c]">
+                <Card className="bg-primary border-primary/90">
                     <CardContent className="pt-4">
                       <div className="flex justify-between items-center">
-                        <span className="text-white font-medium">Total a pagar:</span>
-                        <span className="text-2xl font-bold text-white">
+                        <span className="text-primary-foreground font-medium">Total a pagar:</span>
+                        <span className="text-2xl font-bold text-primary-foreground">
                           {formatCurrency(totalAmount)}
                         </span>
                       </div>
@@ -203,14 +203,14 @@ export function SaleForm({
               name="saleDate"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel className="text-[#00704a] font-semibold">Fecha de Venta</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Fecha de Venta</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
                           variant={'outline'}
                           className={cn(
-                            'w-full pl-3 text-left font-normal border-[#00704a]',
+                            'w-full pl-3 text-left font-normal border-border/50',
                             !field.value && 'text-muted-foreground'
                           )}
                         >
@@ -245,10 +245,10 @@ export function SaleForm({
               name="paymentMethod"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[#00704a] font-semibold">Método de Pago</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Método de Pago</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="border-[#00704a] focus:ring-[#00704a]">
+                      <SelectTrigger className="border-border/50 focus:ring-ring">
                         <SelectValue placeholder="Seleccione un método de pago" />
                       </SelectTrigger>
                     </FormControl>
@@ -269,11 +269,11 @@ export function SaleForm({
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[#00704a] font-semibold">Notas (Opcional)</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Notas (Opcional)</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Añada notas adicionales sobre la venta"
-                      className="resize-none border-[#00704a] focus:ring-[#00704a]"
+                      className="resize-none border-border/50 focus:ring-ring"
                       {...field}
                     />
                   </FormControl>
@@ -283,10 +283,10 @@ export function SaleForm({
             />
 
             <DialogFooter>
-               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="border-[#00704a] text-[#00704a] hover:bg-[#00704a] hover:text-white">
+               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="border-border text-foreground hover:bg-accent hover:text-accent-foreground">
                   Cancelar
                 </Button>
-              <Button type="submit" disabled={!selectedProduct || !(quantity > 0)} className="bg-[#00704a] hover:bg-[#005a3c] text-white">
+              <Button type="submit" disabled={!selectedProduct || !(quantity > 0)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 Registrar Venta
               </Button>
             </DialogFooter>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useCollection, useFirestore } from '@/firebase'
 import { collection } from 'firebase/firestore'
 import { useMemoFirebase } from '@/firebase/provider'
@@ -19,7 +19,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart'
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, XAxis, YAxis } from 'recharts'
 
 import {
   startOfToday,
@@ -27,7 +27,6 @@ import {
   startOfMonth,
   startOfYear,
   format,
-  parseISO,
 } from 'date-fns'
 import { es } from 'date-fns/locale'
 import Layout from '@/app/layout-app'
@@ -218,8 +217,8 @@ export default function ReportesPage() {
   const isLoading = isLoadingSales || isLoadingProducts
   
   const chartConfig = {
-      ingresos: { label: "Ingresos", color: "#00704a" },
-      total: { label: "Total", color: "#00704a" },
+      ingresos: { label: "Ingresos", color: "hsl(var(--primary))" },
+      total: { label: "Total", color: "hsl(var(--primary))" },
   } satisfies React.ComponentProps<typeof ChartContainer>["config"]
 
   if (isLoading) {
@@ -238,12 +237,12 @@ export default function ReportesPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-[#00704a]">Reportes</h1>
-            <p className="text-[#6b5d4f] mt-2">Análisis de ventas y productos</p>
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground">Reportes</h1>
+            <p className="text-muted-foreground mt-2">Análisis de ventas y productos</p>
           </div>
           <div className="flex gap-2">
             <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className="w-[180px] border-[#00704a] focus:ring-[#00704a]">
+              <SelectTrigger className="w-[180px] border-border/50 focus:ring-ring">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -257,7 +256,7 @@ export default function ReportesPage() {
             <Button
               variant="outline"
               onClick={exportToCSV}
-              className="border-[#00704a] text-[#00704a] hover:bg-[#00704a] hover:text-white"
+              className="border-border text-foreground hover:bg-accent hover:text-accent-foreground"
             >
               <Download className="mr-2" />
               Exportar
@@ -267,56 +266,56 @@ export default function ReportesPage() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-white border-[#00704a] shadow-lg">
+          <Card className="bg-card border-border/50 shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-[#6b5d4f]">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
                 Total Ventas
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-[#00704a]">
+              <div className="text-2xl font-bold text-foreground">
                 {reportData.summary.totalSales}
               </div>
-              <p className="text-xs text-[#6b5d4f] mt-1">{getPeriodLabel()}</p>
+              <p className="text-xs text-muted-foreground mt-1">{getPeriodLabel()}</p>
             </CardContent>
           </Card>
-          <Card className="bg-white border-[#00704a] shadow-lg">
+          <Card className="bg-card border-border/50 shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-[#6b5d4f]">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
                 Ingresos Totales
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-[#00704a]">
+              <div className="text-2xl font-bold text-foreground">
                 {formatCurrency(reportData.summary.totalRevenue)}
               </div>
-              <p className="text-xs text-[#6b5d4f] mt-1">{getPeriodLabel()}</p>
+              <p className="text-xs text-muted-foreground mt-1">{getPeriodLabel()}</p>
             </CardContent>
           </Card>
-          <Card className="bg-white border-[#00704a] shadow-lg">
+          <Card className="bg-card border-border/50 shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-[#6b5d4f]">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
                 Ticket Promedio
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-[#00704a]">
+              <div className="text-2xl font-bold text-foreground">
                 {formatCurrency(reportData.summary.averageTicket)}
               </div>
-              <p className="text-xs text-[#6b5d4f] mt-1">Por venta</p>
+              <p className="text-xs text-muted-foreground mt-1">Por venta</p>
             </CardContent>
           </Card>
-          <Card className="bg-white border-[#00704a] shadow-lg">
+          <Card className="bg-card border-border/50 shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-[#6b5d4f]">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
                 Unidades Vendidas
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-[#00704a]">
+              <div className="text-2xl font-bold text-foreground">
                 {reportData.summary.totalQuantity.toLocaleString('es-ES')}
               </div>
-              <p className="text-xs text-[#6b5d4f] mt-1">{getPeriodLabel()}</p>
+              <p className="text-xs text-muted-foreground mt-1">{getPeriodLabel()}</p>
             </CardContent>
           </Card>
         </div>
@@ -324,9 +323,9 @@ export default function ReportesPage() {
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Daily Sales Chart */}
-          <Card className="bg-white border-[#00704a] shadow-lg">
+          <Card className="bg-card border-border/50 shadow-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-[#00704a]">
+              <CardTitle className="flex items-center gap-2 text-foreground">
                 <BarChart3 className="h-5 w-5" />
                 Ventas por Día
               </CardTitle>
@@ -337,14 +336,14 @@ export default function ReportesPage() {
                    <ChartContainer config={chartConfig} className="w-full h-full">
                         <BarChart data={reportData.dailySales} accessibilityLayer>
                           <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
-                          <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+                          <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => `$${value}`} />
                            <ChartTooltip content={<ChartTooltipContent />} />
                           <Bar dataKey="ingresos" fill="var(--color-ingresos)" radius={4} />
                         </BarChart>
                     </ChartContainer>
                 </div>
               ) : (
-                <div className="h-64 flex items-center justify-center text-[#6b5d4f]">
+                <div className="h-64 flex items-center justify-center text-muted-foreground">
                   No hay datos para mostrar
                 </div>
               )}
@@ -352,9 +351,9 @@ export default function ReportesPage() {
           </Card>
 
           {/* Payment Methods Chart */}
-          <Card className="bg-white border-[#00704a] shadow-lg">
+          <Card className="bg-card border-border/50 shadow-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-[#00704a]">
+              <CardTitle className="flex items-center gap-2 text-foreground">
                 <TrendingUp className="h-5 w-5" />
                 Ventas por Método de Pago
               </CardTitle>
@@ -365,14 +364,14 @@ export default function ReportesPage() {
                   <ChartContainer config={chartConfig} className="w-full h-full">
                         <BarChart data={reportData.salesByPayment} accessibilityLayer>
                            <XAxis dataKey="method" tickLine={false} axisLine={false} tickMargin={8} />
-                           <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+                           <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => `$${value}`} />
                            <ChartTooltip content={<ChartTooltipContent />} />
                            <Bar dataKey="total" fill="var(--color-total)" radius={4} />
                         </BarChart>
                     </ChartContainer>
                 </div>
               ) : (
-                <div className="h-64 flex items-center justify-center text-[#6b5d4f]">
+                <div className="h-64 flex items-center justify-center text-muted-foreground">
                   No hay datos para mostrar
                 </div>
               )}
@@ -381,34 +380,34 @@ export default function ReportesPage() {
         </div>
 
         {/* Top Products Table */}
-        <Card className="bg-white border-[#00704a] shadow-lg">
+        <Card className="bg-card border-border/50 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-[#00704a]">Productos Más Vendidos</CardTitle>
+            <CardTitle className="text-foreground">Productos Más Vendidos</CardTitle>
           </CardHeader>
           <CardContent>
             {reportData.topProducts.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b-2 border-[#00704a]">
-                      <th className="text-left py-3 px-4 font-semibold text-[#00704a]">#</th>
-                      <th className="text-left py-3 px-4 font-semibold text-[#00704a]">Producto</th>
-                      <th className="text-right py-3 px-4 font-semibold text-[#00704a]">Cantidad</th>
-                      <th className="text-right py-3 px-4 font-semibold text-[#00704a]">Ventas</th>
-                      <th className="text-right py-3 px-4 font-semibold text-[#00704a]">Ingresos</th>
+                    <tr className="border-b-2 border-border/50">
+                      <th className="text-left py-3 px-4 font-semibold text-foreground">#</th>
+                      <th className="text-left py-3 px-4 font-semibold text-foreground">Producto</th>
+                      <th className="text-right py-3 px-4 font-semibold text-foreground">Cantidad</th>
+                      <th className="text-right py-3 px-4 font-semibold text-foreground">Ventas</th>
+                      <th className="text-right py-3 px-4 font-semibold text-foreground">Ingresos</th>
                     </tr>
                   </thead>
                   <tbody>
                     {reportData.topProducts.map((product, index) => (
                       <tr
                         key={index}
-                        className="border-b border-[#e8dcc4] last:border-0 hover:bg-[#f7f4ed] transition-colors"
+                        className="border-b border-border/20 last:border-0 hover:bg-muted transition-colors"
                       >
-                        <td className="py-3 px-4 text-[#6b5d4f]">{index + 1}</td>
-                        <td className="py-3 px-4 font-medium text-[#00704a]">{product.productName}</td>
-                        <td className="py-3 px-4 text-right text-[#6b5d4f]">{product.quantity}</td>
-                        <td className="py-3 px-4 text-right text-[#6b5d4f]">{product.sales}</td>
-                        <td className="py-3 px-4 text-right font-semibold text-[#00704a]">
+                        <td className="py-3 px-4 text-muted-foreground">{index + 1}</td>
+                        <td className="py-3 px-4 font-medium text-primary">{product.productName}</td>
+                        <td className="py-3 px-4 text-right text-muted-foreground">{product.quantity}</td>
+                        <td className="py-3 px-4 text-right text-muted-foreground">{product.sales}</td>
+                        <td className="py-3 px-4 text-right font-semibold text-primary">
                           {formatCurrency(product.revenue)}
                         </td>
                       </tr>
@@ -417,7 +416,7 @@ export default function ReportesPage() {
                 </table>
               </div>
             ) : (
-              <div className="text-center py-8 text-[#6b5d4f]">
+              <div className="text-center py-8 text-muted-foreground">
                 No hay datos de productos para mostrar
               </div>
             )}

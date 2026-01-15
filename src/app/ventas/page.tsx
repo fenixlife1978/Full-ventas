@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Plus, Search, ShoppingCart, DollarSign, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { startOfWeek, startOfMonth, isToday, parseISO } from 'date-fns'
+import { startOfWeek, startOfMonth } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { format } from 'date-fns'
 
@@ -229,10 +229,10 @@ export default function VentasPage() {
       <div className="space-y-6 p-4 md:p-8">
         <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-[#00704a]">Ventas</h1>
-            <p className="text-[#6b5d4f] mt-2">Registra y gestiona las ventas diarias</p>
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground">Ventas</h1>
+            <p className="text-muted-foreground mt-2">Registra y gestiona las ventas diarias</p>
           </div>
-          <Button onClick={handleCreateNew} className="w-full sm:w-auto bg-[#00704a] hover:bg-[#005a3c] text-white shadow-lg">
+          <Button onClick={handleCreateNew} className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg">
             <Plus className="mr-2" />
             Nueva Venta
           </Button>
@@ -240,44 +240,44 @@ export default function VentasPage() {
 
          {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="bg-white border-[#00704a] shadow-lg">
+          <Card className="bg-card border-border/50 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-[#6b5d4f]">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
                 Total Ventas ({dateFilter === 'today' ? 'Hoy' : dateFilter === 'week' ? 'Esta Semana' : dateFilter === 'month' ? 'Este Mes' : 'Todas'})
               </CardTitle>
-              <ShoppingCart className="h-5 w-5 text-[#00704a]" />
+              <ShoppingCart className="h-5 w-5 text-primary" />
             </CardHeader>
             <CardContent>
-             { isLoading ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold text-[#00704a]">{summaryStats.totalSales}</div> }
+             { isLoading ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold text-foreground">{summaryStats.totalSales}</div> }
             </CardContent>
           </Card>
-          <Card className="bg-white border-[#00704a] shadow-lg">
+          <Card className="bg-card border-border/50 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-[#6b5d4f]">Ingresos Totales</CardTitle>
-              <DollarSign className="h-5 w-5 text-[#00704a]" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Ingresos Totales</CardTitle>
+              <DollarSign className="h-5 w-5 text-primary" />
             </CardHeader>
             <CardContent>
-              { isLoading ? <Skeleton className="h-8 w-1/3" /> : <div className="text-2xl font-bold text-[#00704a]">{formatCurrency(summaryStats.totalRevenue)}</div> }
+              { isLoading ? <Skeleton className="h-8 w-1/3" /> : <div className="text-2xl font-bold text-foreground">{formatCurrency(summaryStats.totalRevenue)}</div> }
             </CardContent>
           </Card>
         </div>
 
 
         {/* Filters */}
-        <Card className="bg-white border-[#00704a] shadow-lg">
+        <Card className="bg-card border-border/50 shadow-sm">
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#6b5d4f]" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por producto o notas..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 border-[#00704a] focus:ring-[#00704a]"
+                  className="pl-10 border-border/50 focus:ring-ring"
                 />
               </div>
               <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger className="border-[#00704a] focus:ring-[#00704a]">
+                <SelectTrigger className="border-border/50 focus:ring-ring">
                   <SelectValue placeholder="Filtrar por fecha" />
                 </SelectTrigger>
                 <SelectContent>
@@ -295,7 +295,7 @@ export default function VentasPage() {
         <div className="grid grid-cols-1 gap-4">
           {isLoading ? (
             Array.from({length: 3}).map((_, i) => (
-                <Card key={i} className="bg-white border-[#00704a]">
+                <Card key={i} className="bg-card border-border/50">
                     <CardContent className="p-6">
                         <Skeleton className="h-24 w-full" />
                     </CardContent>
@@ -303,42 +303,42 @@ export default function VentasPage() {
             ))
           ) : filteredSales.length > 0 ? (
             filteredSales.map(sale => (
-              <Card key={sale.id} className="bg-white border-[#00704a] hover:shadow-xl transition-shadow">
+              <Card key={sale.id} className="bg-card border-border/50 hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div className="flex-1 space-y-2">
                       <div className="flex items-start justify-between">
                         <div>
-                          <h3 className="text-lg font-semibold text-[#00704a]">{sale.productName}</h3>
-                          <p className="text-sm text-[#6b5d4f] flex items-center">
+                          <h3 className="text-lg font-semibold text-foreground">{sale.productName}</h3>
+                          <p className="text-sm text-muted-foreground flex items-center">
                             <span className="lucide lucide-calendar-days h-3 w-3 mr-1.5" />
                              {format(sale.saleDate, 'dd/MM/yyyy - HH:mm', { locale: es })}
                           </p>
                         </div>
                         <div className="flex gap-2 items-center">
-                           <Badge className="bg-[#00704a]">{getPaymentMethodLabel(sale.paymentMethod)}</Badge>
+                           <Badge className="bg-primary text-primary-foreground">{getPaymentMethodLabel(sale.paymentMethod)}</Badge>
                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(sale)}>
                                <Trash2 className="h-4 w-4 text-destructive" />
                            </Button>
                         </div>
                       </div>
                       {sale.notes && (
-                        <p className="text-sm text-[#6b5d4f] italic">"{sale.notes}"</p>
+                        <p className="text-sm text-muted-foreground italic">"{sale.notes}"</p>
                       )}
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2">
                         <div>
-                          <p className="text-xs text-[#6b5d4f]">Cantidad</p>
-                          <p className="text-sm font-medium text-[#00704a]">{sale.quantity}</p>
+                          <p className="text-xs text-muted-foreground">Cantidad</p>
+                          <p className="text-sm font-medium text-foreground">{sale.quantity}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-[#6b5d4f]">Precio Unitario</p>
-                          <p className="text-sm font-medium text-[#00704a]">
+                          <p className="text-xs text-muted-foreground">Precio Unitario</p>
+                          <p className="text-sm font-medium text-foreground">
                             {formatCurrency(sale.unitPrice)}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-[#6b5d4f]">Total</p>
-                          <p className="text-sm font-bold text-[#00704a]">
+                          <p className="text-xs text-muted-foreground">Total</p>
+                          <p className="text-sm font-bold text-foreground">
                             {formatCurrency(sale.totalAmount)}
                           </p>
                         </div>
@@ -349,10 +349,10 @@ export default function VentasPage() {
               </Card>
             ))
           ) : (
-            <Card className="bg-white border-[#00704a]">
+            <Card className="bg-card border-border/50">
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <ShoppingCart className="h-12 w-12 text-[#00704a] mb-4" />
-                <p className="text-[#6b5d4f] text-center">
+                <ShoppingCart className="h-12 w-12 text-primary mb-4" />
+                <p className="text-muted-foreground text-center">
                   {searchTerm || dateFilter !== 'all'
                     ? 'No se encontraron ventas con los filtros aplicados'
                     : 'No hay ventas registradas. ¡Registra tu primera venta!'}

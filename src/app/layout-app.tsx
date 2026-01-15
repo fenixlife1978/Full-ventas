@@ -83,7 +83,7 @@ export default function Layout({ children, currentPageName }) {
       {/* Main content */}
       <div className="lg:pl-64">
         {/* Top bar */}
-        <div className="sticky top-0 z-10 bg-card border-b-2 border-primary h-16 flex items-center px-4 lg:px-8 shadow-md">
+        <div className="sticky top-0 z-10 bg-background border-b-2 border-primary h-16 flex items-center px-4 lg:px-8">
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden text-primary hover:text-primary/80 mr-4"

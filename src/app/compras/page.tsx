@@ -218,15 +218,15 @@ export default function ComprasPage() {
     <div className="space-y-6 p-4 md:p-8">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-           <h1 className="text-3xl md:text-4xl font-bold text-[#00704a] flex items-center gap-3">
+           <h1 className="text-3xl md:text-4xl font-bold text-foreground flex items-center gap-3">
               <ShoppingCart className="w-8 h-8" />
               Control de Compras
             </h1>
-          <p className="text-[#6b5d4f] mt-2">
+          <p className="text-muted-foreground mt-2">
             Gestiona las compras de inventario
           </p>
         </div>
-        <Button onClick={handleCreateNew} className="bg-[#00704a] hover:bg-[#005a3c] text-white shadow-lg">
+        <Button onClick={handleCreateNew} className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg">
           <Plus className="mr-2" />
           Nueva Compra
         </Button>
@@ -234,59 +234,59 @@ export default function ComprasPage() {
 
       {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-white border-[#00704a] shadow-lg">
+          <Card className="bg-card border-border/50 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-[#6b5d4f] flex items-center gap-2">
-                <Package className="w-4 h-4 text-[#00704a]" />
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Package className="w-4 h-4 text-primary" />
                 Total Compras
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-9 w-1/4"/> : <div className="text-3xl font-bold text-[#00704a]">{totalPurchases}</div> }
+              {isLoading ? <Skeleton className="h-9 w-1/4"/> : <div className="text-3xl font-bold text-foreground">{totalPurchases}</div> }
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-[#00704a] shadow-lg">
+          <Card className="bg-card border-border/50 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-[#6b5d4f] flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-[#00704a]" />
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-primary" />
                 Monto Total
               </CardTitle>
             </CardHeader>
             <CardContent>
-             {isLoading ? <Skeleton className="h-9 w-1/2"/> : <div className="text-3xl font-bold text-[#00704a]">{formatCurrency(totalAmount)}</div>}
+             {isLoading ? <Skeleton className="h-9 w-1/2"/> : <div className="text-3xl font-bold text-foreground">{formatCurrency(totalAmount)}</div>}
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-[#00704a] shadow-lg">
+          <Card className="bg-card border-border/50 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-[#6b5d4f] flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[#00704a]" />
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-primary" />
                 Unidades Compradas
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-9 w-1/3"/> : <div className="text-3xl font-bold text-[#00704a]">{totalUnits}</div>}
+              {isLoading ? <Skeleton className="h-9 w-1/3"/> : <div className="text-3xl font-bold text-foreground">{totalUnits}</div>}
             </CardContent>
           </Card>
         </div>
 
 
         {/* Filters */}
-        <Card className="bg-white border-[#00704a] shadow-lg">
+        <Card className="bg-card border-border/50 shadow-sm">
           <CardContent className="pt-6">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#6b5d4f] w-5 h-5" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
                 <Input
                   placeholder="Buscar por producto, proveedor o factura..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 border-[#00704a] focus:ring-[#00704a]"
+                  className="pl-10 border-border/50 focus:ring-ring"
                 />
               </div>
               <Select value={filterPeriod} onValueChange={setFilterPeriod}>
-                <SelectTrigger className="w-full md:w-48 border-[#00704a] focus:ring-[#00704a]">
+                <SelectTrigger className="w-full md:w-48 border-border/50 focus:ring-ring">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -302,9 +302,9 @@ export default function ComprasPage() {
 
 
         {/* Purchases List */}
-        <Card className="bg-white border-[#00704a] shadow-lg">
+        <Card className="bg-card border-border/50 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-xl text-[#00704a] flex items-center gap-2">
+            <CardTitle className="text-xl text-foreground flex items-center gap-2">
               Historial de Compras
             </CardTitle>
           </CardHeader>
@@ -316,40 +316,40 @@ export default function ComprasPage() {
                 <Skeleton className="h-12 w-full" />
                </div>
             ) : filteredPurchases.length === 0 ? (
-              <div className="text-center py-8 text-[#6b5d4f]">No hay compras que coincidan con los filtros.</div>
+              <div className="text-center py-8 text-muted-foreground">No hay compras que coincidan con los filtros.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b-2 border-[#00704a]">
-                      <th className="text-left p-3 text-[#00704a] font-semibold">Fecha</th>
-                      <th className="text-left p-3 text-[#00704a] font-semibold">Producto</th>
-                      <th className="text-left p-3 text-[#00704a] font-semibold">Proveedor</th>
-                      <th className="text-right p-3 text-[#00704a] font-semibold">Cantidad</th>
-                      <th className="text-right p-3 text-[#00704a] font-semibold">Costo Unit.</th>
-                      <th className="text-right p-3 text-[#00704a] font-semibold">Total</th>
-                      <th className="text-left p-3 text-[#00704a] font-semibold">Pago</th>
-                      <th className="text-left p-3 text-[#00704a] font-semibold">Factura</th>
-                      <th className="text-right p-3 text-[#00704a] font-semibold">Acciones</th>
+                    <tr className="border-b-2 border-border/50">
+                      <th className="text-left p-3 text-foreground font-semibold">Fecha</th>
+                      <th className="text-left p-3 text-foreground font-semibold">Producto</th>
+                      <th className="text-left p-3 text-foreground font-semibold">Proveedor</th>
+                      <th className="text-right p-3 text-foreground font-semibold">Cantidad</th>
+                      <th className="text-right p-3 text-foreground font-semibold">Costo Unit.</th>
+                      <th className="text-right p-3 text-foreground font-semibold">Total</th>
+                      <th className="text-left p-3 text-foreground font-semibold">Pago</th>
+                      <th className="text-left p-3 text-foreground font-semibold">Factura</th>
+                      <th className="text-right p-3 text-foreground font-semibold">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredPurchases.map((purchase) => (
-                      <tr key={purchase.id} className="border-b border-[#e8dcc4] hover:bg-[#f7f4ed] transition-colors">
-                        <td className="p-3 text-[#6b5d4f]">
+                      <tr key={purchase.id} className="border-b border-border/20 hover:bg-muted transition-colors">
+                        <td className="p-3 text-muted-foreground">
                           {format(purchase.purchaseDate, 'dd/MM/yyyy HH:mm', { locale: es })}
                         </td>
-                        <td className="p-3 text-[#00704a] font-medium">{purchase.productName}</td>
-                        <td className="p-3 text-[#6b5d4f]">{purchase.supplier}</td>
-                        <td className="p-3 text-right text-[#6b5d4f]">{purchase.quantity}</td>
-                        <td className="p-3 text-right text-[#6b5d4f]">
+                        <td className="p-3 text-primary font-medium">{purchase.productName}</td>
+                        <td className="p-3 text-muted-foreground">{purchase.supplier}</td>
+                        <td className="p-3 text-right text-muted-foreground">{purchase.quantity}</td>
+                        <td className="p-3 text-right text-muted-foreground">
                           {formatCurrency(purchase.unitCost)}
                         </td>
-                        <td className="p-3 text-right text-[#00704a] font-bold">
+                        <td className="p-3 text-right text-primary font-bold">
                           {formatCurrency(purchase.totalAmount)}
                         </td>
-                        <td className="p-3 text-[#6b5d4f]">{purchase.paymentMethod}</td>
-                        <td className="p-3 text-[#6b5d4f]">{purchase.invoiceNumber || '-'}</td>
+                        <td className="p-3 text-muted-foreground">{purchase.paymentMethod}</td>
+                        <td className="p-3 text-muted-foreground">{purchase.invoiceNumber || '-'}</td>
                         <td className='p-3 text-right'>
                             <Button variant="destructive" size="sm" onClick={() => handleDelete(purchase)}>Eliminar</Button>
                         </td>

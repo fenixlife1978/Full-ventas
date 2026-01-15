@@ -108,9 +108,9 @@ export function ProductForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-[#f7f4ed] border-[#00704a]">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-background border-border/50">
             <DialogHeader>
-              <DialogTitle className="text-2xl text-[#00704a]">
+              <DialogTitle className="text-2xl text-foreground">
                 {product ? 'Editar Producto' : 'Agregar Nuevo Producto'}
               </DialogTitle>
             </DialogHeader>
@@ -124,9 +124,9 @@ export function ProductForm({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[#00704a] font-semibold">Nombre *</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Nombre *</FormLabel>
                   <FormControl>
-                    <Input {...field} className="border-[#00704a] focus:ring-[#00704a]" required />
+                    <Input {...field} className="border-border/50 focus:ring-ring" required />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -137,9 +137,9 @@ export function ProductForm({
               name="sku"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[#00704a] font-semibold">SKU *</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">SKU *</FormLabel>
                   <FormControl>
-                    <Input {...field} className="border-[#00704a] focus:ring-[#00704a]" required />
+                    <Input {...field} className="border-border/50 focus:ring-ring" required />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -150,9 +150,9 @@ export function ProductForm({
               name="description"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
-                  <FormLabel className="text-[#00704a] font-semibold">Descripción</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Descripción</FormLabel>
                   <FormControl>
-                    <Input {...field} className="border-[#00704a] focus:ring-[#00704a]" />
+                    <Input {...field} className="border-border/50 focus:ring-ring" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -163,9 +163,9 @@ export function ProductForm({
               name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[#00704a] font-semibold">Categoría</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Categoría</FormLabel>
                   <FormControl>
-                    <Input {...field} className="border-[#00704a] focus:ring-[#00704a]" list="categories" />
+                    <Input {...field} className="border-border/50 focus:ring-ring" list="categories" />
                   </FormControl>
                   <datalist id="categories">
                     {categories.map(cat => (
@@ -181,9 +181,9 @@ export function ProductForm({
               name="supplier"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[#00704a] font-semibold">Proveedor</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Proveedor</FormLabel>
                   <FormControl>
-                     <Input {...field} className="border-[#00704a] focus:ring-[#00704a]" />
+                     <Input {...field} className="border-border/50 focus:ring-ring" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -194,9 +194,9 @@ export function ProductForm({
               name="price"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[#00704a] font-semibold">Precio de Venta *</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Precio de Venta *</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" {...field} className="border-[#00704a] focus:ring-[#00704a]" required />
+                    <Input type="number" step="0.01" {...field} className="border-border/50 focus:ring-ring" required />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -207,9 +207,9 @@ export function ProductForm({
               name="cost"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[#00704a] font-semibold">Costo</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Costo</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" {...field} className="border-[#00704a] focus:ring-[#00704a]" />
+                    <Input type="number" step="0.01" {...field} className="border-border/50 focus:ring-ring" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -220,9 +220,9 @@ export function ProductForm({
               name="stock"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[#00704a] font-semibold">Stock Actual *</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Stock Actual *</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} className="border-[#00704a] focus:ring-[#00704a]" required />
+                    <Input type="number" {...field} className="border-border/50 focus:ring-ring" required />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -233,9 +233,9 @@ export function ProductForm({
               name="minStock"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[#00704a] font-semibold">Stock Mínimo</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Stock Mínimo</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} className="border-[#00704a] focus:ring-[#00704a]" />
+                    <Input type="number" {...field} className="border-border/50 focus:ring-ring" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -246,10 +246,10 @@ export function ProductForm({
               name="unit"
               render={({ field }) => (
                  <FormItem>
-                  <FormLabel className="text-[#00704a] font-semibold">Unidad de Medida</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Unidad de Medida</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="border-[#00704a] focus:ring-[#00704a]">
+                      <SelectTrigger className="border-border/50 focus:ring-ring">
                         <SelectValue placeholder="Selecciona una unidad" />
                       </SelectTrigger>
                     </FormControl>
@@ -270,13 +270,13 @@ export function ProductForm({
               name="status"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[#00704a] font-semibold">Estado</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Estado</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger className="border-[#00704a] focus:ring-[#00704a]">
+                      <SelectTrigger className="border-border/50 focus:ring-ring">
                         <SelectValue placeholder="Selecciona un estado" />
                       </SelectTrigger>
                     </FormControl>
@@ -290,10 +290,10 @@ export function ProductForm({
               )}
             />
             <DialogFooter className="md:col-span-2 pt-4">
-               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="border-[#00704a] text-[#00704a] hover:bg-[#00704a] hover:text-white">
+               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="border-border text-foreground hover:bg-accent hover:text-accent-foreground">
                   Cancelar
                 </Button>
-                <Button type="submit" className="bg-[#00704a] hover:bg-[#005a3c] text-white">
+                <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground">
                   {product ? 'Actualizar' : 'Crear'} Producto
                 </Button>
             </DialogFooter>
