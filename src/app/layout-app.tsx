@@ -34,18 +34,18 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-30 w-64 bg-[#00704a] shadow-2xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-30 w-64 bg-primary shadow-2xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between h-16 px-6 border-b border-[#005a3c]">
-          <h1 className="text-xl font-bold text-white flex items-center gap-2">
+        <div className="flex items-center justify-between h-16 px-6 border-b border-primary/80">
+          <h1 className="text-xl font-bold text-primary-foreground flex items-center gap-2">
             <Package className="w-6 h-6" />
             Bodega Manager
           </h1>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden text-white hover:text-[#e8dcc4]"
+            className="lg:hidden text-primary-foreground hover:text-primary-foreground/80"
           >
             <X className="h-6 w-6" />
           </button>
@@ -61,8 +61,8 @@ export default function Layout({ children, currentPageName }) {
                 onClick={() => setSidebarOpen(false)}
                 className={`flex items-center px-4 py-3 mb-2 rounded-lg transition-all duration-200 ${
                   active
-                    ? 'bg-white text-[#00704a] font-semibold shadow-md'
-                    : 'text-[#f7f4ed] hover:bg-[#005a3c] hover:text-white'
+                    ? 'bg-primary-foreground text-primary font-semibold shadow-md'
+                    : 'text-primary-foreground/90 hover:bg-primary/80 hover:text-primary-foreground'
                 }`}
               >
                 <Icon className="h-5 w-5 mr-3" />
@@ -72,11 +72,10 @@ export default function Layout({ children, currentPageName }) {
           })}
         </nav>
         
-        {/* Starbucks-style decoration */}
         <div className="absolute bottom-0 left-0 right-0 p-6">
-          <div className="bg-[#005a3c] rounded-lg p-4 text-center">
-            <p className="text-[#f7f4ed] text-sm font-medium">Sistema de Gestión</p>
-            <p className="text-[#e8dcc4] text-xs mt-1">Inventario & Ventas</p>
+          <div className="bg-primary/80 rounded-lg p-4 text-center">
+            <p className="text-primary-foreground/90 text-sm font-medium">Sistema de Gestión</p>
+            <p className="text-primary-foreground/70 text-xs mt-1">Inventario & Ventas</p>
           </div>
         </div>
       </div>
@@ -84,18 +83,18 @@ export default function Layout({ children, currentPageName }) {
       {/* Main content */}
       <div className="lg:pl-64">
         {/* Top bar */}
-        <div className="sticky top-0 z-10 bg-white border-b-2 border-[#00704a] h-16 flex items-center px-4 lg:px-8 shadow-md">
+        <div className="sticky top-0 z-10 bg-card border-b-2 border-primary h-16 flex items-center px-4 lg:px-8 shadow-md">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden text-[#00704a] hover:text-[#005a3c] mr-4"
+            className="lg:hidden text-primary hover:text-primary/80 mr-4"
           >
             <Menu className="h-6 w-6" />
           </button>
-          <h2 className="text-lg font-bold text-black">{currentPageName}</h2>
+          <h2 className="text-lg font-bold text-foreground">{currentPageName}</h2>
         </div>
 
         {/* Page content */}
-        <main>
+        <main className="bg-background">
           {children}
         </main>
       </div>
