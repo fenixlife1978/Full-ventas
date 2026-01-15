@@ -50,7 +50,7 @@ const StatCard = ({
       {isLoading ? (
         <>
           <Skeleton className="h-8 w-3/4" />
-          {subtitle && <Skeleton className="h-4 w-1/2 mt-2" />}
+          {subtitle && <Skeleton className="h-4 w-2/5 mt-2" />}
         </>
       ) : (
         <>
@@ -126,20 +126,22 @@ export default function DashboardPage() {
 
     // Top products this month
     const productSales: { [key: string]: TopProduct } = {}
-    monthSalesData.forEach((sale) => {
-      if (!productSales[sale.productId]) {
-        productSales[sale.productId] = {
-          productName: sale.productName,
+    const monthItems = monthSalesData.flatMap(s => s.items || [])
+    monthItems.forEach((item) => {
+      if (!productSales[item.productId]) {
+        productSales[item.productId] = {
+          productName: item.productName,
           quantity: 0,
           revenue: 0,
         }
       }
-      productSales[sale.productId].quantity += sale.quantity
-      productSales[sale.productId].revenue += sale.totalAmount
+      productSales[item.productId].quantity += item.quantity
+      productSales[item.productId].revenue += item.unitPrice * item.quantity
     })
 
+
     const topProductsArray = Object.values(productSales)
-      .sort((a, b) => b.quantity - a.quantity)
+      .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5)
 
     setStats({

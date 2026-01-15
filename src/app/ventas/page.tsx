@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Plus, Search, ShoppingCart, DollarSign, Trash2 } from 'lucide-react'
+import { Plus, Search, ShoppingCart, DollarSign, Trash2, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { useCollection, useFirestore, useDoc } from '@/firebase'
-import { collection, doc, Timestamp, runTransaction } from 'firebase/firestore'
+import { collection, doc, Timestamp, runTransaction, addDoc } from 'firebase/firestore'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/dialog'
 import { useMemoFirebase } from '@/firebase/provider'
 import { type Product } from '../productos/page'
-import { SaleForm, type SaleFormValues } from './components/sale-form'
+import { SaleForm, type SaleFormValues, type CartItem } from './components/sale-form'
 import Layout from '@/app/layout-app'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -45,12 +45,17 @@ import { format } from 'date-fns'
 import { type Setting } from '../configuraciones/page'
 
 
-export interface Sale {
-  id: string
+export interface SaleItem {
   productId: string
   productName: string
   quantity: number
   unitPrice: number
+}
+
+export interface Sale {
+  id: string
+  saleNumber: number;
+  items: SaleItem[]
   totalAmount: number
   saleDate: Date
   paymentMethod: 'cash' | 'card' | 'transfer' | 'other'
@@ -98,7 +103,7 @@ export default function VentasPage() {
     return sales?.map(sale => ({
       ...sale,
       saleDate: (sale.saleDate as any).toDate ? (sale.saleDate as any).toDate() : new Date(sale.saleDate)
-    })).sort((a, b) => b.saleDate.getTime() - a.saleDate.getTime()) || []
+    })).sort((a, b) => b.saleNumber - a.saleNumber) || []
   }, [sales])
 
 
@@ -119,11 +124,14 @@ export default function VentasPage() {
     }
 
     if (searchTerm) {
-      filtered = filtered.filter(
-        s =>
-          s.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          s.notes?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      filtered = filtered.filter(s => {
+        const lowerSearchTerm = searchTerm.toLowerCase();
+        return (
+          s.notes?.toLowerCase().includes(lowerSearchTerm) ||
+          s.saleNumber.toString().includes(lowerSearchTerm) ||
+          s.items.some(item => item.productName.toLowerCase().includes(lowerSearchTerm))
+        )
+      })
     }
 
     return filtered
@@ -145,92 +153,82 @@ export default function VentasPage() {
     setDeletingSale(sale)
   }
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deletingSale && firestore) {
       const saleRef = doc(firestore, 'sales', deletingSale.id)
       
-      runTransaction(firestore, async (transaction) => {
-          const productRef = doc(firestore, 'products', deletingSale.productId);
-          const productDoc = await transaction.get(productRef);
-          
-          if(productDoc.exists()) {
-            const currentStock = productDoc.data().stock;
-            const newStock = currentStock + deletingSale.quantity;
-            transaction.update(productRef, { stock: newStock });
+      try {
+        await runTransaction(firestore, async (transaction) => {
+          for (const item of deletingSale.items) {
+            const productRef = doc(firestore, 'products', item.productId);
+            const productDoc = await transaction.get(productRef);
+            
+            if(productDoc.exists()) {
+              const currentStock = productDoc.data().stock;
+              const newStock = currentStock + item.quantity;
+              transaction.update(productRef, { stock: newStock });
+            }
           }
           
           transaction.delete(saleRef);
-        }).then(() => {
-          toast({
-            title: 'Venta Eliminada',
-            description: 'La venta ha sido eliminada y el stock ha sido restaurado.',
-          })
-          setDeletingSale(null)
-        }).catch((error) => {
-           toast({
-            variant: "destructive",
-            title: 'Error al eliminar',
-            description: 'No se pudo eliminar la venta y restaurar el stock.',
-          });
         })
+        toast({
+          title: 'Venta Eliminada',
+          description: 'La venta ha sido eliminada y el stock ha sido restaurado.',
+        })
+        setDeletingSale(null)
+      } catch (error) {
+         toast({
+          variant: "destructive",
+          title: 'Error al eliminar',
+          description: 'No se pudo eliminar la venta y restaurar el stock.',
+        });
+      }
     }
   }
 
 
-  const handleFormSubmit = async (values: SaleFormValues) => {
+  const handleFormSubmit = async (values: SaleFormValues & { items: CartItem[], totalAmount: number, saleNumber: number }) => {
     if (!firestore) return
 
-    const selectedProduct = products?.find(p => p.id === values.productId)
-    if (!selectedProduct) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'El producto seleccionado no es válido.',
-      })
-      return
-    }
-
-    if (selectedProduct.stock < values.quantity) {
-      toast({
-        variant: 'destructive',
-        title: 'Stock Insuficiente',
-        description: `No hay suficiente stock para ${selectedProduct.name}. Stock actual: ${selectedProduct.stock}`,
-      })
-      return
-    }
-
     const saleData = {
-      ...values,
-      productName: selectedProduct.name,
-      unitPrice: selectedProduct.price,
-      totalAmount: selectedProduct.price * values.quantity,
+      saleNumber: values.saleNumber,
+      items: values.items.map(item => ({
+        productId: item.id,
+        productName: item.name,
+        quantity: item.quantity,
+        unitPrice: item.price,
+      })),
+      totalAmount: values.totalAmount,
+      paymentMethod: values.paymentMethod,
+      notes: values.notes,
       saleDate: Timestamp.fromDate(values.saleDate),
     }
 
     try {
       await runTransaction(firestore, async (transaction) => {
-        const productRef = doc(firestore, 'products', values.productId)
         const salesRef = doc(collection(firestore, 'sales'))
 
-        const productDoc = await transaction.get(productRef)
-        if (!productDoc.exists()) {
-          throw new Error("El producto no existe.")
+        for (const item of values.items) {
+           const productRef = doc(firestore, 'products', item.id)
+           const productDoc = await transaction.get(productRef)
+           if (!productDoc.exists()) {
+             throw new Error(`El producto "${item.name}" no existe.`)
+           }
+           const currentStock = productDoc.data().stock
+           const newStock = currentStock - item.quantity
+           if (newStock < 0) {
+             throw new Error(`Stock insuficiente para "${item.name}".`)
+           }
+           transaction.update(productRef, { stock: newStock })
         }
-
-        const currentStock = productDoc.data().stock
-        const newStock = currentStock - values.quantity
-
-        if (newStock < 0) {
-          throw new Error("Stock insuficiente.")
-        }
-
-        transaction.update(productRef, { stock: newStock })
+        
         transaction.set(salesRef, saleData)
       })
 
       toast({
         title: 'Venta Registrada',
-        description: 'La nueva venta se ha registrado exitosamente.',
+        description: `La venta Nº${values.saleNumber} se ha registrado exitosamente.`,
       })
       setIsFormOpen(false)
 
@@ -321,7 +319,7 @@ export default function VentasPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por producto o notas..."
+                  placeholder="Buscar por Nº Venta, producto o notas..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 border-border/50 focus:ring-ring"
@@ -356,44 +354,41 @@ export default function VentasPage() {
             filteredSales.map(sale => (
               <Card key={sale.id} className="bg-card border-border/50 hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                    <div className="flex-1 space-y-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex-1 space-y-3">
                       <div className="flex items-start justify-between">
                         <div>
-                          <h3 className="text-lg font-semibold text-foreground">{sale.productName}</h3>
-                          <p className="text-sm text-muted-foreground flex items-center">
-                            <span className="lucide lucide-calendar-days h-3 w-3 mr-1.5" />
+                          <h3 className="text-xl font-bold text-foreground">Venta Nº{sale.saleNumber.toString().padStart(3, '0')}</h3>
+                           <p className="text-sm text-muted-foreground">
                              {format(sale.saleDate, 'dd/MM/yyyy - HH:mm', { locale: es })}
                           </p>
                         </div>
-                        <div className="flex gap-2 items-center">
+                         <div className="flex items-center gap-2">
                            <Badge className="bg-primary text-primary-foreground">{getPaymentMethodLabel(sale.paymentMethod)}</Badge>
                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(sale)}>
                                <Trash2 className="h-4 w-4 text-destructive" />
                            </Button>
                         </div>
                       </div>
-                      {sale.notes && (
-                        <p className="text-sm text-muted-foreground italic">"{sale.notes}"</p>
-                      )}
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2">
-                        <div>
-                          <p className="text-xs text-muted-foreground">Cantidad</p>
-                          <p className="text-sm font-medium text-foreground">{sale.quantity}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Precio Unitario</p>
-                          <p className="text-sm font-medium text-foreground">
-                            {formatCurrency(sale.unitPrice, 'USD')}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Total</p>
-                          <p className="text-sm font-bold text-foreground">
-                            {formatCurrency(sale.totalAmount, 'USD')}
-                          </p>
-                        </div>
+
+                      <div className="border-t border-border/50 pt-2">
+                          <p className="text-xs text-muted-foreground mb-1">Productos:</p>
+                          {sale.items.map(item => (
+                              <div key={item.productId} className="flex justify-between items-center text-sm">
+                                  <span>{item.productName} <span className="text-muted-foreground">x{item.quantity}</span></span>
+                                  <span>{formatCurrency(item.unitPrice * item.quantity)}</span>
+                              </div>
+                          ))}
                       </div>
+
+                      {sale.notes && (
+                        <p className="text-sm text-muted-foreground italic pt-2 border-t border-border/50">"{sale.notes}"</p>
+                      )}
+                    </div>
+                     <div className="flex flex-col items-center justify-center bg-muted p-4 rounded-lg w-full sm:w-48 text-center">
+                        <p className="text-xs text-muted-foreground">Total Venta</p>
+                        <p className="text-2xl font-bold text-foreground">{formatCurrency(sale.totalAmount)}</p>
+                         {bcvRate && <p className="text-sm text-muted-foreground">{formatCurrency(sale.totalAmount, 'VES')}</p>}
                     </div>
                   </div>
                 </CardContent>
@@ -420,6 +415,8 @@ export default function VentasPage() {
           onSubmit={handleFormSubmit}
           products={activeProducts}
           isLoadingProducts={isLoadingProducts}
+          bcvRate={bcvRate}
+          saleCount={sales?.length || 0}
         />
 
         <AlertDialog
@@ -430,7 +427,7 @@ export default function VentasPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta acción no se puede deshacer. Esto eliminará permanentemente la venta del producto "{deletingSale?.productName}" y restaurará el stock del producto.
+                Esta acción no se puede deshacer. Esto eliminará permanentemente la venta Nº{deletingSale?.saleNumber.toString().padStart(3,'0')} y restaurará el stock de los productos involucrados.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

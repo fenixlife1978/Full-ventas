@@ -90,10 +90,12 @@ export default function ReportesPage() {
       filteredSales = filteredSales.filter((s) => s.saleDate >= startDate)
     }
 
+    const allItems = filteredSales.flatMap(s => s.items || [])
+
     // Summary
     const totalSales = filteredSales.length
     const totalRevenue = filteredSales.reduce((sum, s) => sum + s.totalAmount, 0)
-    const totalQuantity = filteredSales.reduce((sum, s) => sum + s.quantity, 0)
+    const totalQuantity = allItems.reduce((sum, item) => sum + item.quantity, 0)
     const averageTicket = totalSales > 0 ? totalRevenue / totalSales : 0
 
     // Daily Sales
@@ -115,18 +117,17 @@ export default function ReportesPage() {
 
     // Top Products
     const productSales: { [key: string]: { productName: string, quantity: number, revenue: number, sales: number } } = {}
-    filteredSales.forEach((sale) => {
-      if (!productSales[sale.productId]) {
-        productSales[sale.productId] = {
-          productName: sale.productName,
+    allItems.forEach((item) => {
+      if (!productSales[item.productId]) {
+        productSales[item.productId] = {
+          productName: item.productName,
           quantity: 0,
           revenue: 0,
-          sales: 0,
+          sales: 0, // This is harder to track now, represents how many transactions included this product
         }
       }
-      productSales[sale.productId].quantity += sale.quantity
-      productSales[sale.productId].revenue += sale.totalAmount
-      productSales[sale.productId].sales += 1
+      productSales[item.productId].quantity += item.quantity
+      productSales[item.productId].revenue += item.unitPrice * item.quantity
     })
 
     const topProducts = Object.values(productSales)
@@ -182,17 +183,16 @@ export default function ReportesPage() {
       ['Reporte de Ventas - ' + getPeriodLabel()],
       [''],
       ['Resumen'],
-      ['Total Ventas', reportData.summary.totalSales],
+      ['Total Transacciones', reportData.summary.totalSales],
       ['Ingresos Totales (USD)', reportData.summary.totalRevenue.toFixed(2)],
       ['Ticket Promedio (USD)', reportData.summary.averageTicket.toFixed(2)],
-      ['Cantidad Total Vendida', reportData.summary.totalQuantity],
+      ['Cantidad Total de Productos Vendidos', reportData.summary.totalQuantity],
       [''],
       ['Productos Más Vendidos'],
-      ['Producto', 'Cantidad', 'Ventas', 'Ingresos (USD)'],
+      ['Producto', 'Cantidad', 'Ingresos (USD)'],
       ...reportData.topProducts.map((p) => [
         p.productName,
         p.quantity,
-        p.sales,
         p.revenue.toFixed(2),
       ]),
     ]
@@ -269,7 +269,7 @@ export default function ReportesPage() {
           <Card className="bg-card border-border/50 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Ventas
+                Total Transacciones
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -302,13 +302,13 @@ export default function ReportesPage() {
               <div className="text-2xl font-bold text-foreground">
                 {formatCurrency(reportData.summary.averageTicket)}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Por venta</p>
+              <p className="text-xs text-muted-foreground mt-1">Por transacción</p>
             </CardContent>
           </Card>
           <Card className="bg-card border-border/50 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Unidades Vendidas
+                Productos Vendidos
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -327,7 +327,7 @@ export default function ReportesPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-foreground">
                 <BarChart3 className="h-5 w-5" />
-                Ventas por Día
+                Ingresos por Día
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -355,7 +355,7 @@ export default function ReportesPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-foreground">
                 <TrendingUp className="h-5 w-5" />
-                Ventas por Método de Pago
+                Ingresos por Método de Pago
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -393,7 +393,6 @@ export default function ReportesPage() {
                       <th className="text-left py-3 px-4 font-semibold text-foreground">#</th>
                       <th className="text-left py-3 px-4 font-semibold text-foreground">Producto</th>
                       <th className="text-right py-3 px-4 font-semibold text-foreground">Cantidad</th>
-                      <th className="text-right py-3 px-4 font-semibold text-foreground">Ventas</th>
                       <th className="text-right py-3 px-4 font-semibold text-foreground">Ingresos</th>
                     </tr>
                   </thead>
@@ -406,7 +405,6 @@ export default function ReportesPage() {
                         <td className="py-3 px-4 text-muted-foreground">{index + 1}</td>
                         <td className="py-3 px-4 font-medium text-primary">{product.productName}</td>
                         <td className="py-3 px-4 text-right text-muted-foreground">{product.quantity}</td>
-                        <td className="py-3 px-4 text-right text-muted-foreground">{product.sales}</td>
                         <td className="py-3 px-4 text-right font-semibold text-primary">
                           {formatCurrency(product.revenue)}
                         </td>
