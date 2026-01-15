@@ -183,12 +183,12 @@ export default function ReportesPage() {
       [''],
       ['Resumen'],
       ['Total Ventas', reportData.summary.totalSales],
-      ['Ingresos Totales', reportData.summary.totalRevenue.toFixed(2)],
-      ['Ticket Promedio', reportData.summary.averageTicket.toFixed(2)],
+      ['Ingresos Totales (USD)', reportData.summary.totalRevenue.toFixed(2)],
+      ['Ticket Promedio (USD)', reportData.summary.averageTicket.toFixed(2)],
       ['Cantidad Total Vendida', reportData.summary.totalQuantity],
       [''],
       ['Productos Más Vendidos'],
-      ['Producto', 'Cantidad', 'Ventas', 'Ingresos'],
+      ['Producto', 'Cantidad', 'Ventas', 'Ingresos (USD)'],
       ...reportData.topProducts.map((p) => [
         p.productName,
         p.quantity,
@@ -208,9 +208,9 @@ export default function ReportesPage() {
   }
   
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-ES', {
+    return new Intl.NumberFormat('es-VE', {
      style: 'currency',
-     currency: 'EUR',
+     currency: 'USD',
    }).format(value)
  }
 
@@ -313,7 +313,7 @@ export default function ReportesPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
-                {reportData.summary.totalQuantity.toLocaleString('es-ES')}
+                {reportData.summary.totalQuantity.toLocaleString('es-VE')}
               </div>
               <p className="text-xs text-muted-foreground mt-1">{getPeriodLabel()}</p>
             </CardContent>

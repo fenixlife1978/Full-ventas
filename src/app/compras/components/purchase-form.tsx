@@ -109,6 +109,8 @@ export function PurchaseForm({
       const product = products.find(p => p.id === selectedProductId)
       if(product && product.cost) {
         form.setValue('unitCost', product.cost)
+      } else if (product) {
+        form.setValue('unitCost', 0)
       }
   }, [selectedProductId, products, form])
 
@@ -172,7 +174,7 @@ export function PurchaseForm({
                 name="unitCost"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-foreground font-semibold">Costo Unitario *</FormLabel>
+                    <FormLabel className="text-foreground font-semibold">Costo Unitario (USD) *</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" {...field} className="border-border/50 focus:ring-ring" />
                     </FormControl>
@@ -297,7 +299,7 @@ export function PurchaseForm({
             {totalAmount > 0 && (
                 <div className="bg-primary text-primary-foreground p-4 rounded-lg">
                     <p className="text-lg font-bold">
-                    Total: {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(totalAmount)}
+                    Total: {new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(totalAmount)}
                     </p>
                 </div>
             )}

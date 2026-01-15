@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Plus, Search, ShoppingCart, DollarSign, Package, TrendingUp } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { Plus, Search, ShoppingCart, DollarSign, Package, TrendingUp, Percent, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { useCollection, useFirestore } from '@/firebase'
-import { collection, doc, Timestamp, runTransaction, deleteDoc } from 'firebase/firestore'
+import { collection, doc, Timestamp, runTransaction, updateDoc } from 'firebase/firestore'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +26,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { format, startOfDay, startOfWeek, startOfMonth } from 'date-fns'
 import { es } from 'date-fns/locale'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent as DialogContentNonForm,
+  DialogDescription,
+  DialogFooter as DialogFooterNonForm,
+  DialogHeader as DialogHeaderNonForm,
+  DialogTitle as DialogTitleNonForm,
+} from "@/components/ui/dialog"
+
 
 export interface Purchase {
   id: string
@@ -41,12 +51,20 @@ export interface Purchase {
   notes?: string
 }
 
+interface PricingModalInfo {
+  purchase: Purchase
+  product: Product
+}
+
 export default function ComprasPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [deletingPurchase, setDeletingPurchase] = useState<Purchase | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterPeriod, setFilterPeriod] = useState('all');
-
+  const [bcvRate, setBcvRate] = useState<number | null>(null);
+  const [pricingModalInfo, setPricingModalInfo] = useState<PricingModalInfo | null>(null)
+  const [profitMargin, setProfitMargin] = useState<string>('')
+  
   const { toast } = useToast()
   const firestore = useFirestore()
 
@@ -110,7 +128,6 @@ export default function ComprasPage() {
     }
   }, [filteredPurchases])
 
-
   const handleCreateNew = () => {
     setIsFormOpen(true)
   }
@@ -118,6 +135,61 @@ export default function ComprasPage() {
   const handleDelete = (purchase: Purchase) => {
     setDeletingPurchase(purchase)
   }
+  
+  const handleOpenPricingModal = (purchase: Purchase) => {
+    const product = products?.find(p => p.id === purchase.productId)
+    if (product) {
+      setPricingModalInfo({ purchase, product })
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo encontrar el producto asociado a esta compra.',
+      })
+    }
+  }
+
+  const handleSetPrice = async () => {
+    if (!pricingModalInfo || !firestore) return
+    const { product } = pricingModalInfo
+    const margin = parseFloat(profitMargin)
+    if (isNaN(margin) || margin < 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Porcentaje de ganancia inválido.',
+      })
+      return
+    }
+
+    const cost = pricingModalInfo.purchase.unitCost
+    const newPrice = cost * (1 + margin / 100)
+
+    try {
+      const productRef = doc(firestore, 'products', product.id)
+      await updateDoc(productRef, { price: newPrice })
+      toast({
+        title: 'Precio Actualizado',
+        description: `El precio de "${product.name}" se actualizó a ${formatCurrency(newPrice)}.`,
+      })
+      setPricingModalInfo(null)
+      setProfitMargin('')
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error al actualizar',
+        description: 'No se pudo actualizar el precio del producto.',
+      })
+    }
+  }
+
+  const newSalePrice = useMemo(() => {
+    if (!pricingModalInfo || !profitMargin) return null
+    const margin = parseFloat(profitMargin)
+    if (isNaN(margin)) return null
+    return pricingModalInfo.purchase.unitCost * (1 + margin / 100)
+  }, [pricingModalInfo, profitMargin])
+
   
   const confirmDelete = async () => {
     if (deletingPurchase && firestore) {
@@ -154,7 +226,6 @@ export default function ComprasPage() {
     }
   }
 
-
   const handleFormSubmit = async (values: PurchaseFormValues) => {
     if (!firestore) return
     
@@ -188,7 +259,7 @@ export default function ComprasPage() {
             const currentStock = productDoc.data().stock
             const newStock = currentStock + values.quantity
             
-            transaction.update(productRef, { stock: newStock })
+            transaction.update(productRef, { stock: newStock, cost: values.unitCost })
             transaction.set(purchasesRef, purchaseData)
         })
 
@@ -207,8 +278,11 @@ export default function ComprasPage() {
     }
   }
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(value)
+  const formatCurrency = (value: number, currency: 'USD' | 'VES' = 'USD') => {
+    if (currency === 'VES' && bcvRate) {
+        value = value * bcvRate;
+    }
+    return new Intl.NumberFormat('es-VE', { style: 'currency', currency: currency === 'VES' ? 'VED' : 'USD' }).format(value)
   }
 
   const isLoading = isLoadingPurchases || isLoadingProducts
@@ -250,11 +324,11 @@ export default function ComprasPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-primary" />
-                Monto Total
+                Monto Total (USD)
               </CardTitle>
             </CardHeader>
             <CardContent>
-             {isLoading ? <Skeleton className="h-9 w-1/2"/> : <div className="text-3xl font-bold text-foreground">{formatCurrency(totalAmount)}</div>}
+             {isLoading ? <Skeleton className="h-9 w-1/2"/> : <div className="text-3xl font-bold text-foreground">{formatCurrency(totalAmount, 'USD')}</div>}
             </CardContent>
           </Card>
 
@@ -271,18 +345,27 @@ export default function ComprasPage() {
           </Card>
         </div>
 
-
         {/* Filters */}
         <Card className="bg-card border-border/50 shadow-sm">
           <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+              <div className="flex-1 relative w-full">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
                 <Input
                   placeholder="Buscar por producto, proveedor o factura..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 border-border/50 focus:ring-ring"
+                />
+              </div>
+               <div className="flex items-center gap-2 w-full md:w-auto">
+                 <DollarSign className="text-muted-foreground" />
+                 <Input
+                  type="number"
+                  placeholder="Tasa BCV"
+                  value={bcvRate || ''}
+                  onChange={(e) => setBcvRate(parseFloat(e.target.value) || null)}
+                  className="w-full md:w-32 border-border/50 focus:ring-ring"
                 />
               </div>
               <Select value={filterPeriod} onValueChange={setFilterPeriod}>
@@ -299,7 +382,6 @@ export default function ComprasPage() {
             </div>
           </CardContent>
         </Card>
-
 
         {/* Purchases List */}
         <Card className="bg-card border-border/50 shadow-sm">
@@ -328,9 +410,8 @@ export default function ComprasPage() {
                       <th className="text-right p-3 text-foreground font-semibold">Cantidad</th>
                       <th className="text-right p-3 text-foreground font-semibold">Costo Unit.</th>
                       <th className="text-right p-3 text-foreground font-semibold">Total</th>
-                      <th className="text-left p-3 text-foreground font-semibold">Pago</th>
                       <th className="text-left p-3 text-foreground font-semibold">Factura</th>
-                      <th className="text-right p-3 text-foreground font-semibold">Acciones</th>
+                      <th className="text-center p-3 text-foreground font-semibold">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -343,14 +424,18 @@ export default function ComprasPage() {
                         <td className="p-3 text-muted-foreground">{purchase.supplier}</td>
                         <td className="p-3 text-right text-muted-foreground">{purchase.quantity}</td>
                         <td className="p-3 text-right text-muted-foreground">
-                          {formatCurrency(purchase.unitCost)}
+                            <div>{formatCurrency(purchase.unitCost, 'USD')}</div>
+                            {bcvRate && <div className="text-xs">{formatCurrency(purchase.unitCost, 'VES')}</div>}
                         </td>
                         <td className="p-3 text-right text-primary font-bold">
-                          {formatCurrency(purchase.totalAmount)}
+                            <div>{formatCurrency(purchase.totalAmount, 'USD')}</div>
+                            {bcvRate && <div className="text-xs">{formatCurrency(purchase.totalAmount, 'VES')}</div>}
                         </td>
-                        <td className="p-3 text-muted-foreground">{purchase.paymentMethod}</td>
                         <td className="p-3 text-muted-foreground">{purchase.invoiceNumber || '-'}</td>
-                        <td className='p-3 text-right'>
+                        <td className='p-3 text-center space-x-2'>
+                            <Button variant="outline" size="sm" onClick={() => handleOpenPricingModal(purchase)}>
+                                <Percent className="w-4 h-4 mr-1"/> Fijar Precio
+                            </Button>
                             <Button variant="destructive" size="sm" onClick={() => handleDelete(purchase)}>Eliminar</Button>
                         </td>
                       </tr>
@@ -362,7 +447,6 @@ export default function ComprasPage() {
           </CardContent>
         </Card>
 
-
       <PurchaseForm
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
@@ -370,6 +454,63 @@ export default function ComprasPage() {
         products={products || []}
         isLoadingProducts={isLoadingProducts}
       />
+      
+      {pricingModalInfo && (
+        <Dialog open={!!pricingModalInfo} onOpenChange={(open) => !open && setPricingModalInfo(null)}>
+          <DialogContentNonForm>
+            <DialogHeaderNonForm>
+              <DialogTitleNonForm className="text-2xl">Fijar Precio de Venta</DialogTitleNonForm>
+              <DialogDescription>
+                Establece el porcentaje de ganancia sobre el costo de compra para el producto <strong>{pricingModalInfo.product.name}</strong>.
+              </DialogDescription>
+            </DialogHeaderNonForm>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4 items-center">
+                  <p className="text-sm font-medium">Costo de Compra:</p>
+                  <p className="text-sm font-semibold justify-self-end">{formatCurrency(pricingModalInfo.purchase.unitCost)}</p>
+                  
+                  <p className="text-sm font-medium">Precio de Venta Actual:</p>
+                  <p className="text-sm font-semibold justify-self-end">{formatCurrency(pricingModalInfo.product.price)}</p>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <label htmlFor="profit-margin" className="text-sm font-medium whitespace-nowrap">Ganancia (%):</label>
+                <Input
+                  id="profit-margin"
+                  type="number"
+                  value={profitMargin}
+                  onChange={(e) => setProfitMargin(e.target.value)}
+                  placeholder="Ej: 30"
+                  className="border-border/50 focus:ring-ring"
+                />
+              </div>
+
+              {newSalePrice !== null && (
+                 <Card className="bg-primary/10 border-primary/20">
+                    <CardContent className="pt-4">
+                       <div className="flex justify-between items-center">
+                          <span className="text-primary font-medium">Nuevo Precio de Venta:</span>
+                          <span className="text-lg font-bold text-primary">
+                            {formatCurrency(newSalePrice)}
+                          </span>
+                       </div>
+                    </CardContent>
+                 </Card>
+              )}
+
+            </div>
+            <DialogFooterNonForm>
+              <DialogClose asChild>
+                <Button type="button" variant="secondary">Cancelar</Button>
+              </DialogClose>
+              <Button onClick={handleSetPrice} disabled={!profitMargin}>
+                Actualizar Precio
+              </Button>
+            </DialogFooterNonForm>
+          </DialogContentNonForm>
+        </Dialog>
+      )}
+
 
       <AlertDialog
         open={!!deletingPurchase}
@@ -378,7 +519,6 @@ export default function ComprasPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-
             <AlertDialogDescription>
               Esta acción no se puede deshacer. Esto eliminará permanentemente la compra del producto "{deletingPurchase?.productName}" y se restará la cantidad del stock actual.
             </AlertDialogDescription>

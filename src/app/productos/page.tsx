@@ -68,7 +68,7 @@ export default function ProductosPage() {
 
   const categories = useMemo(() => {
     if (!products) return []
-    return [...new Set(products.map(p => p.category).filter(Boolean))]
+    return [...new Set(products.map(p => p.category).filter(Boolean).sort())]
   }, [products])
   
   const filteredProducts = useMemo(() => {
@@ -243,7 +243,7 @@ export default function ProductosPage() {
                         <div>
                           <p className="text-xs text-muted-foreground">Precio</p>
                           <p className="text-sm font-medium text-foreground">
-                             {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(product.price)}
+                             {new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(product.price)}
                           </p>
                         </div>
                         <div>

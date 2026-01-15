@@ -107,9 +107,9 @@ export function SaleForm({
   }, [selectedProduct, quantity])
 
   const formatCurrency = (value: number) => {
-     return new Intl.NumberFormat('es-ES', {
+     return new Intl.NumberFormat('es-VE', {
       style: 'currency',
-      currency: 'EUR',
+      currency: 'USD',
     }).format(value)
   }
 

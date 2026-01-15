@@ -129,12 +129,31 @@ export default function VentasPage() {
   const confirmDelete = () => {
     if (deletingSale && firestore) {
       const saleRef = doc(firestore, 'sales', deletingSale.id)
-      deleteDocumentNonBlocking(saleRef)
-      toast({
-        title: 'Venta Eliminada',
-        description: `La venta ha sido eliminada.`,
-      })
-      setDeletingSale(null)
+      
+      runTransaction(firestore, async (transaction) => {
+          const productRef = doc(firestore, 'products', deletingSale.productId);
+          const productDoc = await transaction.get(productRef);
+          
+          if(productDoc.exists()) {
+            const currentStock = productDoc.data().stock;
+            const newStock = currentStock + deletingSale.quantity;
+            transaction.update(productRef, { stock: newStock });
+          }
+          
+          transaction.delete(saleRef);
+        }).then(() => {
+          toast({
+            title: 'Venta Eliminada',
+            description: 'La venta ha sido eliminada y el stock ha sido restaurado.',
+          })
+          setDeletingSale(null)
+        }).catch((error) => {
+           toast({
+            variant: "destructive",
+            title: 'Error al eliminar',
+            description: 'No se pudo eliminar la venta y restaurar el stock.',
+          });
+        })
     }
   }
 
@@ -216,9 +235,9 @@ export default function VentasPage() {
   };
   
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-ES', {
+    return new Intl.NumberFormat('es-VE', {
      style: 'currency',
-     currency: 'EUR',
+     currency: 'USD',
    }).format(value)
  }
 
@@ -379,7 +398,7 @@ export default function VentasPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta acción no se puede deshacer. Esto eliminará permanentemente la venta del producto "{deletingSale?.productName}".
+                Esta acción no se puede deshacer. Esto eliminará permanentemente la venta del producto "{deletingSale?.productName}" y restaurará el stock del producto.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -388,7 +407,7 @@ export default function VentasPage() {
                 onClick={confirmDelete}
                 className="bg-destructive hover:bg-destructive/90"
               >
-                Eliminar
+                Eliminar y restaurar stock
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
