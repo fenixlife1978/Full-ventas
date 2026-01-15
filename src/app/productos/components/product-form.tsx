@@ -239,7 +239,7 @@ export function ProductForm({
                 <FormItem>
                   <FormLabel className="text-foreground font-semibold">Precio de Venta (USD)*</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" {...field} className="border-border/50 focus:ring-ring" required />
+                    <Input type="number" step="0.01" {...field} className="border-border/50 focus:ring-ring" disabled />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
