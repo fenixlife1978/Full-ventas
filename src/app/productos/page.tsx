@@ -39,6 +39,7 @@ export interface Product {
   category?: string
   price: number
   cost?: number
+  profitMargin?: number
   stock: number
   minStock?: number
   unit?: string
@@ -66,7 +67,17 @@ export default function ProductosPage() {
 
   const categories = useMemo(() => {
     if (!products) return []
-    return [...new Set(products.map(p => p.category).filter(Boolean).sort())]
+    const productCategories = [
+      "Alimentos Procesados",
+      "Refrescos y Bebidas",
+      "Alimentos enlatados",
+      "Productos Lacteos",
+      "Charcuteria",
+      "Carniceria",
+      "Frutas y Legumbres",
+      "Otros",
+    ];
+    return productCategories;
   }, [products])
   
   const filteredProducts = useMemo(() => {
@@ -143,6 +154,10 @@ export default function ProductosPage() {
     }
     setIsFormOpen(false)
     setEditingProduct(null)
+  }
+  
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(value || 0)
   }
 
   return (
@@ -238,7 +253,7 @@ export default function ProductosPage() {
                         <div>
                           <p className="text-xs text-muted-foreground">Precio</p>
                           <p className="text-sm font-medium text-foreground">
-                             {new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(product.price)}
+                             {formatCurrency(product.price)}
                           </p>
                         </div>
                         <div>
@@ -297,7 +312,6 @@ export default function ProductosPage() {
         onOpenChange={setIsFormOpen}
         onSubmit={handleFormSubmit}
         product={editingProduct}
-        categories={categories}
       />
 
       <AlertDialog
@@ -327,5 +341,3 @@ export default function ProductosPage() {
     </Layout>
   )
 }
-
-    

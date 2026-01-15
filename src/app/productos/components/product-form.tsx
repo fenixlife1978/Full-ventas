@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { type Product } from '../page'
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 
 const formSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido.'),
@@ -36,6 +36,7 @@ const formSchema = z.object({
   category: z.string().optional(),
   price: z.coerce.number().min(0, 'El precio no puede ser negativo.'),
   cost: z.coerce.number().optional(),
+  profitMargin: z.coerce.number().optional(),
   stock: z.coerce.number().int('El stock debe ser un número entero.'),
   minStock: z.coerce.number().int('El stock mínimo debe ser un número entero.').optional(),
   unit: z.string().optional(),
@@ -50,15 +51,25 @@ interface ProductFormProps {
   onOpenChange: (open: boolean) => void
   onSubmit: (values: ProductFormValues) => void
   product: Product | null
-  categories: string[]
 }
+
+const productCategories = [
+  "Alimentos Procesados",
+  "Refrescos y Bebidas",
+  "Alimentos enlatados",
+  "Productos Lacteos",
+  "Charcuteria",
+  "Carniceria",
+  "Frutas y Legumbres",
+  "Otros",
+];
+
 
 export function ProductForm({
   open,
   onOpenChange,
   onSubmit,
   product,
-  categories
 }: ProductFormProps) {
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(formSchema),
@@ -68,6 +79,7 @@ export function ProductForm({
       category: '',
       price: 0,
       cost: undefined,
+      profitMargin: undefined,
       stock: 0,
       minStock: 0,
       unit: 'unidad',
@@ -76,11 +88,23 @@ export function ProductForm({
     },
   })
 
+  const cost = form.watch('cost');
+  const profitMargin = form.watch('profitMargin');
+
+  const calculatePrice = useCallback(() => {
+    if (typeof cost === 'number' && typeof profitMargin === 'number') {
+      const newPrice = cost * (1 + profitMargin / 100);
+      form.setValue('price', parseFloat(newPrice.toFixed(2)), { shouldValidate: true });
+    }
+  }, [cost, profitMargin, form]);
+
+
   useEffect(() => {
     if (product) {
       form.reset({
         ...product,
         cost: product.cost || undefined,
+        profitMargin: product.profitMargin || undefined,
         minStock: product.minStock || 0
       })
     } else {
@@ -90,6 +114,7 @@ export function ProductForm({
         category: '',
         price: 0,
         cost: undefined,
+        profitMargin: undefined,
         stock: 0,
         minStock: 0,
         unit: 'unidad',
@@ -98,6 +123,10 @@ export function ProductForm({
       })
     }
   }, [product, form, open])
+
+  useEffect(() => {
+    calculatePrice();
+  }, [cost, profitMargin, calculatePrice]);
 
   const handleFormSubmit = (values: ProductFormValues) => {
     onSubmit(values)
@@ -148,14 +177,18 @@ export function ProductForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-foreground font-semibold">Categoría</FormLabel>
-                  <FormControl>
-                    <Input {...field} className="border-border/50 focus:ring-ring" list="categories" />
-                  </FormControl>
-                  <datalist id="categories">
-                    {categories.map(cat => (
-                      <option key={cat} value={cat} />
-                    ))}
-                  </datalist>
+                   <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="border-border/50 focus:ring-ring">
+                        <SelectValue placeholder="Selecciona una categoría" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {productCategories.map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -173,25 +206,12 @@ export function ProductForm({
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-foreground font-semibold">Precio de Venta *</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" {...field} className="border-border/50 focus:ring-ring" required />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
+             <FormField
               control={form.control}
               name="cost"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-foreground font-semibold">Costo</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Costo (USD)</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" {...field} className="border-border/50 focus:ring-ring" />
                   </FormControl>
@@ -199,6 +219,33 @@ export function ProductForm({
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="profitMargin"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-foreground font-semibold">% Ganancia</FormLabel>
+                  <FormControl>
+                    <Input type="number" step="0.1" placeholder="Ej: 30" {...field} className="border-border/50 focus:ring-ring" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="price"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-foreground font-semibold">Precio de Venta (USD)*</FormLabel>
+                  <FormControl>
+                    <Input type="number" step="0.01" {...field} className="border-border/50 focus:ring-ring" required />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
             <FormField
               control={form.control}
               name="stock"
@@ -287,5 +334,3 @@ export function ProductForm({
     </Dialog>
   )
 }
-
-    
