@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Plus, Search, ShoppingCart, DollarSign, Package, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { useCollection, useFirestore } from '@/firebase'
-import { collection, doc, Timestamp, runTransaction } from 'firebase/firestore'
-import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates'
+import { collection, doc, Timestamp, runTransaction, deleteDoc } from 'firebase/firestore'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,8 +20,12 @@ import {
 import { useMemoFirebase } from '@/firebase/provider'
 import { type Product } from '../productos/page'
 import { PurchaseForm, type PurchaseFormValues } from './components/purchase-form'
-import { PurchaseList } from './components/purchase-list'
 import Layout from '@/app/layout-app'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
+import { format, startOfDay, startOfWeek, startOfMonth } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 export interface Purchase {
   id: string
@@ -40,6 +44,9 @@ export interface Purchase {
 export default function ComprasPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [deletingPurchase, setDeletingPurchase] = useState<Purchase | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterPeriod, setFilterPeriod] = useState('all');
+
   const { toast } = useToast()
   const firestore = useFirestore()
 
@@ -56,6 +63,54 @@ export default function ComprasPage() {
   const { data: purchases, isLoading: isLoadingPurchases } = useCollection<Purchase>(purchasesCollection)
   const { data: products, isLoading: isLoadingProducts } = useCollection<Product>(productsCollection)
 
+  const formattedPurchases = useMemo(() => {
+     return purchases?.map(purchase => ({
+      ...purchase,
+      purchaseDate: (purchase.purchaseDate as any).toDate ? (purchase.purchaseDate as any).toDate() : purchase.purchaseDate
+    })).sort((a, b) => b.purchaseDate.getTime() - a.purchaseDate.getTime()) || []
+  }, [purchases])
+
+
+  const filteredPurchases = useMemo(() => {
+    let filtered = formattedPurchases;
+
+    if (filterPeriod !== 'all') {
+      const now = new Date();
+      filtered = filtered.filter(purchase => {
+        const purchaseDate = purchase.purchaseDate;
+        switch (filterPeriod) {
+          case 'today':
+            return purchaseDate >= startOfDay(now);
+          case 'week':
+            return purchaseDate >= startOfWeek(now);
+          case 'month':
+            return purchaseDate >= startOfMonth(now);
+          default:
+            return true;
+        }
+      });
+    }
+
+    if (searchTerm) {
+      filtered = filtered.filter(purchase =>
+        purchase.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        purchase.supplier?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        purchase.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    return filtered;
+  }, [formattedPurchases, filterPeriod, searchTerm]);
+
+  const { totalPurchases, totalAmount, totalUnits } = useMemo(() => {
+    return {
+      totalPurchases: filteredPurchases.length,
+      totalAmount: filteredPurchases.reduce((sum, p) => sum + (p.totalAmount || 0), 0),
+      totalUnits: filteredPurchases.reduce((sum, p) => sum + (p.quantity || 0), 0)
+    }
+  }, [filteredPurchases])
+
+
   const handleCreateNew = () => {
     setIsFormOpen(true)
   }
@@ -64,15 +119,38 @@ export default function ComprasPage() {
     setDeletingPurchase(purchase)
   }
   
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deletingPurchase && firestore) {
-      const purchaseRef = doc(firestore, 'purchases', deletingPurchase.id)
-      deleteDocumentNonBlocking(purchaseRef)
-      toast({
-        title: 'Compra Eliminada',
-        description: `La compra ha sido eliminada.`,
-      })
-      setDeletingPurchase(null)
+      const purchaseRef = doc(firestore, 'purchases', deletingPurchase.id);
+      
+      try {
+        await runTransaction(firestore, async (transaction) => {
+          const productRef = doc(firestore, 'products', deletingPurchase.productId);
+          const productDoc = await transaction.get(productRef);
+          
+          if(productDoc.exists()) {
+            const currentStock = productDoc.data().stock;
+            const newStock = currentStock - deletingPurchase.quantity;
+            transaction.update(productRef, { stock: newStock });
+          }
+          
+          transaction.delete(purchaseRef);
+        });
+
+        toast({
+          title: 'Compra Eliminada',
+          description: `La compra ha sido eliminada y el stock ha sido ajustado.`,
+        });
+
+      } catch (error) {
+         toast({
+          variant: "destructive",
+          title: 'Error al eliminar',
+          description: `No se pudo eliminar la compra.`,
+        });
+      }
+
+      setDeletingPurchase(null);
     }
   }
 
@@ -128,36 +206,162 @@ export default function ComprasPage() {
         })
     }
   }
-  
-  const formattedPurchases = purchases?.map(purchase => ({
-    ...purchase,
-    purchaseDate: (purchase.purchaseDate as any).toDate ? (purchase.purchaseDate as any).toDate() : purchase.purchaseDate
-  }))
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(value)
+  }
+
+  const isLoading = isLoadingPurchases || isLoadingProducts
 
   return (
-    <Layout currentPageName="Gestión de Compras">
-    <div className="space-y-8 p-4 md:p-8">
-      <header className="flex items-center justify-between">
+    <Layout currentPageName="Control de Compras">
+    <div className="space-y-6 p-4 md:p-8">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Gestión de Compras
-          </h1>
-          <p className="text-muted-foreground">
-            Registra y administra las compras de tus productos.
+           <h1 className="text-3xl md:text-4xl font-bold text-[#00704a] flex items-center gap-3">
+              <ShoppingCart className="w-8 h-8" />
+              Control de Compras
+            </h1>
+          <p className="text-[#6b5d4f] mt-2">
+            Gestiona las compras de inventario
           </p>
         </div>
-        <Button onClick={handleCreateNew}>
+        <Button onClick={handleCreateNew} className="bg-[#00704a] hover:bg-[#005a3c] text-white shadow-lg">
           <Plus className="mr-2" />
-          Registrar Compra
+          Nueva Compra
         </Button>
       </header>
 
-      <PurchaseList
-        purchases={formattedPurchases || []}
-        isLoading={isLoadingPurchases}
-        onDelete={handleDelete}
-      />
+      {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="bg-white border-[#00704a] shadow-lg">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-[#6b5d4f] flex items-center gap-2">
+                <Package className="w-4 h-4 text-[#00704a]" />
+                Total Compras
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? <Skeleton className="h-9 w-1/4"/> : <div className="text-3xl font-bold text-[#00704a]">{totalPurchases}</div> }
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-[#00704a] shadow-lg">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-[#6b5d4f] flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-[#00704a]" />
+                Monto Total
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+             {isLoading ? <Skeleton className="h-9 w-1/2"/> : <div className="text-3xl font-bold text-[#00704a]">{formatCurrency(totalAmount)}</div>}
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-[#00704a] shadow-lg">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-[#6b5d4f] flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-[#00704a]" />
+                Unidades Compradas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? <Skeleton className="h-9 w-1/3"/> : <div className="text-3xl font-bold text-[#00704a]">{totalUnits}</div>}
+            </CardContent>
+          </Card>
+        </div>
+
+
+        {/* Filters */}
+        <Card className="bg-white border-[#00704a] shadow-lg">
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#6b5d4f] w-5 h-5" />
+                <Input
+                  placeholder="Buscar por producto, proveedor o factura..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 border-[#00704a] focus:ring-[#00704a]"
+                />
+              </div>
+              <Select value={filterPeriod} onValueChange={setFilterPeriod}>
+                <SelectTrigger className="w-full md:w-48 border-[#00704a] focus:ring-[#00704a]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="today">Hoy</SelectItem>
+                  <SelectItem value="week">Esta Semana</SelectItem>
+                  <SelectItem value="month">Este Mes</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+
+        {/* Purchases List */}
+        <Card className="bg-white border-[#00704a] shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl text-[#00704a] flex items-center gap-2">
+              Historial de Compras
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+               <div className="space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+               </div>
+            ) : filteredPurchases.length === 0 ? (
+              <div className="text-center py-8 text-[#6b5d4f]">No hay compras que coincidan con los filtros.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b-2 border-[#00704a]">
+                      <th className="text-left p-3 text-[#00704a] font-semibold">Fecha</th>
+                      <th className="text-left p-3 text-[#00704a] font-semibold">Producto</th>
+                      <th className="text-left p-3 text-[#00704a] font-semibold">Proveedor</th>
+                      <th className="text-right p-3 text-[#00704a] font-semibold">Cantidad</th>
+                      <th className="text-right p-3 text-[#00704a] font-semibold">Costo Unit.</th>
+                      <th className="text-right p-3 text-[#00704a] font-semibold">Total</th>
+                      <th className="text-left p-3 text-[#00704a] font-semibold">Pago</th>
+                      <th className="text-left p-3 text-[#00704a] font-semibold">Factura</th>
+                      <th className="text-right p-3 text-[#00704a] font-semibold">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredPurchases.map((purchase) => (
+                      <tr key={purchase.id} className="border-b border-[#e8dcc4] hover:bg-[#f7f4ed] transition-colors">
+                        <td className="p-3 text-[#6b5d4f]">
+                          {format(purchase.purchaseDate, 'dd/MM/yyyy HH:mm', { locale: es })}
+                        </td>
+                        <td className="p-3 text-[#00704a] font-medium">{purchase.productName}</td>
+                        <td className="p-3 text-[#6b5d4f]">{purchase.supplier}</td>
+                        <td className="p-3 text-right text-[#6b5d4f]">{purchase.quantity}</td>
+                        <td className="p-3 text-right text-[#6b5d4f]">
+                          {formatCurrency(purchase.unitCost)}
+                        </td>
+                        <td className="p-3 text-right text-[#00704a] font-bold">
+                          {formatCurrency(purchase.totalAmount)}
+                        </td>
+                        <td className="p-3 text-[#6b5d4f]">{purchase.paymentMethod}</td>
+                        <td className="p-3 text-[#6b5d4f]">{purchase.invoiceNumber || '-'}</td>
+                        <td className='p-3 text-right'>
+                            <Button variant="destructive" size="sm" onClick={() => handleDelete(purchase)}>Eliminar</Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
 
       <PurchaseForm
         open={isFormOpen}
@@ -176,7 +380,7 @@ export default function ComprasPage() {
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
 
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Esto eliminará permanentemente la compra del producto "{deletingPurchase?.productName}".
+              Esta acción no se puede deshacer. Esto eliminará permanentemente la compra del producto "{deletingPurchase?.productName}" y se restará la cantidad del stock actual.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -185,7 +389,7 @@ export default function ComprasPage() {
               onClick={confirmDelete}
               className="bg-destructive hover:bg-destructive/90"
             >
-              Eliminar
+              Eliminar y ajustar stock
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

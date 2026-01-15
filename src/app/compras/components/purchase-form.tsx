@@ -39,12 +39,12 @@ import { Calendar } from '@/components/ui/calendar'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { type Product } from '@/app/productos/page'
 
 const formSchema = z.object({
   productId: z.string().min(1, 'Debe seleccionar un producto.'),
-  quantity: z.coerce.number().min(1, 'La cantidad debe ser al menos 1.'),
+  quantity: z.coerce.number().min(0.01, 'La cantidad debe ser mayor que 0.'),
   unitCost: z.coerce.number().min(0, 'El costo no puede ser negativo.'),
   purchaseDate: z.date({
     required_error: 'La fecha de compra es requerida.',
@@ -86,6 +86,10 @@ export function PurchaseForm({
     },
   })
   
+  const selectedProductId = form.watch('productId')
+  const quantity = form.watch('quantity')
+  const unitCost = form.watch('unitCost')
+
   useEffect(() => {
     if(!open) {
       form.reset({
@@ -101,177 +105,187 @@ export function PurchaseForm({
     }
   }, [open, form])
 
+  useEffect(() => {
+      const product = products.find(p => p.id === selectedProductId)
+      if(product && product.cost) {
+        form.setValue('unitCost', product.cost)
+      }
+  }, [selectedProductId, products, form])
+
+  const totalAmount = useMemo(() => {
+    return (quantity || 0) * (unitCost || 0)
+  }, [quantity, unitCost])
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-2xl bg-[#f7f4ed] border-[#00704a]">
         <DialogHeader>
-          <DialogTitle>Registrar Nueva Compra</DialogTitle>
-          <DialogDescription>
-            Complete el formulario para registrar una nueva compra de inventario.
-          </DialogDescription>
+          <DialogTitle className="text-2xl text-[#00704a]">Registrar Nueva Compra</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4 py-4"
+            className="space-y-4"
           >
-            <FormField
-              control={form.control}
-              name="productId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Producto</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingProducts}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={isLoadingProducts ? "Cargando productos..." : "Seleccione un producto"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {products.map(product => (
-                        <SelectItem key={product.id} value={product.id}>
-                         {product.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="quantity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cantidad</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="1" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="unitCost"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Costo Unitario</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="0.00" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="supplier"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Proveedor</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ej: Proveedor Principal S.A." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="purchaseDate"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Fecha de Compra</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="productId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[#00704a] font-semibold">Producto *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingProducts}>
                       <FormControl>
-                        <Button
-                          variant={'outline'}
-                          className={cn(
-                            'w-full pl-3 text-left font-normal',
-                            !field.value && 'text-muted-foreground'
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, 'PPP', { locale: es })
-                          ) : (
-                            <span>Seleccione una fecha</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
+                        <SelectTrigger className="border-[#00704a] focus:ring-[#00704a]">
+                          <SelectValue placeholder={isLoadingProducts ? "Cargando..." : "Seleccionar producto"} />
+                        </SelectTrigger>
                       </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date > new Date() || date < new Date('1900-01-01')
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="paymentMethod"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Método de Pago</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <SelectContent>
+                        {products.map(product => (
+                          <SelectItem key={product.id} value={product.id}>
+                          {product.name} - Stock: {product.stock || 0}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="quantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[#00704a] font-semibold">Cantidad *</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccione un método de pago" />
-                      </SelectTrigger>
+                      <Input type="number" step="1" min="1" {...field} className="border-[#00704a] focus:ring-[#00704a]" />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Efectivo">Efectivo</SelectItem>
-                      <SelectItem value="Tarjeta">Tarjeta</SelectItem>
-                      <SelectItem value="Transferencia">Transferencia</SelectItem>
-                      <SelectItem value="Crédito">Crédito</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="invoiceNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nº Factura (Opcional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ej: F-2024-1234" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="unitCost"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[#00704a] font-semibold">Costo Unitario *</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" {...field} className="border-[#00704a] focus:ring-[#00704a]" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
+              <FormField
+                control={form.control}
+                name="supplier"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[#00704a] font-semibold">Proveedor *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nombre del proveedor" {...field} className="border-[#00704a] focus:ring-[#00704a]" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="paymentMethod"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[#00704a] font-semibold">Método de Pago</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="border-[#00704a] focus:ring-[#00704a]">
+                          <SelectValue placeholder="Seleccione un método de pago" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Efectivo">Efectivo</SelectItem>
+                        <SelectItem value="Tarjeta">Tarjeta</SelectItem>
+                        <SelectItem value="Transferencia">Transferencia</SelectItem>
+                        <SelectItem value="Crédito">Crédito</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="invoiceNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[#00704a] font-semibold">Nº Factura (Opcional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ej: F-2024-1234" {...field} className="border-[#00704a] focus:ring-[#00704a]" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                  control={form.control}
+                  name="purchaseDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel className="text-[#00704a] font-semibold">Fecha de Compra</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={'outline'}
+                              className={cn(
+                                'w-full pl-3 text-left font-normal border-[#00704a] focus:ring-[#00704a]',
+                                !field.value && 'text-muted-foreground'
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, 'PPP', { locale: es })
+                              ) : (
+                                <span>Seleccione una fecha</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                              date > new Date() || date < new Date('1900-01-01')
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+            </div>
+            
             <FormField
               control={form.control}
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notas (Opcional)</FormLabel>
+                  <FormLabel className="text-[#00704a] font-semibold">Notas (Opcional)</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Añada notas adicionales sobre la compra"
-                      className="resize-none"
+                      className="resize-none border-[#00704a] focus:ring-[#00704a]"
                       {...field}
                     />
                   </FormControl>
@@ -280,8 +294,19 @@ export function PurchaseForm({
               )}
             />
 
-            <DialogFooter>
-              <Button type="submit">
+            {totalAmount > 0 && (
+                <div className="bg-[#00704a] text-white p-4 rounded-lg">
+                    <p className="text-lg font-bold">
+                    Total: {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(totalAmount)}
+                    </p>
+                </div>
+            )}
+
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1 border-[#00704a] text-[#00704a] hover:bg-[#00704a] hover:text-white">
+                    Cancelar
+              </Button>
+              <Button type="submit" className="flex-1 bg-[#00704a] hover:bg-[#005a3c] text-white">
                 Registrar Compra
               </Button>
             </DialogFooter>
