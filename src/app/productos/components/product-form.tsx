@@ -78,8 +78,8 @@ export function ProductForm({
       description: '',
       category: '',
       price: 0,
-      cost: undefined,
-      profitMargin: undefined,
+      cost: 0,
+      profitMargin: 0,
       stock: 0,
       minStock: 0,
       unit: 'unidad',
@@ -92,20 +92,31 @@ export function ProductForm({
   const profitMargin = form.watch('profitMargin');
 
   const calculatePrice = useCallback(() => {
-    if (typeof cost === 'number' && typeof profitMargin === 'number') {
-      const newPrice = cost * (1 + profitMargin / 100);
+    const costValue = form.getValues('cost');
+    const profitMarginValue = form.getValues('profitMargin');
+    
+    if (typeof costValue === 'number' && typeof profitMarginValue === 'number') {
+      const newPrice = costValue * (1 + profitMarginValue / 100);
       form.setValue('price', parseFloat(newPrice.toFixed(2)), { shouldValidate: true });
     }
-  }, [cost, profitMargin, form]);
+  }, [form]);
 
 
   useEffect(() => {
     if (product) {
       form.reset({
         ...product,
-        cost: product.cost || undefined,
-        profitMargin: product.profitMargin || undefined,
-        minStock: product.minStock || 0
+        name: product.name || '',
+        description: product.description || '',
+        category: product.category || '',
+        price: product.price || 0,
+        cost: product.cost || 0,
+        profitMargin: product.profitMargin || 0,
+        stock: product.stock || 0,
+        minStock: product.minStock || 0,
+        unit: product.unit || 'unidad',
+        supplier: product.supplier || '',
+        status: product.status || 'active',
       })
     } else {
       form.reset({
@@ -113,8 +124,8 @@ export function ProductForm({
         description: '',
         category: '',
         price: 0,
-        cost: undefined,
-        profitMargin: undefined,
+        cost: 0,
+        profitMargin: 0,
         stock: 0,
         minStock: 0,
         unit: 'unidad',
