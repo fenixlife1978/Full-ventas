@@ -315,6 +315,13 @@ function ProductSelectorModal({ open, onOpenChange, products, onAddProduct }) {
     }
   }
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('es-VE', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(value)
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -336,7 +343,7 @@ function ProductSelectorModal({ open, onOpenChange, products, onAddProduct }) {
               <div key={product.id} className="flex items-center gap-4 p-2 rounded-md hover:bg-muted">
                 <div className="flex-1">
                   <p className="font-semibold">{product.name}</p>
-                  <p className="text-sm text-muted-foreground">Stock: {product.stock} | Precio: {format(product.price, {style: 'currency', currency: 'USD'})}</p>
+                  <p className="text-sm text-muted-foreground">Stock: {product.stock} | Precio: {formatCurrency(product.price)}</p>
                 </div>
                 <Input 
                   type="number"
