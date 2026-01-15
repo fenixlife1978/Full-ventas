@@ -9,6 +9,8 @@ import {
   generateDynamicReport,
   type DynamicReportInput,
 } from '@/ai/flows/dynamic-report-generation'
+import Layout from '@/app/layout-app'
+
 
 export interface Report {
   id: string
@@ -90,7 +92,8 @@ export default function ReportesPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <Layout currentPageName="Reportes">
+    <div className="space-y-8 p-4 md:p-8">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
@@ -125,5 +128,6 @@ export default function ReportesPage() {
         onOpenChange={(isOpen) => !isOpen && setViewingReport(null)}
       />
     </div>
+    </Layout>
   )
 }

@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { useCollection, useFirestore } from '@/firebase'
 import { collection, doc, Timestamp, runTransaction } from 'firebase/firestore'
-import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +20,8 @@ import { useMemoFirebase } from '@/firebase/provider'
 import { type Product } from '../productos/page'
 import { SaleForm, type SaleFormValues } from './components/sale-form'
 import { SaleList } from './components/sale-list'
+import Layout from '@/app/layout-app'
+import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates'
 
 export interface Sale {
   id: string
@@ -147,59 +148,61 @@ export default function VentasPage() {
 
 
   return (
-    <div className="space-y-8">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Gestión de Ventas
-          </h1>
-          <p className="text-muted-foreground">
-            Registra y administra las ventas de tus productos.
-          </p>
-        </div>
-        <Button onClick={handleCreateNew}>
-          <Plus className="mr-2" />
-          Registrar Venta
-        </Button>
-      </header>
+    <Layout currentPageName="Gestión de Ventas">
+      <div className="space-y-8 p-4 md:p-8">
+        <header className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              Gestión de Ventas
+            </h1>
+            <p className="text-muted-foreground">
+              Registra y administra las ventas de tus productos.
+            </p>
+          </div>
+          <Button onClick={handleCreateNew}>
+            <Plus className="mr-2" />
+            Registrar Venta
+          </Button>
+        </header>
 
-      <SaleList
-        sales={formattedSales || []}
-        isLoading={isLoadingSales}
-        onDelete={handleDelete}
-      />
+        <SaleList
+          sales={formattedSales || []}
+          isLoading={isLoadingSales}
+          onDelete={handleDelete}
+        />
 
-      <SaleForm
-        open={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        onSubmit={handleFormSubmit}
-        products={products || []}
-        isLoadingProducts={isLoadingProducts}
-      />
+        <SaleForm
+          open={isFormOpen}
+          onOpenChange={setIsFormOpen}
+          onSubmit={handleFormSubmit}
+          products={products || []}
+          isLoadingProducts={isLoadingProducts}
+        />
 
-      <AlertDialog
-        open={!!deletingSale}
-        onOpenChange={(isOpen) => !isOpen && setDeletingSale(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+        <AlertDialog
+          open={!!deletingSale}
+          onOpenChange={(isOpen) => !isOpen && setDeletingSale(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
 
-            <AlertDialogDescription>
-              Esta acción no se puede deshacer. Esto eliminará permanentemente la venta del producto "{deletingSale?.productName}".
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Eliminar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+              <AlertDialogDescription>
+                Esta acción no se puede deshacer. Esto eliminará permanentemente la venta del producto "{deletingSale?.productName}".
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </Layout>
   )
 }

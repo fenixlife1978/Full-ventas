@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useMemoFirebase } from '@/firebase/provider'
+import Layout from '@/app/layout-app'
 
 export interface Product {
   id: string
@@ -102,7 +103,8 @@ export default function ProductosPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <Layout currentPageName="Gestión de Productos">
+    <div className="space-y-8 p-4 md:p-8">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
@@ -156,5 +158,6 @@ export default function ProductosPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </Layout>
   )
 }

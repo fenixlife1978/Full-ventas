@@ -21,6 +21,7 @@ import { useMemoFirebase } from '@/firebase/provider'
 import { type Product } from '../productos/page'
 import { PurchaseForm, type PurchaseFormValues } from './components/purchase-form'
 import { PurchaseList } from './components/purchase-list'
+import Layout from '@/app/layout-app'
 
 export interface Purchase {
   id: string
@@ -135,7 +136,8 @@ export default function ComprasPage() {
 
 
   return (
-    <div className="space-y-8">
+    <Layout currentPageName="Gestión de Compras">
+    <div className="space-y-8 p-4 md:p-8">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
@@ -189,5 +191,6 @@ export default function ComprasPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </Layout>
   )
 }
