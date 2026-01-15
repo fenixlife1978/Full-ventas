@@ -5,7 +5,7 @@ import { Plus, Search, ShoppingCart, DollarSign, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
-import { useCollection, useFirestore } from '@/firebase'
+import { useCollection, useFirestore, useDoc } from '@/firebase'
 import { collection, doc, Timestamp, runTransaction } from 'firebase/firestore'
 import {
   AlertDialog,
@@ -41,6 +41,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { startOfWeek, startOfMonth } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { format } from 'date-fns'
+import { type Setting } from '../configuraciones/page'
 
 
 export interface Sale {
@@ -64,7 +65,6 @@ export default function VentasPage() {
 
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('today')
-  const [bcvRate, setBcvRate] = useState<number | null>(null);
   const [selectedPriceCheckerProduct, setSelectedPriceCheckerProduct] = useState<Product | null>(null)
 
 
@@ -78,8 +78,16 @@ export default function VentasPage() {
     return collection(firestore, 'products')
   }, [firestore])
 
+  const settingsDoc = useMemoFirebase(() => {
+    if (!firestore) return null
+    return doc(firestore, 'settings', 'global')
+  }, [firestore])
+
   const { data: sales, isLoading: isLoadingSales } = useCollection<Sale>(salesCollection)
   const { data: products, isLoading: isLoadingProducts } = useCollection<Product>(productsCollection)
+  const { data: settings, isLoading: isLoadingSettings } = useDoc<Setting>(settingsDoc)
+
+  const bcvRate = useMemo(() => settings?.bcvRate || null, [settings])
 
   const activeProducts = useMemo(() => {
     return products?.filter(p => p.status === 'active') || []
@@ -254,7 +262,7 @@ export default function VentasPage() {
     return new Intl.NumberFormat('es-VE', { style, currency: currencyToUse }).format(value);
   };
 
- const isLoading = isLoadingSales || isLoadingProducts;
+ const isLoading = isLoadingSales || isLoadingProducts || isLoadingSettings;
 
   return (
     <Layout currentPageName="Gestión de Ventas">
@@ -433,7 +441,7 @@ export default function VentasPage() {
         </AlertDialog>
 
         <Dialog open={isPriceCheckerOpen} onOpenChange={setIsPriceCheckerOpen}>
-            <DialogContent className="max-w-2xl bg-background border-border/50">
+            <DialogContent className="max-w-md bg-background border-border/50">
                 <DialogHeader>
                     <DialogTitle className="text-2xl text-foreground">Consultor de Precios</DialogTitle>
                     <DialogDescription>
@@ -441,19 +449,9 @@ export default function VentasPage() {
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-6 py-4">
-                    <div className="grid grid-cols-3 items-center gap-4">
-                        <label htmlFor="bcv-rate-checker" className="text-right text-foreground">Tasa BCV</label>
-                        <Input
-                            id="bcv-rate-checker"
-                            type="number"
-                            placeholder="Tasa de cambio"
-                            value={bcvRate || ''}
-                            onChange={(e) => setBcvRate(parseFloat(e.target.value) || null)}
-                            className="col-span-2 border-border/50 focus:ring-ring"
-                        />
-                    </div>
-                     <div className="grid grid-cols-3 items-center gap-4">
-                        <label className="text-right text-foreground">Producto</label>
+                    
+                     <div className="grid grid-cols-1 items-center gap-4">
+                        <label className="text-foreground font-semibold">Producto</label>
                         <Select 
                           onValueChange={(productId) => {
                             const product = products?.find(p => p.id === productId)
@@ -461,7 +459,7 @@ export default function VentasPage() {
                           }}
                           disabled={isLoadingProducts}
                         >
-                            <SelectTrigger className="col-span-2 border-border/50 focus:ring-ring">
+                            <SelectTrigger className="w-full border-border/50 focus:ring-ring">
                                 <SelectValue placeholder={isLoadingProducts ? "Cargando..." : "Selecciona un producto"} />
                             </SelectTrigger>
                             <SelectContent>
@@ -486,6 +484,12 @@ export default function VentasPage() {
                                 </p>
                             </CardContent>
                         </Card>
+                    )}
+
+                    {!bcvRate && (
+                      <div className="text-center text-muted-foreground p-4 bg-muted rounded-md">
+                        <p>Por favor, establece la tasa BCV en la página de <Link href="/configuraciones" className="text-primary underline">Configuraciones</Link> para ver los precios en Bolívares.</p>
+                      </div>
                     )}
                 </div>
             </DialogContent>

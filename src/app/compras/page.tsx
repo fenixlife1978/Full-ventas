@@ -5,7 +5,7 @@ import { Plus, Search, ShoppingCart, DollarSign, Package, TrendingUp, Percent, S
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
-import { useCollection, useFirestore } from '@/firebase'
+import { useCollection, useFirestore, useDoc } from '@/firebase'
 import { collection, doc, Timestamp, runTransaction, updateDoc } from 'firebase/firestore'
 import {
   AlertDialog,
@@ -35,6 +35,7 @@ import {
   DialogHeader as DialogHeaderNonForm,
   DialogTitle as DialogTitleNonForm,
 } from "@/components/ui/dialog"
+import { type Setting } from '../configuraciones/page'
 
 
 export interface Purchase {
@@ -61,7 +62,6 @@ export default function ComprasPage() {
   const [deletingPurchase, setDeletingPurchase] = useState<Purchase | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterPeriod, setFilterPeriod] = useState('all');
-  const [bcvRate, setBcvRate] = useState<number | null>(null);
   const [pricingModalInfo, setPricingModalInfo] = useState<PricingModalInfo | null>(null)
   const [profitMargin, setProfitMargin] = useState<string>('')
   
@@ -78,8 +78,16 @@ export default function ComprasPage() {
     return collection(firestore, 'products')
   }, [firestore]);
 
+  const settingsDoc = useMemoFirebase(() => {
+    if (!firestore) return null
+    return doc(firestore, 'settings', 'global')
+  }, [firestore])
+
   const { data: purchases, isLoading: isLoadingPurchases } = useCollection<Purchase>(purchasesCollection)
   const { data: products, isLoading: isLoadingProducts } = useCollection<Product>(productsCollection)
+  const { data: settings, isLoading: isLoadingSettings } = useDoc<Setting>(settingsDoc)
+
+  const bcvRate = useMemo(() => settings?.bcvRate || null, [settings])
 
   const formattedPurchases = useMemo(() => {
      return purchases?.map(purchase => ({
@@ -285,7 +293,7 @@ export default function ComprasPage() {
     return new Intl.NumberFormat('es-VE', { style: 'currency', currency: currency === 'VES' ? 'VED' : 'USD' }).format(value)
   }
 
-  const isLoading = isLoadingPurchases || isLoadingProducts
+  const isLoading = isLoadingPurchases || isLoadingProducts || isLoadingSettings
 
   return (
     <Layout currentPageName="Control de Compras">
@@ -356,16 +364,6 @@ export default function ComprasPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 border-border/50 focus:ring-ring"
-                />
-              </div>
-               <div className="flex items-center gap-2 w-full md:w-auto">
-                 <DollarSign className="text-muted-foreground" />
-                 <Input
-                  type="number"
-                  placeholder="Tasa BCV"
-                  value={bcvRate || ''}
-                  onChange={(e) => setBcvRate(parseFloat(e.target.value) || null)}
-                  className="w-full md:w-32 border-border/50 focus:ring-ring"
                 />
               </div>
               <Select value={filterPeriod} onValueChange={setFilterPeriod}>

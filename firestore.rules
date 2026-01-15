@@ -19,6 +19,7 @@
  * - /products/{productId}: Stores individual product documents.
  * - /sales/{saleId}: Stores individual sale documents.
  * - /purchases/{purchaseId}: Stores individual purchase documents.
+ * - /settings/{settingId}: Stores global application settings.
  *
  * @section Key Security Decisions
  * - Public Read Access for Reports: All reports in the `/reports` collection are publicly readable
@@ -103,6 +104,15 @@ service cloud.firestore {
      * @allow (read, write) Any signed-in user can read, create, update, or delete purchase documents.
      */
     match /purchases/{purchaseId} {
+        allow read, write: if isSignedIn();
+    }
+
+     /**
+     * @description Allows authenticated users to manage global settings.
+     * @path /settings/{settingId}
+     * @allow (read, write) Any signed-in user can read and update settings.
+     */
+    match /settings/{settingId} {
         allow read, write: if isSignedIn();
     }
   }

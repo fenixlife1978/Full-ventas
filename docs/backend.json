@@ -215,6 +215,19 @@
         "purchaseDate",
         "supplier"
       ]
+    },
+    "Setting": {
+      "title": "Setting",
+      "type": "object",
+      "properties": {
+        "bcvRate": {
+          "type": "number",
+          "description": "Tasa de cambio del BCV."
+        }
+      },
+      "required": [
+        "bcvRate"
+      ]
     }
   },
   "auth": {
@@ -270,8 +283,18 @@
           },
           "description": "Stores purchase data. 'purchaseId' is the unique identifier for the purchase."
         }
+      },
+       {
+        "path": "/settings/global",
+        "definition": {
+          "entityName": "Setting",
+          "schema": {
+            "$ref": "#/backend/entities/Setting"
+          },
+          "description": "Stores global application settings."
+        }
       }
     ],
-    "reasoning": "The data structure is designed to store reports, products and sales generated within the application. Given that all users can create reports and that the application will generate dynamic reports based on AI processing, a top-level collection called 'reports' is used to store all report data. For products, a top-level 'products' collection is used for easy querying and management. For sales, a top-level 'sales' collection is appropriate for tracking all transactions. For purchases, a top-level 'purchases' collection is needed to track incoming inventory. No user-specific subcollections are created since there are no user-specific access controls mentioned.  Authorization independence is ensured as reports, products, sales and purchases don't have an owner id. This approach enables atomic creation and listing of reports, products, sales and purchases without relying on `get()` calls in the rules. Since the listing operation should be available for all users, the data segregation via top level collections enables that. This structure supports the QAPs, because all users can create and access the reports, products, sales and purchases, by storing every report in the same `reports` collection, every product in the `products` collection, every sale in the `sales` collection and every purchase in the `purchases` collection it is possible to create rules that validates the data integrity."
+    "reasoning": "The data structure is designed to store reports, products and sales generated within the application. Given that all users can create reports and that the application will generate dynamic reports based on AI processing, a top-level collection called 'reports' is used to store all report data. For products, a top-level 'products' collection is used for easy querying and management. For sales, a top-level 'sales' collection is appropriate for tracking all transactions. For purchases, a top-level 'purchases' collection is needed to track incoming inventory. No user-specific subcollections are created since there are no user-specific access controls mentioned.  Authorization independence is ensured as reports, products, sales and purchases don't have an owner id. This approach enables atomic creation and listing of reports, products, sales and purchases without relying on `get()` calls in the rules. Since the listing operation should be available for all users, the data segregation via top level collections enables that. A `settings` collection with a single `global` document is added to store application-wide settings like the BCV exchange rate. This structure supports the QAPs, because all users can create and access the reports, products, sales and purchases, by storing every report in the same `reports` collection, every product in the `products` collection, every sale in the `sales` collection and every purchase in the `purchases` collection it is possible to create rules that validates the data integrity."
   }
 }

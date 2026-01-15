@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Package, ShoppingCart, BarChart3, Home, ShoppingBag } from 'lucide-react';
+import { Menu, X, Package, ShoppingCart, BarChart3, Home, ShoppingBag, Settings } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -15,6 +15,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Ventas', href: '/ventas', icon: ShoppingCart },
     { name: 'Compras', href: '/compras', icon: ShoppingBag },
     { name: 'Reportes', href: '/reportes', icon: BarChart3 },
+    { name: 'Configuraciones', href: '/configuraciones', icon: Settings },
   ];
 
   const isActive = (href) => {
