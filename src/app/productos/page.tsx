@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Plus, Search, Edit, Trash2, AlertTriangle, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { ProductForm, ProductFormValues } from './components/product-form'
-import { ProductList } from './components/product-list'
 import { useCollection, useFirestore } from '@/firebase'
 import { collection, doc } from 'firebase/firestore'
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates'
@@ -21,6 +21,17 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useMemoFirebase } from '@/firebase/provider'
 import Layout from '@/app/layout-app'
+import { Card, CardContent } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+
 
 export interface Product {
   id: string
@@ -41,6 +52,10 @@ export default function ProductosPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null)
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+
   const { toast } = useToast()
   const firestore = useFirestore()
 
@@ -50,6 +65,41 @@ export default function ProductosPage() {
   }, [firestore])
 
   const { data: products, isLoading } = useCollection<Product>(productsCollection)
+
+  const categories = useMemo(() => {
+    if (!products) return []
+    return [...new Set(products.map(p => p.category).filter(Boolean))]
+  }, [products])
+  
+  const filteredProducts = useMemo(() => {
+    if (!products) return []
+    
+    let filtered = [...products];
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(
+        p =>
+          p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filter by category
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(p => p.category === categoryFilter);
+    }
+
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(p => p.status === statusFilter);
+    }
+
+    return filtered;
+
+  }, [products, searchTerm, categoryFilter, statusFilter])
+
 
   const handleCreateNew = () => {
     setEditingProduct(null)
@@ -77,12 +127,10 @@ export default function ProductosPage() {
     }
   }
 
-
   const handleFormSubmit = (values: ProductFormValues) => {
     if (!firestore) return
     
     if (editingProduct) {
-      // Update
       const productRef = doc(firestore, 'products', editingProduct.id)
       updateDocumentNonBlocking(productRef, values)
       toast({
@@ -90,7 +138,6 @@ export default function ProductosPage() {
         description: 'El producto se ha actualizado exitosamente.',
       })
     } else {
-      // Create
       const productsRef = collection(firestore, 'products')
       addDocumentNonBlocking(productsRef, values)
       toast({
@@ -104,34 +151,158 @@ export default function ProductosPage() {
 
   return (
     <Layout currentPageName="Gestión de Productos">
-    <div className="space-y-8 p-4 md:p-8">
-      <header className="flex items-center justify-between">
+    <div className="space-y-6 p-4 md:p-8">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Gestión de Productos
-          </h1>
-          <p className="text-muted-foreground">
-            Añade, edita y gestiona tu inventario de productos.
-          </p>
+          <h1 className="text-3xl md:text-4xl font-bold text-[#00704a]">Productos</h1>
+          <p className="text-[#6b5d4f] mt-2">Gestiona el inventario de tu bodega</p>
         </div>
-        <Button onClick={handleCreateNew}>
+        <Button onClick={handleCreateNew} className="w-full sm:w-auto bg-[#00704a] hover:bg-[#005a3c] text-white shadow-lg">
           <Plus className="mr-2" />
-          Añadir Producto
+          Agregar Producto
         </Button>
       </header>
 
-      <ProductList
-        products={products || []}
-        isLoading={isLoading}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-      />
+      <Card className="bg-white border-[#00704a] shadow-lg">
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#6b5d4f]" />
+                <Input
+                  placeholder="Buscar por nombre, SKU o descripción..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 border-[#00704a] focus:ring-[#00704a]"
+                />
+              </div>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="border-[#00704a] focus:ring-[#00704a]">
+                  <SelectValue placeholder="Todas las categorías" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las categorías</SelectItem>
+                  {categories.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="border-[#00704a] focus:ring-[#00704a]">
+                  <SelectValue placeholder="Todos los estados" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los estados</SelectItem>
+                  <SelectItem value="active">Activo</SelectItem>
+                  <SelectItem value="inactive">Inactivo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid grid-cols-1 gap-4">
+          {isLoading ? (
+             Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="bg-white border-[#00704a]">
+                    <CardContent className="p-6">
+                        <Skeleton className="h-24 w-full" />
+                    </CardContent>
+                </Card>
+             ))
+          ) : filteredProducts.length > 0 ? (
+            filteredProducts.map(product => (
+              <Card key={product.id} className="bg-white border-[#00704a] hover:shadow-xl transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold text-[#00704a]">{product.name}</h3>
+                          <p className="text-sm text-[#6b5d4f]">SKU: {product.sku}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          {product.stock <= (product.minStock || 0) && (
+                            <Badge variant="destructive" className="flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              Stock Bajo
+                            </Badge>
+                          )}
+                          <Badge variant={product.status === 'active' ? 'default' : 'secondary'} className={product.status === 'active' ? 'bg-[#00704a] text-white' : ''}>
+                            {product.status === 'active' ? 'Activo' : 'Inactivo'}
+                          </Badge>
+                        </div>
+                      </div>
+                      {product.description && (
+                        <p className="text-sm text-[#6b5d4f]">{product.description}</p>
+                      )}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+                        <div>
+                          <p className="text-xs text-[#6b5d4f]">Categoría</p>
+                          <p className="text-sm font-medium text-[#00704a]">{product.category || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-[#6b5d4f]">Precio</p>
+                          <p className="text-sm font-medium text-[#00704a]">
+                             {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(product.price)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-[#6b5d4f]">Stock</p>
+                          <p className="text-sm font-medium text-[#00704a]">
+                            {product.stock} {product.unit}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-[#6b5d4f]">Stock Mínimo</p>
+                          <p className="text-sm font-medium text-[#00704a]">{product.minStock || 0}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex lg:flex-col gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(product)}
+                        className="flex-1 lg:flex-none border-[#00704a] text-[#00704a] hover:bg-[#00704a] hover:text-white"
+                      >
+                        <Edit className="mr-2" />
+                        Editar
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(product)}
+                        className="flex-1 lg:flex-none"
+                      >
+                        <Trash2 className="mr-2" />
+                        Eliminar
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Card className="bg-white border-[#00704a]">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Package className="h-12 w-12 text-[#00704a] mb-4" />
+                <p className="text-[#6b5d4f] text-center">
+                  {searchTerm || categoryFilter !== 'all' || statusFilter !== 'all'
+                    ? 'No se encontraron productos con los filtros aplicados'
+                    : 'No hay productos registrados. ¡Agrega tu primer producto!'}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
 
       <ProductForm
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
         onSubmit={handleFormSubmit}
         product={editingProduct}
+        categories={categories}
       />
 
       <AlertDialog
@@ -144,7 +315,7 @@ export default function ProductosPage() {
             <AlertDialogDescription>
               Esta acción no se puede deshacer. Esto eliminará permanentemente
               el producto "{deletingProduct?.name}".
-            </AlertDialogDescription>
+            </TAlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
