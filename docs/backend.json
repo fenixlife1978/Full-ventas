@@ -40,6 +40,66 @@
         "formatoExportacion",
         "datos"
       ]
+    },
+    "Product": {
+      "title": "Product",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Nombre del producto"
+        },
+        "description": {
+          "type": "string",
+          "description": "Descripción del producto"
+        },
+        "sku": {
+          "type": "string",
+          "description": "Código único del producto (SKU)"
+        },
+        "category": {
+          "type": "string",
+          "description": "Categoría del producto"
+        },
+        "price": {
+          "type": "number",
+          "description": "Precio de venta"
+        },
+        "cost": {
+          "type": "number",
+          "description": "Costo del producto"
+        },
+        "stock": {
+          "type": "number",
+          "description": "Cantidad en inventario"
+        },
+        "minStock": {
+          "type": "number",
+          "description": "Stock mínimo requerido"
+        },
+        "unit": {
+          "type": "string",
+          "description": "Unidad de medida (unidad, caja, kg, litro, etc.)"
+        },
+        "supplier": {
+          "type": "string",
+          "description": "Proveedor del producto"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "inactive"
+          ],
+          "description": "Estado del producto"
+        }
+      },
+      "required": [
+        "name",
+        "sku",
+        "price",
+        "stock"
+      ]
     }
   },
   "auth": {
@@ -65,8 +125,18 @@
             }
           ]
         }
+      },
+      {
+        "path": "/products/{productId}",
+        "definition": {
+          "entityName": "Product",
+          "schema": {
+            "$ref": "#/backend/entities/Product"
+          },
+          "description": "Stores product data. 'productId' is the unique identifier for the product."
+        }
       }
     ],
-    "reasoning": "The data structure is designed to store reports generated within the application. Given that all users can create reports and that the application will generate dynamic reports based on AI processing, a top-level collection called 'reports' is used to store all report data. No user-specific subcollections are created since there are no user-specific access controls mentioned.  Authorization independence is ensured as reports don't have an owner id. This approach enables atomic creation and listing of reports without relying on `get()` calls in the rules. Since the listing operation should be available for all users, the data segregation via a top level collection enables that. This structure supports the QAPs, because all users can create and access the reports, by storing every report in the same `reports` collection, it is possible to create rules that validates the data integrity."
+    "reasoning": "The data structure is designed to store reports and products generated within the application. Given that all users can create reports and that the application will generate dynamic reports based on AI processing, a top-level collection called 'reports' is used to store all report data. For products, a top-level 'products' collection is used for easy querying and management. No user-specific subcollections are created since there are no user-specific access controls mentioned.  Authorization independence is ensured as reports and products don't have an owner id. This approach enables atomic creation and listing of reports and products without relying on `get()` calls in the rules. Since the listing operation should be available for all users, the data segregation via top level collections enables that. This structure supports the QAPs, because all users can create and access the reports and products, by storing every report in the same `reports` collection and every product in the `products` collection, it is possible to create rules that validates the data integrity."
   }
 }

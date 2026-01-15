@@ -18,6 +18,7 @@ import {
   BarChart3,
   Settings,
   Bot,
+  Package,
 } from 'lucide-react'
 import { UserProfile } from '@/components/user-profile'
 
@@ -40,6 +41,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <Link href="#">
                   <LayoutDashboard />
                   <span>Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Productos">
+                <Link href="/productos">
+                  <Package />
+                  <span>Productos</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
