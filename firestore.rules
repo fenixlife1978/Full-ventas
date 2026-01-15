@@ -1,0 +1,79 @@
+/**
+ * @file firestore.rules
+ * @description Firestore Security Rules for the application.
+ *
+ * @version 1.0
+ *
+ * @section Core Philosophy
+ * This ruleset implements a public, append-only data model for reports. The core
+ * principle is that all reports are public and can be read by anyone, including
+ * anonymous users. Authenticated users are permitted to create new reports, but
+ * once a report is created, it is immutable and cannot be updated or deleted by
+ * anyone. This ensures data integrity and prevents tampering in an environment where
+ * documents do not have explicit owners.
+ *
+ * @section Data Structure
+ * The data is organized into a single top-level collection:
+ * - /reports/{reportId}: Stores individual report documents.
+ *
+ * @section Key Security Decisions
+ * - Public Read Access: All reports in the `/reports` collection are publicly readable
+ *   to support application features that display report data to any user.
+ * - Authenticated Creation: Only signed-in users can create new reports. This prevents
+ *   abuse by anonymous traffic.
+ * - Immutability: To prevent any user from modifying or deleting another user's report
+ *   (especially since there is no `ownerId` field), all update and delete operations
+ *   are explicitly denied. This makes the `/reports` collection an append-only log.
+ *
+ * @section Denormalization for Authorization
+ * This ruleset does not require denormalization as there are no ownership or role-based
+ * access controls. The security model is intentionally simple, relying on authentication
+ * status for creation and public access for reads.
+ *
+ * @section Structural Segregation
+ * A single top-level collection `/reports` is used because all documents within it share
+ * the same public-read access level, making it efficient for list operations.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------------
+    // Helper Functions
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+
+    // -------------------------------------------------------------------------
+    // Collection Rules
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Allows public read access to all reports. Authenticated users can
+     *   create new reports, but reports are immutable and cannot be
+     *   updated or deleted.
+     * @path /reports/{reportId}
+     * @allow (get) Any user, signed-in or not, can read a specific report.
+     * @allow (create) An authenticated user can create a new report document.
+     * @deny (update) No user, even if authenticated, can update an existing report.
+     * @deny (delete) No user can delete a report.
+     * @principle Public read with authenticated-only creation. Reports are immutable to
+     *   prevent data tampering in a multi-user environment that lacks explicit
+     *   document ownership.
+     */
+    match /reports/{reportId} {
+      allow get: if true;
+      allow list: if true;
+
+      allow create: if isSignedIn();
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}

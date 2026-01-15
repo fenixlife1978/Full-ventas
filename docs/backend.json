@@ -1,0 +1,72 @@
+{
+  "entities": {
+    "Reporte": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Reporte",
+      "type": "object",
+      "description": "Entidad que representa un reporte generado en la aplicación.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador único del reporte."
+        },
+        "titulo": {
+          "type": "string",
+          "description": "Título del reporte."
+        },
+        "descripcion": {
+          "type": "string",
+          "description": "Descripción detallada del reporte."
+        },
+        "fechaCreacion": {
+          "type": "string",
+          "description": "Fecha y hora en que se generó el reporte.",
+          "format": "date-time"
+        },
+        "formatoExportacion": {
+          "type": "string",
+          "description": "Formato en el que se exportará el reporte (PDF, CSV, etc.)."
+        },
+        "datos": {
+          "type": "string",
+          "description": "Datos asociados al reporte en formato JSON."
+        }
+      },
+      "required": [
+        "id",
+        "titulo",
+        "descripcion",
+        "fechaCreacion",
+        "formatoExportacion",
+        "datos"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/reports/{reportId}",
+        "definition": {
+          "entityName": "Reporte",
+          "schema": {
+            "$ref": "#/backend/entities/Reporte"
+          },
+          "description": "Stores report data. 'reportId' is the unique identifier for the report.",
+          "params": [
+            {
+              "name": "reportId",
+              "description": "The unique identifier for the report."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The data structure is designed to store reports generated within the application. Given that all users can create reports and that the application will generate dynamic reports based on AI processing, a top-level collection called 'reports' is used to store all report data. No user-specific subcollections are created since there are no user-specific access controls mentioned.  Authorization independence is ensured as reports don't have an owner id. This approach enables atomic creation and listing of reports without relying on `get()` calls in the rules. Since the listing operation should be available for all users, the data segregation via a top level collection enables that. This structure supports the QAPs, because all users can create and access the reports, by storing every report in the same `reports` collection, it is possible to create rules that validates the data integrity."
+  }
+}
