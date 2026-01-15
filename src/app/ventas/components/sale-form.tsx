@@ -39,12 +39,13 @@ import { Calendar } from '@/components/ui/calendar'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { type Product } from '@/app/productos/page'
+import { Card, CardContent } from '@/components/ui/card'
 
 const formSchema = z.object({
   productId: z.string().min(1, 'Debe seleccionar un producto.'),
-  quantity: z.coerce.number().min(1, 'La cantidad debe ser al menos 1.'),
+  quantity: z.coerce.number().min(0.01, 'La cantidad debe ser mayor a 0.'),
   saleDate: z.date({
     required_error: 'La fecha de venta es requerida.',
   }),
@@ -94,16 +95,29 @@ export function SaleForm({
 
 
   const selectedProductId = form.watch('productId')
-  const selectedProduct = products.find(p => p.id === selectedProductId)
+  const quantity = form.watch('quantity')
+  
+  const selectedProduct = useMemo(() => {
+    return products.find(p => p.id === selectedProductId)
+  }, [products, selectedProductId])
+
+  const totalAmount = useMemo(() => {
+    if (!selectedProduct || !quantity) return 0;
+    return selectedProduct.price * quantity
+  }, [selectedProduct, quantity])
+
+  const formatCurrency = (value: number) => {
+     return new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'EUR',
+    }).format(value)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-md bg-[#f7f4ed] border-[#00704a]">
         <DialogHeader>
-          <DialogTitle>Registrar Nueva Venta</DialogTitle>
-          <DialogDescription>
-            Complete el formulario para registrar una nueva venta.
-          </DialogDescription>
+          <DialogTitle className="text-2xl text-[#00704a]">Registrar Nueva Venta</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form
@@ -115,17 +129,17 @@ export function SaleForm({
               name="productId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Producto</FormLabel>
+                  <FormLabel className="text-[#00704a] font-semibold">Producto *</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingProducts}>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={isLoadingProducts ? "Cargando productos..." : "Seleccione un producto"} />
+                      <SelectTrigger className="border-[#00704a] focus:ring-[#00704a]">
+                        <SelectValue placeholder={isLoadingProducts ? "Cargando..." : "Selecciona un producto"} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {products.map(product => (
                         <SelectItem key={product.id} value={product.id} disabled={product.stock === 0}>
-                         {product.name} ({product.stock} disp.)
+                         {product.name} - Stock: {product.stock} {product.unit}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -136,9 +150,24 @@ export function SaleForm({
             />
 
             {selectedProduct && (
-                <div className="text-sm text-muted-foreground">
-                    Precio: {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(selectedProduct.price)}
-                </div>
+                <Card className="bg-[#e8dcc4] border-[#00704a]">
+                    <CardContent className="pt-4">
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <p className="text-[#6b5d4f]">Precio:</p>
+                          <p className="font-semibold text-[#00704a]">
+                            {formatCurrency(selectedProduct.price)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[#6b5d4f]">Stock disponible:</p>
+                          <p className="font-semibold text-[#00704a]">
+                            {selectedProduct.stock} {selectedProduct.unit}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
             )}
 
             <FormField
@@ -146,28 +175,42 @@ export function SaleForm({
               name="quantity"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Cantidad</FormLabel>
+                  <FormLabel className="text-[#00704a] font-semibold">Cantidad *</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="1" {...field} />
+                    <Input type="number" step="1" min="1" {...field} className="border-[#00704a] focus:ring-[#00704a]" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
+            {selectedProduct && quantity > 0 && (
+                <Card className="bg-[#00704a] border-[#005a3c]">
+                    <CardContent className="pt-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-white font-medium">Total a pagar:</span>
+                        <span className="text-2xl font-bold text-white">
+                          {formatCurrency(totalAmount)}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+            )}
+
+
             <FormField
               control={form.control}
               name="saleDate"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Fecha de Venta</FormLabel>
+                  <FormLabel className="text-[#00704a] font-semibold">Fecha de Venta</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
                           variant={'outline'}
                           className={cn(
-                            'w-full pl-3 text-left font-normal',
+                            'w-full pl-3 text-left font-normal border-[#00704a]',
                             !field.value && 'text-muted-foreground'
                           )}
                         >
@@ -202,10 +245,10 @@ export function SaleForm({
               name="paymentMethod"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Método de Pago</FormLabel>
+                  <FormLabel className="text-[#00704a] font-semibold">Método de Pago</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="border-[#00704a] focus:ring-[#00704a]">
                         <SelectValue placeholder="Seleccione un método de pago" />
                       </SelectTrigger>
                     </FormControl>
@@ -226,11 +269,11 @@ export function SaleForm({
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notas (Opcional)</FormLabel>
+                  <FormLabel className="text-[#00704a] font-semibold">Notas (Opcional)</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Añada notas adicionales sobre la venta"
-                      className="resize-none"
+                      className="resize-none border-[#00704a] focus:ring-[#00704a]"
                       {...field}
                     />
                   </FormControl>
@@ -240,7 +283,10 @@ export function SaleForm({
             />
 
             <DialogFooter>
-              <Button type="submit">
+               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="border-[#00704a] text-[#00704a] hover:bg-[#00704a] hover:text-white">
+                  Cancelar
+                </Button>
+              <Button type="submit" disabled={!selectedProduct || !(quantity > 0)} className="bg-[#00704a] hover:bg-[#005a3c] text-white">
                 Registrar Venta
               </Button>
             </DialogFooter>
