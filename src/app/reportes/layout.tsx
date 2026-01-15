@@ -20,6 +20,7 @@ import {
   Bot,
   Package,
   DollarSign,
+  ShoppingCart,
 } from 'lucide-react'
 import { UserProfile } from '@/components/user-profile'
 
@@ -58,6 +59,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <Link href="/ventas">
                   <DollarSign />
                   <span>Ventas</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Compras">
+                <Link href="/compras">
+                  <ShoppingCart />
+                  <span>Compras</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

@@ -154,6 +154,68 @@
         "totalAmount",
         "saleDate"
       ]
+    },
+    "Purchase": {
+      "title": "Purchase",
+      "type": "object",
+      "properties": {
+        "productId": {
+          "type": "string",
+          "description": "ID del producto comprado"
+        },
+        "productName": {
+          "type": "string",
+          "description": "Nombre del producto comprado"
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Cantidad comprada"
+        },
+        "unitCost": {
+          "type": "number",
+          "description": "Costo unitario de compra"
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Monto total de la compra"
+        },
+        "purchaseDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Fecha de la compra"
+        },
+        "supplier": {
+          "type": "string",
+          "description": "Proveedor de la compra"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": [
+            "Efectivo",
+            "Tarjeta",
+            "Transferencia",
+            "Crédito"
+          ],
+          "description": "Método de pago utilizado"
+        },
+        "invoiceNumber": {
+          "type": "string",
+          "description": "Número de factura o documento"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Notas adicionales sobre la compra"
+        }
+      },
+      "required": [
+        "productId",
+        "productName",
+        "quantity",
+        "unitCost",
+        "totalAmount",
+        "purchaseDate",
+        "supplier"
+      ]
     }
   },
   "auth": {
@@ -199,8 +261,18 @@
           },
           "description": "Stores sale data. 'saleId' is the unique identifier for the sale."
         }
+      },
+      {
+        "path": "/purchases/{purchaseId}",
+        "definition": {
+          "entityName": "Purchase",
+          "schema": {
+            "$ref": "#/backend/entities/Purchase"
+          },
+          "description": "Stores purchase data. 'purchaseId' is the unique identifier for the purchase."
+        }
       }
     ],
-    "reasoning": "The data structure is designed to store reports, products and sales generated within the application. Given that all users can create reports and that the application will generate dynamic reports based on AI processing, a top-level collection called 'reports' is used to store all report data. For products, a top-level 'products' collection is used for easy querying and management. For sales, a top-level 'sales' collection is appropriate for tracking all transactions. No user-specific subcollections are created since there are no user-specific access controls mentioned.  Authorization independence is ensured as reports, products and sales don't have an owner id. This approach enables atomic creation and listing of reports, products and sales without relying on `get()` calls in the rules. Since the listing operation should be available for all users, the data segregation via top level collections enables that. This structure supports the QAPs, because all users can create and access the reports, products and sales, by storing every report in the same `reports` collection, every product in the `products` collection and every sale in the `sales` collection, it is possible to create rules that validates the data integrity."
+    "reasoning": "The data structure is designed to store reports, products and sales generated within the application. Given that all users can create reports and that the application will generate dynamic reports based on AI processing, a top-level collection called 'reports' is used to store all report data. For products, a top-level 'products' collection is used for easy querying and management. For sales, a top-level 'sales' collection is appropriate for tracking all transactions. For purchases, a top-level 'purchases' collection is needed to track incoming inventory. No user-specific subcollections are created since there are no user-specific access controls mentioned.  Authorization independence is ensured as reports, products, sales and purchases don't have an owner id. This approach enables atomic creation and listing of reports, products, sales and purchases without relying on `get()` calls in the rules. Since the listing operation should be available for all users, the data segregation via top level collections enables that. This structure supports the QAPs, because all users can create and access the reports, products, sales and purchases, by storing every report in the same `reports` collection, every product in the `products` collection, every sale in the `sales` collection and every purchase in the `purchases` collection it is possible to create rules that validates the data integrity."
   }
 }
