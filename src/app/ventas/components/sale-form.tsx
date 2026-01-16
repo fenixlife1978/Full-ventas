@@ -13,6 +13,8 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   CalendarIcon,
@@ -134,9 +136,9 @@ export function SaleForm({
             
             {/* LEFT PANE */}
             <div className="p-8 space-y-6 flex flex-col bg-white">
-              <div className="flex justify-between items-start">
-                <h1 className="text-4xl font-extrabold text-foreground">Nueva<br/>Venta</h1>
-              </div>
+              <DialogHeader className='p-0 text-left'>
+                <DialogTitle className="text-4xl font-extrabold text-foreground">Nueva<br/>Venta</DialogTitle>
+              </DialogHeader>
 
               <FormField
                 control={form.control}
