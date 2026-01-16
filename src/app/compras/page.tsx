@@ -97,6 +97,21 @@ export default function ComprasPage() {
   }, [purchases])
 
 
+  const monthlyStats = useMemo(() => {
+    const now = new Date();
+    const monthStartDate = startOfMonth(now);
+    const monthlyPurchases = formattedPurchases.filter(p => p.purchaseDate >= monthStartDate);
+    
+    const amountCents = monthlyPurchases.reduce((sum, p) => sum + Math.round((p.totalAmount || 0) * 100), 0);
+    
+    return {
+        totalPurchases: monthlyPurchases.length,
+        totalAmount: amountCents / 100,
+        totalUnits: monthlyPurchases.reduce((sum, p) => sum + (p.quantity || 0), 0)
+    };
+  }, [formattedPurchases]);
+
+
   const filteredPurchases = useMemo(() => {
     let filtered = formattedPurchases;
 
@@ -127,16 +142,6 @@ export default function ComprasPage() {
 
     return filtered;
   }, [formattedPurchases, filterPeriod, searchTerm]);
-
-  const { totalPurchases, totalAmount, totalUnits } = useMemo(() => {
-    const amountCents = filteredPurchases.reduce((sum, p) => sum + Math.round((p.totalAmount || 0) * 100), 0)
-    
-    return {
-      totalPurchases: filteredPurchases.length,
-      totalAmount: amountCents / 100,
-      totalUnits: filteredPurchases.reduce((sum, p) => sum + (p.quantity || 0), 0)
-    }
-  }, [filteredPurchases])
 
   const handleCreateNew = () => {
     setIsFormOpen(true)
@@ -184,7 +189,7 @@ export default function ComprasPage() {
       await updateDoc(productRef, { price: newPrice, profitMargin: margin })
       toast({
         title: 'Precio Actualizado',
-        description: `El precio de "${product.name}" se actualizó a ${formatCurrency(newPrice, 'VES')}.`,
+        description: `El precio de "${product.name}" se actualizó a ${formatCurrency(newPrice, 'USD')}.`,
       })
       setPricingModalInfo(null)
       setProfitMargin('')
@@ -335,11 +340,11 @@ export default function ComprasPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Package className="w-4 h-4 text-primary" />
-                Total Compras
+                Total Compras (Mes Actual)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-9 w-1/4"/> : <div className="text-3xl font-bold text-foreground">{totalPurchases}</div> }
+              {isLoading ? <Skeleton className="h-9 w-1/4"/> : <div className="text-3xl font-bold text-foreground">{monthlyStats.totalPurchases}</div> }
             </CardContent>
           </Card>
 
@@ -347,14 +352,14 @@ export default function ComprasPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-primary" />
-                Monto Total
+                Monto Total (Mes Actual)
               </CardTitle>
             </CardHeader>
             <CardContent>
              {isLoading ? <Skeleton className="h-9 w-1/2"/> : (
               <>
-                <div className="text-3xl font-bold text-foreground">{formatCurrency(totalAmount, 'VES')}</div>
-                {bcvRate && <div className="text-sm text-muted-foreground">{formatCurrency(totalAmount, 'USD')}</div>}
+                <div className="text-3xl font-bold text-foreground">{formatCurrency(monthlyStats.totalAmount, 'USD')}</div>
+                {bcvRate && <div className="text-sm text-muted-foreground">{formatCurrency(monthlyStats.totalAmount, 'VES')}</div>}
               </>
              )}
             </CardContent>
@@ -364,11 +369,11 @@ export default function ComprasPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-primary" />
-                Unidades Compradas
+                Unidades Compradas (Mes Actual)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-9 w-1/3"/> : <div className="text-3xl font-bold text-foreground">{totalUnits}</div>}
+              {isLoading ? <Skeleton className="h-9 w-1/3"/> : <div className="text-3xl font-bold text-foreground">{monthlyStats.totalUnits}</div>}
             </CardContent>
           </Card>
         </div>
@@ -442,12 +447,12 @@ export default function ComprasPage() {
                         <td className="p-3 text-muted-foreground">{purchase.supplier}</td>
                         <td className="p-3 text-right text-muted-foreground">{purchase.quantity}</td>
                         <td className="p-3 text-right text-muted-foreground">
-                            <div>{formatCurrency(purchase.unitCost, 'VES')}</div>
-                            {bcvRate && <div className="text-xs">{formatCurrency(purchase.unitCost, 'USD')}</div>}
+                            <div>{formatCurrency(purchase.unitCost, 'USD')}</div>
+                            {bcvRate && <div className="text-xs">{formatCurrency(purchase.unitCost, 'VES')}</div>}
                         </td>
                         <td className="p-3 text-right text-primary font-bold">
-                            <div>{formatCurrency(purchase.totalAmount, 'VES')}</div>
-                            {bcvRate && <div className="text-xs">{formatCurrency(purchase.totalAmount, 'USD')}</div>}
+                            <div>{formatCurrency(purchase.totalAmount, 'USD')}</div>
+                            {bcvRate && <div className="text-xs">{formatCurrency(purchase.totalAmount, 'VES')}</div>}
                         </td>
                         <td className="p-3 text-muted-foreground">{purchase.invoiceNumber || '-'}</td>
                         <td className='p-3 text-center space-x-2'>
@@ -486,14 +491,14 @@ export default function ComprasPage() {
               <div className="grid grid-cols-2 gap-4 items-center">
                   <p className="text-sm font-medium">Costo de Compra:</p>
                   <div className="text-right">
-                    <p className="text-sm font-semibold justify-self-end">{formatCurrency(pricingModalInfo.purchase.unitCost, 'VES')}</p>
-                    {bcvRate && <p className="text-xs text-muted-foreground">{formatCurrency(pricingModalInfo.purchase.unitCost, 'USD')}</p>}
+                    <p className="text-sm font-semibold justify-self-end">{formatCurrency(pricingModalInfo.purchase.unitCost, 'USD')}</p>
+                    {bcvRate && <p className="text-xs text-muted-foreground">{formatCurrency(pricingModalInfo.purchase.unitCost, 'VES')}</p>}
                   </div>
                   
                   <p className="text-sm font-medium">Precio de Venta Actual:</p>
                   <div className="text-right">
-                    <p className="text-sm font-semibold justify-self-end">{formatCurrency(pricingModalInfo.product.price, 'VES')}</p>
-                    {bcvRate && <p className="text-xs text-muted-foreground">{formatCurrency(pricingModalInfo.product.price, 'USD')}</p>}
+                    <p className="text-sm font-semibold justify-self-end">{formatCurrency(pricingModalInfo.product.price, 'USD')}</p>
+                    {bcvRate && <p className="text-xs text-muted-foreground">{formatCurrency(pricingModalInfo.product.price, 'VES')}</p>}
                   </div>
               </div>
 
@@ -516,9 +521,9 @@ export default function ComprasPage() {
                           <span className="text-primary font-medium">Nuevo Precio de Venta:</span>
                           <div className="text-right">
                             <span className="text-lg font-bold text-primary">
-                              {formatCurrency(newSalePrice, 'VES')}
+                              {formatCurrency(newSalePrice, 'USD')}
                             </span>
-                            {bcvRate && <p className="text-sm text-muted-foreground">{formatCurrency(newSalePrice, 'USD')}</p>}
+                            {bcvRate && <p className="text-sm text-muted-foreground">{formatCurrency(newSalePrice, 'VES')}</p>}
                           </div>
                        </div>
                     </CardContent>

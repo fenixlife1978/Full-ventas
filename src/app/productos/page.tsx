@@ -192,15 +192,15 @@ export default function ProductosPage() {
     const tableData = filteredProducts.map(p => [
       p.name,
       p.category || 'N/A',
-      bcvRate ? formatCurrency(p.price, 'VES') : formatCurrency(p.price, 'USD'),
-      p.cost ? (bcvRate ? formatCurrency(p.cost, 'VES') : formatCurrency(p.cost, 'USD')) : 'N/A',
+      formatCurrency(p.price, 'USD'),
+      p.cost ? formatCurrency(p.cost, 'USD') : 'N/A',
       `${p.stock} ${p.unit}`,
       p.status === 'active' ? 'Activo' : 'Inactivo',
     ])
 
     autoTable(doc, {
       startY: 35,
-      head: [['Nombre', 'Categoría', 'Precio', 'Costo', 'Stock', 'Estado']],
+      head: [['Nombre', 'Categoría', 'Precio (USD)', 'Costo (USD)', 'Stock', 'Estado']],
       body: tableData,
       theme: 'striped',
       headStyles: { fillColor: [31, 122, 85] },
@@ -308,8 +308,8 @@ export default function ProductosPage() {
                         <div>
                           <p className="text-xs text-muted-foreground">Precio</p>
                           <div>
-                            <p className="text-sm font-medium text-foreground">{bcvRate ? formatCurrency(product.price, 'VES') : formatCurrency(product.price, 'USD')}</p>
-                            {bcvRate && <p className="text-xs text-muted-foreground/80">{formatCurrency(product.price, 'USD')}</p>}
+                            <p className="text-sm font-medium text-foreground">{formatCurrency(product.price, 'USD')}</p>
+                            {bcvRate && <p className="text-xs text-muted-foreground/80">{formatCurrency(product.price, 'VES')}</p>}
                           </div>
                         </div>
                         <div>
