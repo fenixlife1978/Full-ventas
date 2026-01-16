@@ -4,65 +4,65 @@
 
 @layer base {
   :root {
-    --background: 220 13% 96%;
-    --foreground: 220 25% 10%;
+    --background: 240 5% 96%;
+    --foreground: 240 5% 10%;
  
-    --card: 0 0% 100%;
-    --card-foreground: 220 25% 10%;
+    --card: 240 5% 100%;
+    --card-foreground: 240 5% 10%;
  
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 25% 10%;
+    --popover: 240 5% 100%;
+    --popover-foreground: 240 5% 10%;
  
-    --primary: 220 25% 25%;
+    --primary: 158 82% 22%; /* Starbucks Green */
     --primary-foreground: 0 0% 98%;
  
     --secondary: 220 25% 25%;
     --secondary-foreground: 0 0% 98%;
  
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 45%;
  
-    --accent: 0 0% 92.1%;
-    --accent-foreground: 0 0% 9%;
+    --accent: 240 5% 92%;
+    --accent-foreground: 240 5% 9%;
  
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 220 25% 25%;
+    --border: 240 5% 90%;
+    --input: 240 5% 90%;
+    --ring: 158 82% 22%;
  
     --radius: 0.75rem;
   }
  
   .dark {
-    --background: 220 25% 10%;
+    --background: 225 10% 12%;
     --foreground: 0 0% 98%;
  
-    --card: 220 25% 15%;
+    --card: 225 10% 17%;
     --card-foreground: 0 0% 98%;
  
-    --popover: 220 25% 10%;
+    --popover: 225 10% 12%;
     --popover-foreground: 0 0% 98%;
  
-    --primary: 0 0% 80%;
+    --primary: 158 60% 50%;
     --primary-foreground: 0 0% 10%;
  
-    --secondary: 158 15% 15%;
+    --secondary: 220 25% 25%;
     --secondary-foreground: 0 0% 98%;
  
-    --muted: 220 25% 15%;
-    --muted-foreground: 0 0% 63.9%;
+    --muted: 225 10% 17%;
+    --muted-foreground: 0 0% 64%;
  
-    --accent: 220 25% 20%;
+    --accent: 225 10% 22%;
     --accent-foreground: 0 0% 98%;
  
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 98%;
  
-    --border: 220 25% 20%;
-    --input: 220 25% 20%;
-    --ring: 0 0% 80%;
+    --border: 225 10% 22%;
+    --input: 225 10% 22%;
+    --ring: 158 60% 50%;
   }
 }
 
