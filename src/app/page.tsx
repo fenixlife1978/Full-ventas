@@ -19,6 +19,7 @@ import { startOfMonth, isToday } from 'date-fns'
 import Layout from './layout-app'
 import { Skeleton } from '@/components/ui/skeleton'
 import { type Setting } from './configuraciones/page'
+import { cn } from '@/lib/utils'
 
 interface TopProduct {
   productName: string
@@ -31,35 +32,36 @@ const StatCard = ({
   value,
   subtitle,
   icon: Icon,
-  color,
   isLoading,
+  cardClassName,
 }: {
   title: string
   value: ReactNode
   subtitle?: ReactNode
   icon: React.ElementType
-  color: string
   isLoading: boolean
+  cardClassName?: string
 }) => (
-  <Card className="bg-card border-border/50 shadow-sm hover:shadow-md transition-shadow">
-    <CardHeader className="flex flex-row items-center justify-between pb-2">
-      <CardTitle className="text-sm font-medium text-muted-foreground">
-        {title}
-      </CardTitle>
-      <Icon className={`h-5 w-5 ${color}`} />
-    </CardHeader>
-    <CardContent>
+  <Card className={cn(cardClassName)}>
+    <CardContent className="flex items-center justify-between p-6">
       {isLoading ? (
-        <>
-          <Skeleton className="h-8 w-3/4" />
-          {subtitle && <Skeleton className="h-4 w-2/5 mt-2" />}
-        </>
+        <div className="flex w-full items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-[120px]" />
+            <Skeleton className="h-8 w-[90px]" />
+          </div>
+          <Skeleton className="h-10 w-10 rounded-md" />
+        </div>
       ) : (
         <>
-          <div className="text-2xl font-bold text-foreground">{value}</div>
-          {subtitle && (
-            <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
-          )}
+          <div className="space-y-1">
+            <p className="text-sm font-medium uppercase opacity-80">{title}</p>
+            <p className="text-3xl font-bold">{value}</p>
+             {subtitle && (
+              <p className="text-xs opacity-80">{subtitle}</p>
+            )}
+          </div>
+          <Icon className="h-10 w-10 opacity-90" />
         </>
       )}
     </CardContent>
@@ -183,60 +185,54 @@ export default function DashboardPage() {
 
   return (
     <Layout currentPageName="Dashboard">
-      <div className="space-y-6 p-4 md:p-8">
+      <div className="space-y-8 p-4 md:p-8">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-            Dashboard
+          <h1 className="text-4xl font-bold text-primary">
+            Dashboard Financiero
           </h1>
           <p className="text-muted-foreground mt-2">
-            Resumen general de tu bodega
+            Un resumen de tu actividad financiera
           </p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <StatCard
             title="Total Productos"
             value={stats.totalProducts}
             icon={Package}
-            color="text-primary"
             isLoading={isLoading}
+            cardClassName="bg-primary text-primary-foreground"
           />
-          <StatCard
+           <StatCard
+            title="Ingresos del Mes"
+            value={formatCurrency(stats.monthRevenue, 'VES')}
+            subtitle={bcvRate ? formatCurrency(stats.monthRevenue, 'USD') : undefined}
+            icon={DollarSign}
+            isLoading={isLoading}
+            cardClassName="bg-primary text-primary-foreground"
+          />
+           <StatCard
             title="Stock Bajo"
             value={stats.lowStockProducts}
-            subtitle="Productos por debajo del mínimo"
             icon={AlertTriangle}
-            color="text-orange-600"
             isLoading={isLoading}
-          />
-          <StatCard
-            title="Ventas Hoy"
-            value={stats.todaySales}
-            subtitle={
-              <>
-                {bcvRate ? formatCurrency(stats.todayRevenue, 'VES') : formatCurrency(stats.todayRevenue, 'USD')}
-                {bcvRate && <span className="text-muted-foreground/80"> / {formatCurrency(stats.todayRevenue, 'USD')}</span>}
-              </>
-            }
-            icon={ShoppingCart}
-            color="text-primary"
-            isLoading={isLoading}
+            cardClassName="bg-secondary text-secondary-foreground"
           />
           <StatCard
             title="Ventas del Mes"
             value={stats.monthSales}
             icon={BarChart}
-            color="text-primary"
             isLoading={isLoading}
+            cardClassName="bg-primary text-primary-foreground"
           />
-          <StatCard
-            title="Ingresos del Mes"
-            value={bcvRate ? formatCurrency(stats.monthRevenue, 'VES') : formatCurrency(stats.monthRevenue, 'USD')}
-            subtitle={bcvRate ? formatCurrency(stats.monthRevenue, 'USD') : undefined}
-            icon={DollarSign}
-            color="text-primary"
+           <StatCard
+            title="Ventas Hoy"
+            value={stats.todaySales}
+            subtitle={formatCurrency(stats.todayRevenue, 'VES')}
+            icon={ShoppingCart}
             isLoading={isLoading}
+            cardClassName="bg-primary text-primary-foreground"
           />
         </div>
 
@@ -278,7 +274,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-foreground">
-                        {bcvRate ? formatCurrency(product.revenue, 'VES') : formatCurrency(product.revenue, 'USD')}
+                        {formatCurrency(product.revenue, 'VES')}
                       </p>
                       {bcvRate && <p className="text-sm text-muted-foreground">{formatCurrency(product.revenue, 'USD')}</p>}
                     </div>
