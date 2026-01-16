@@ -29,7 +29,7 @@ import { CalendarIcon, Plus, Search, Trash2, DollarSign, CreditCard, Landmark } 
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { type Product } from '@/app/productos/page'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/hooks/use-toast'
@@ -129,7 +129,7 @@ export function SaleForm({
         return;
     }
     setCartItems(prev => [...prev, { ...product, quantity }]);
-    setIsProductSelectorOpen(false);
+    // No cerramos el modal para que se puedan agregar más productos
   }
   
   const handleRemoveItem = (productId: string) => {
@@ -138,7 +138,7 @@ export function SaleForm({
 
   const handleFormSubmit = (values: SaleFormValues) => {
     if (cartItems.length === 0) {
-      toast({ variant: 'destructive', title: 'Venta Vacía' });
+      toast({ variant: 'destructive', title: 'Venta Vacía', description: 'Agrega al menos un producto para registrar la venta.' });
       return;
     }
     onSubmit({ ...values, items: cartItems, totalAmount: totalUSD, saleNumber: saleCount + 1 })
@@ -146,6 +146,11 @@ export function SaleForm({
 
   const formatBs = (value: number) => `Bs. ${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)}`
   const formatUSD = (value: number) => new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(value)
+
+  const handlePriceCheckerClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault(); // Previene el submit del formulario
+    setIsPriceCheckerOpen(true);
+  };
 
   return (
     <>
@@ -193,7 +198,7 @@ export function SaleForm({
                         />
 
                         <div className="flex items-center gap-2">
-                            <Button type="button" onClick={() => setIsPriceCheckerOpen(true)} variant="outline" className="rounded-xl border-gray-200 whitespace-nowrap">
+                            <Button type="button" onClick={handlePriceCheckerClick} variant="outline" className="rounded-xl border-gray-200 whitespace-nowrap">
                                 <DollarSign className="mr-2 h-4 w-4 text-primary" /> Consultar Precio
                             </Button>
                         </div>
@@ -201,18 +206,18 @@ export function SaleForm({
                 </DialogHeader>
 
                 <div className="flex-1 flex flex-row overflow-hidden">
-                    <div className="w-full lg:w-2/5 p-6 flex flex-col bg-white h-full">
-                         <div className="flex-1 flex flex-col min-h-0">
-                            <div className="pr-2 space-y-3">
+                     <div className="w-full lg:w-2/5 p-6 flex flex-col bg-white h-full">
+                        <div className="flex flex-col flex-1 min-h-0">
+                             <div className="pr-2 space-y-3">
                                 <Label className="text-xs font-bold uppercase tracking-widest text-gray-400">Fecha de Registro</Label>
                                 <div className="w-full h-14 flex items-center justify-start font-bold rounded-xl border border-gray-100 bg-white px-4">
                                     <CalendarIcon className="mr-3 h-5 w-5 text-primary" />
                                     <span>{format(form.getValues('saleDate'), 'PPP', { locale: es })}</span>
                                 </div>
                             </div>
-                            
-                            <div className="flex-grow" />
 
+                            <div className="flex-grow" />
+                            
                             <div className="pt-6 space-y-4 bg-white">
                                 <Button type="button" onClick={() => setIsProductSelectorOpen(true)} className="w-full h-14 bg-black text-white hover:bg-black/80 rounded-2xl font-bold">
                                     <Plus className="w-5 h-5 mr-2" /> AGREGAR PRODUCTOS
@@ -251,11 +256,13 @@ export function SaleForm({
                                     <div key={item.id} className="grid grid-cols-12 py-5 items-center border-b border-gray-50 group px-2 hover:bg-gray-50/50 rounded-xl transition-colors">
                                         <div className="col-span-6 pr-4">
                                             <p className="font-bold text-gray-800 text-sm uppercase leading-tight">{item.name}</p>
-                                            <p className="text-[10px] text-gray-400 font-mono mt-1">{item.price.toLocaleString('es-VE', { style: 'currency', currency: 'USD' })} / unidad</p>
+                                            <p className="text-[10px] text-gray-400 font-mono mt-1">{formatUSD(item.price)} / {item.unit || 'unidad'}</p>
                                         </div>
-                                        <div className="col-span-2 text-center font-black text-primary text-lg">{item.quantity}</div>
+                                        <div className="col-span-2 text-center font-black text-primary text-lg">
+                                          {item.unit === 'kg' || item.unit === 'litro' ? item.quantity.toFixed(3) : item.quantity}
+                                        </div>
                                         <div className="col-span-3 text-right font-bold text-gray-800">
-                                            {(item.price * item.quantity).toLocaleString('es-VE', { style: 'currency', currency: 'USD' })}
+                                            {formatUSD(item.price * item.quantity)}
                                         </div>
                                         <div className="col-span-1 flex justify-end">
                                             <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.id)} className="text-red-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100">
@@ -288,6 +295,7 @@ export function SaleForm({
         products={products}
         onAddProduct={handleAddProduct}
         cartItems={cartItems}
+        bcvRate={bcvRate}
     />
     
     <Dialog open={isPriceCheckerOpen} onOpenChange={setIsPriceCheckerOpen}>
@@ -309,7 +317,7 @@ export function SaleForm({
             {selectedPriceCheckerProduct && (
             <Card className="bg-primary border-none rounded-[2rem] p-8 text-center shadow-xl shadow-primary/20">
                 <p className="text-[10px] font-black text-white/60 uppercase tracking-[0.2em] mb-2">Precio Actualizado</p>
-                <p className="text-5xl font-black text-white">
+                 <p className="text-5xl font-black text-white">
                     {bcvRate ? formatBs(selectedPriceCheckerProduct.price * bcvRate) : formatUSD(selectedPriceCheckerProduct.price)}
                 </p>
                 {bcvRate && (
@@ -326,15 +334,150 @@ export function SaleForm({
   )
 }
 
-function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddProduct }: {
+
+function ProductListItem({
+  product,
+  bcvRate,
+  onAddProduct,
+}: {
+  product: Product;
+  bcvRate: number | null;
+  onAddProduct: (product: Product, quantity: number) => void;
+}) {
+  const [bsValue, setBsValue] = useState('');
+  const [weightValue, setWeightValue] = useState('');
+  const [unitValue, setUnitValue] = useState('1');
+  const { toast } = useToast();
+
+  const isByWeightOrVolume = product.unit === 'kg' || product.unit === 'litro';
+
+  const pricePerUnit = product.price || 0;
+  const pricePerUnitBs = pricePerUnit * (bcvRate || 0);
+
+  const handleBsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setBsValue(value);
+    if (value === '') {
+      setWeightValue('');
+      return;
+    }
+    const bs = parseFloat(value);
+    if (!isNaN(bs) && pricePerUnitBs > 0) {
+      const calculatedWeight = bs / pricePerUnitBs;
+      setWeightValue(calculatedWeight.toFixed(3));
+    }
+  };
+
+  const handleWeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setWeightValue(value);
+    if (value === '') {
+      setBsValue('');
+      return;
+    }
+    const weight = parseFloat(value);
+    if (!isNaN(weight) && pricePerUnitBs > 0) {
+      const calculatedBs = weight * pricePerUnitBs;
+      setBsValue(calculatedBs.toFixed(2));
+    }
+  };
+  
+  const handleAdd = () => {
+    const quantity = isByWeightOrVolume ? parseFloat(weightValue) : parseInt(unitValue, 10);
+    
+    if (isNaN(quantity) || quantity <= 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Cantidad inválida',
+        description: 'Por favor, introduce una cantidad o monto válido.',
+      });
+      return;
+    }
+    
+    if (quantity > product.stock) {
+      toast({
+        variant: 'destructive',
+        title: 'Stock insuficiente',
+        description: `Solo quedan ${product.stock} ${product.unit} de ${product.name}.`,
+      });
+      return;
+    }
+    
+    onAddProduct(product, quantity);
+    // Reset fields after adding
+    if (isByWeightOrVolume) {
+      setBsValue('');
+      setWeightValue('');
+    } else {
+      setUnitValue('1');
+    }
+  };
+  
+  return (
+    <div className="flex items-center justify-between p-6 bg-white rounded-3xl border border-gray-100 hover:shadow-md transition-all group">
+      <div>
+        <p className="font-black text-gray-800 uppercase text-sm tracking-tight">{product.name}</p>
+        <p className="text-xs text-primary font-black mt-1">
+          Disponible: {product.stock} {product.unit}
+        </p>
+      </div>
+      <div className="flex items-center gap-4">
+        {isByWeightOrVolume && bcvRate ? (
+          <>
+            <div className="flex flex-col items-start">
+              <Label className="text-[10px] font-black text-gray-400 mb-1 uppercase px-1">Bs.</Label>
+              <Input
+                type="number"
+                placeholder="0.00"
+                className="w-28 h-12 text-center font-black rounded-xl border-gray-100 bg-gray-50"
+                value={bsValue}
+                onChange={handleBsChange}
+              />
+            </div>
+            <div className="flex flex-col items-start">
+              <Label className="text-[10px] font-black text-gray-400 mb-1 uppercase px-1">
+                Peso ({product.unit})
+              </Label>
+              <Input
+                type="number"
+                placeholder="0.000"
+                className="w-28 h-12 text-center font-black rounded-xl border-gray-100 bg-gray-50"
+                value={weightValue}
+                onChange={handleWeightChange}
+              />
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center">
+            <Label className="text-[10px] font-black text-gray-300 mb-1 uppercase">Cant.</Label>
+            <Input
+              type="number"
+              min="1"
+              max={product.stock}
+              className="w-20 h-12 text-center font-black rounded-xl border-gray-100 bg-gray-50"
+              value={unitValue}
+              onChange={(e) => setUnitValue(e.target.value)}
+            />
+          </div>
+        )}
+        <Button onClick={handleAdd} className="self-end rounded-xl h-12 px-6 font-black shadow-lg shadow-primary/10">
+          AÑADIR
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+
+function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddProduct, bcvRate }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   products: Product[];
   cartItems: CartItem[];
   onAddProduct: (product: Product, quantity: number) => void;
+  bcvRate: number | null;
 }) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [qty, setQty] = useState<{[key: string]: number}>({})
   
   const cartIds = new Set(cartItems.map(i => i.id))
   const filtered = products.filter(p => 
@@ -347,7 +490,6 @@ function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddPr
   useEffect(() => {
     if (!open) {
       setSearchTerm('')
-      setQty({})
     }
   }, [open])
 
@@ -372,28 +514,12 @@ function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddPr
               <p className="text-center py-20 text-gray-400 font-bold italic">No se encontraron productos disponibles...</p>
             ) : (
               filtered.map(p => (
-                <div key={p.id} className="flex items-center justify-between p-6 bg-white rounded-3xl border border-gray-100 hover:shadow-md transition-all group">
-                  <div>
-                    <p className="font-black text-gray-800 uppercase text-sm tracking-tight">{p.name}</p>
-                    <p className="text-xs text-primary font-black mt-1">Disponible: {p.stock} unids.</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex flex-col items-center">
-                       <Label className="text-[10px] font-black text-gray-300 mb-1 uppercase">Cant.</Label>
-                       <Input 
-                        type="number" 
-                        min="1" 
-                        max={p.stock}
-                        className="w-20 h-12 text-center font-black rounded-xl border-gray-100 bg-gray-50" 
-                        defaultValue="1" 
-                        onChange={e => setQty({...qty, [p.id]: parseInt(e.target.value)})} 
-                      />
-                    </div>
-                    <Button onClick={() => onAddProduct(p, qty[p.id] || 1)} className="rounded-xl h-12 px-6 font-black shadow-lg shadow-primary/10">
-                      AÑADIR
-                    </Button>
-                  </div>
-                </div>
+                <ProductListItem 
+                  key={p.id}
+                  product={p}
+                  bcvRate={bcvRate}
+                  onAddProduct={onAddProduct}
+                />
               ))
             )}
           </div>
