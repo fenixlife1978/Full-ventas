@@ -7,6 +7,7 @@ import {
   TrendingUp,
   DollarSign,
   ShoppingCart,
+  BarChart,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useCollection, useFirestore } from '@/firebase'
@@ -177,7 +178,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard
             title="Total Productos"
             value={stats.totalProducts}
@@ -204,7 +205,7 @@ export default function DashboardPage() {
           <StatCard
             title="Ventas del Mes"
             value={stats.monthSales}
-            icon={TrendingUp}
+            icon={BarChart}
             color="text-primary"
             isLoading={isLoading}
           />
@@ -220,7 +221,8 @@ export default function DashboardPage() {
         {/* Top Products */}
         <Card className="bg-card border-border/50 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-xl text-foreground">
+            <CardTitle className="text-xl text-foreground flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
               Productos Más Vendidos (Este Mes)
             </CardTitle>
           </CardHeader>

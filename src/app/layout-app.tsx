@@ -199,7 +199,7 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
             >
               <Menu className="h-6 w-6" />
             </button>
-            <h2 className="text-sm md:text-lg font-black text-gray-800 uppercase tracking-tighter italic">
+            <h2 className="text-sm md:text-lg font-black text-gray-800 uppercase tracking-tighter">
               {currentPageName || 'Panel de Control'}
             </h2>
           </div>
@@ -212,7 +212,7 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-x-hidden p-4 lg:p-8">
+        <main className="flex-1 bg-background p-4 lg:p-8">
           {children}
         </main>
       </div>
