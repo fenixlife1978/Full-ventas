@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
@@ -37,7 +36,6 @@ import { format } from 'date-fns'
 import { type Setting } from '../configuraciones/page'
 import { SaleForm, type SaleFormValues, type CartItem } from './components/sale-form'
 
-// Interfaces permanecen igual
 export interface SaleItem {
   productId: string
   productName: string
@@ -64,7 +62,6 @@ export default function VentasPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('today')
   
-  // Lógica de Firebase permanece igual...
   const salesCollection = useMemoFirebase(() => {
     if (!firestore) return null
     return collection(firestore, 'sales')
@@ -131,7 +128,10 @@ export default function VentasPage() {
     return { totalSales, totalRevenue }
   }, [filteredSales])
 
-  const handleFormSubmit = async (values: SaleFormValues & { items: CartItem[], totalAmount: number, saleNumber: number }) => {
+  /**
+   * CORRECCIÓN: Se agrega 'notes?: string' explícitamente a la intersección del argumento
+   */
+  const handleFormSubmit = async (values: SaleFormValues & { items: CartItem[], totalAmount: number, saleNumber: number, notes?: string }) => {
     if (!firestore) return
     const saleData = {
       saleNumber: values.saleNumber,
@@ -143,7 +143,7 @@ export default function VentasPage() {
       })),
       totalAmount: values.totalAmount,
       paymentMethod: values.paymentMethod,
-      notes: values.notes,
+      notes: values.notes || "", // Aseguramos que si es undefined, guarde un string vacío
       saleDate: Timestamp.fromDate(values.saleDate),
     }
 
@@ -209,10 +209,8 @@ export default function VentasPage() {
 
   return (
     <Layout currentPageName="Gestión de Ventas">
-      {/* 1. Fondo beige global para la página */}
       <div className="min-h-screen bg-background space-y-6 p-4 md:p-10 transition-colors duration-300">
         
-        {/* Header Estilo Full-Ventas */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-black text-primary uppercase tracking-tighter italic">
@@ -231,7 +229,6 @@ export default function VentasPage() {
           </Button>
         </header>
 
-        {/* Summary Cards con borde de color */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="bg-card border-border rounded-2xl shadow-sm overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-primary/5">
@@ -261,7 +258,6 @@ export default function VentasPage() {
           </Card>
         </div>
 
-        {/* Filters Adaptados */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2 relative group">
             <Search className="absolute left-4 top-3.5 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors z-10" />
@@ -288,7 +284,6 @@ export default function VentasPage() {
           </div>
         </div>
         
-        {/* Sales List */}
         <div className="space-y-4">
           {isLoading ? (
             Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)
@@ -367,7 +362,6 @@ export default function VentasPage() {
           saleCount={sales?.length || 0}
         />
 
-        {/* AlertDialog conservado pero estilizado sutilmente */}
         <AlertDialog open={!!deletingSale} onOpenChange={(isOpen) => !isOpen && setDeletingSale(null)}>
           <AlertDialogContent className="rounded-2xl border-border">
             <AlertDialogHeader>
