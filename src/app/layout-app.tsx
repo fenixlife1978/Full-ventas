@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Package, ShoppingCart, BarChart3, Home, ShoppingBag, Settings } from 'lucide-react';
+import { Menu, X, Package, ShoppingCart, BarChart3, Home, ShoppingBag, Settings, Monitor } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -12,6 +12,7 @@ export default function Layout({ children, currentPageName }) {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
     { name: 'Productos', href: '/productos', icon: Package },
+    { name: 'Monitor de Venta', href: '/monitor-de-venta', icon: Monitor },
     { name: 'Ventas', href: '/ventas', icon: ShoppingCart },
     { name: 'Compras', href: '/compras', icon: ShoppingBag },
     { name: 'Reportes', href: '/reportes', icon: BarChart3 },

@@ -1,8 +1,9 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import * as z from 'zod'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -19,8 +20,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogClose,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import {
   Select,
@@ -34,7 +34,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { CalendarIcon, Plus, Search, Trash2, X } from 'lucide-react'
+import { CalendarIcon, Plus, Search, Trash2, X, DollarSign, CreditCard, Landmark } from 'lucide-react'
 import { Calendar } from '@/components/ui/calendar'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -43,6 +43,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { type Product } from '@/app/productos/page'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/hooks/use-toast'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Card, CardContent } from '@/components/ui/card'
+
 
 const formSchema = z.object({
   saleDate: z.date({
@@ -59,8 +62,6 @@ export interface CartItem extends Product {
 }
 
 interface SaleFormProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
   onSubmit: (values: SaleFormValues & { items: CartItem[], totalAmount: number, saleNumber: number }) => void
   products: Product[]
   isLoadingProducts: boolean
@@ -69,8 +70,6 @@ interface SaleFormProps {
 }
 
 export function SaleForm({
-  open,
-  onOpenChange,
   onSubmit,
   products,
   isLoadingProducts,
@@ -79,6 +78,9 @@ export function SaleForm({
 }: SaleFormProps) {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [isProductSelectorOpen, setIsProductSelectorOpen] = useState(false)
+  const [isPriceCheckerOpen, setIsPriceCheckerOpen] = useState(false)
+  const [selectedPriceCheckerProductId, setSelectedPriceCheckerProductId] = useState<string | null>(null)
+  
   const { toast } = useToast()
   
   const form = useForm<SaleFormValues>({
@@ -89,7 +91,23 @@ export function SaleForm({
       notes: '',
     },
   })
+
+  const selectedPriceCheckerProduct = useMemo(() => {
+      if (!selectedPriceCheckerProductId || !products) return null;
+      return products.find(p => p.id === selectedPriceCheckerProductId) || null;
+  }, [selectedPriceCheckerProductId, products]);
   
+  // Reset form on successful sale (indicated by saleCount change)
+  useEffect(() => {
+    form.reset({
+        saleDate: new Date(),
+        paymentMethod: 'cash',
+        notes: '',
+    });
+    setCartItems([]);
+  }, [saleCount, form])
+
+
   useEffect(() => {
     if (cartItems.length > 0 && products.length > 0) {
       setCartItems(prevItems => 
@@ -104,12 +122,6 @@ export function SaleForm({
     }
   }, [products, cartItems]);
 
-  useEffect(() => {
-    if(!open) {
-      form.reset()
-      setCartItems([])
-    }
-  }, [open, form])
 
   const totalUSD = useMemo(() => {
     return cartItems.reduce((total, item) => total + item.price * (item.quantity || 0), 0)
@@ -152,11 +164,18 @@ export function SaleForm({
     })
   }
 
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number, currency: 'USD' | 'VES' = 'USD') => {
+      if (currency === 'VES' && bcvRate) {
+        value = value * bcvRate
+        return `Bs. ${new Intl.NumberFormat('es-VE', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(value)}`
+      }
       return new Intl.NumberFormat('es-VE', {
-       style: 'currency',
-       currency: 'USD',
-     }).format(value)
+        style: 'currency',
+        currency: 'USD',
+      }).format(value)
   }
 
   const formatBs = (value: number) => {
@@ -165,163 +184,193 @@ export function SaleForm({
         maximumFractionDigits: 2,
       }).format(value)}`
   }
-  
-  const saleNumberFormatted = (saleCount + 1).toString().padStart(7, '0')
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl bg-background border-border/50 p-0 overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-2">
-            {/* Columna Izquierda */}
-            <div className="p-6 flex flex-col">
-                <DialogHeader className="mb-4">
-                  <DialogTitle className="text-2xl text-foreground font-bold">Nueva Venta</DialogTitle>
-                </DialogHeader>
-                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4 flex-grow flex flex-col">
-                    <div className="space-y-4 flex-grow">
-                      <FormField
-                          control={form.control}
-                          name="notes"
-                          render={({ field }) => (
+      <div className="grid grid-cols-1 lg:grid-cols-2 h-[calc(100vh-4rem)]">
+        {/* Columna Izquierda */}
+        <div className="p-6 flex flex-col bg-background">
+            <div className="flex justify-between items-center mb-4">
+              <DialogTitle className="text-2xl text-foreground font-bold">Nueva Venta</DialogTitle>
+              <Button onClick={() => setIsPriceCheckerOpen(true)} variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+                <DollarSign className="mr-2 h-4 w-4" />
+                Consultar Precio
+              </Button>
+            </div>
+             <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4 flex-grow flex flex-col">
+                <div className="space-y-4 flex-grow">
+                  <FormField
+                      control={form.control}
+                      name="notes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Observaciones de la venta..."
+                              className="resize-none border-border/50"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  <FormField
+                    control={form.control}
+                    name="paymentMethod"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3">
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="grid grid-cols-2 md:grid-cols-4 gap-2"
+                          >
                             <FormItem>
                               <FormControl>
-                                <Textarea
-                                  placeholder="Observaciones de la venta..."
-                                  className="resize-none border-border/50"
-                                  {...field}
-                                />
+                                <RadioGroupItem value="cash" className="sr-only" />
                               </FormControl>
-                              <FormMessage />
+                              <FormLabel className="w-full">
+                                <Button type="button" variant={field.value === 'cash' ? 'default' : 'outline'} className="w-full">
+                                  <DollarSign className="mr-2"/> Efectivo
+                                </Button>
+                              </FormLabel>
                             </FormItem>
-                          )}
-                        />
-                      <FormField
-                        control={form.control}
-                        name="paymentMethod"
-                        render={({ field }) => (
-                          <FormItem>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormItem>
                               <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Método de pago" />
-                                </SelectTrigger>
+                                <RadioGroupItem value="card" className="sr-only" />
                               </FormControl>
-                              <SelectContent>
-                                <SelectItem value="cash">Efectivo</SelectItem>
-                                <SelectItem value="card">Tarjeta / Punto</SelectItem>
-                                <SelectItem value="transfer">Transferencia / Pago Móvil</SelectItem>
-                                <SelectItem value="other">Otro</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="saleDate"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center gap-2">
-                             <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant={'outline'}
-                                    className={cn(
-                                      'w-full justify-start text-left font-normal',
-                                      !field.value && 'text-muted-foreground'
-                                    )}
-                                  >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {field.value ? (
-                                      format(field.value, 'PPP', { locale: es })
-                                    ) : (
-                                      <span>Fecha de venta</span>
-                                    )}
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={field.onChange}
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="space-y-4 mt-auto pt-4">
-                        <Button type="button" onClick={() => setIsProductSelectorOpen(true)} className="w-full" variant="outline">
-                            <Plus className="w-4 h-4 mr-2" /> Buscar Productos
-                        </Button>
-                        <div className="bg-slate-100 dark:bg-slate-900 p-4 rounded-lg border border-border text-center">
-                            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">Total a Pagar</p>
-                            <p className="font-bold text-3xl text-primary">{formatBs(totalBs)}</p>
-                            <p className="text-sm text-muted-foreground font-medium">{formatCurrency(totalUSD)} USD</p>
-                        </div>
-                        <Button type="submit" disabled={cartItems.length === 0} className="w-full text-lg h-12">
-                            Registrar Venta
-                        </Button>
-                    </div>
-                  </form>
-                </Form>
-            </div>
-
-            {/* Columna Derecha (Ticket) */}
-            <div className="p-6 bg-muted/40 flex flex-col border-l border-border/50">
-              <div className="flex flex-col h-full">
-                  <div className="border-2 border-dashed border-destructive/20 p-5 rounded-md w-full bg-background mb-4 shadow-sm">
-                    <h3 className="text-xl font-black text-destructive text-center mb-4 italic">Recibo de Venta Nro. {saleNumberFormatted}</h3>
-                    <div className="space-y-3">
-                      <div className="flex font-bold text-[10px] uppercase text-muted-foreground border-b pb-2">
-                        <div className="flex-1">Producto</div>
-                        <div className="w-16 text-center">Cant.</div>
-                        <div className="text-right w-20">Subtotal</div>
-                        <div className="w-8 ml-2" />
-                      </div>
-                      <ScrollArea className="h-72 pr-4">
-                         {cartItems.length === 0 ? (
-                           <p className="text-center text-muted-foreground pt-24 text-sm italic">Agregue artículos...</p>
-                         ) : (
-                           cartItems.map(item => (
-                            <div key={item.id} className="flex items-center text-sm py-2 border-b border-border/10 last:border-none">
-                              <div className="flex-1 pr-2">
-                                <p className="font-semibold truncate">{item.name}</p>
-                                <p className="text-[10px] text-muted-foreground font-mono">
-                                  {formatCurrency(item.price)} c/u
-                                </p>
-                              </div>
-                              <div className="w-16 text-center font-medium text-sm">
-                                {item.quantity}
-                              </div>
-                              <div className="text-right font-mono text-xs w-20">{formatCurrency(item.price * (item.quantity || 0))}</div>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 ml-2 group" onClick={() => handleRemoveItem(item.id)}>
-                                <Trash2 className="h-4 w-4 text-destructive/70 group-hover:text-destructive" />
+                              <FormLabel className="w-full">
+                                <Button type="button" variant={field.value === 'card' ? 'default' : 'outline'} className="w-full">
+                                  <CreditCard className="mr-2"/> Tarjeta
+                                </Button>
+                              </FormLabel>
+                            </FormItem>
+                            <FormItem>
+                              <FormControl>
+                                <RadioGroupItem value="transfer" className="sr-only" />
+                              </FormControl>
+                              <FormLabel className="w-full">
+                                <Button type="button" variant={field.value === 'transfer' ? 'default' : 'outline'} className="w-full">
+                                  <Landmark className="mr-2"/> Transf/PM
+                                </Button>
+                              </FormLabel>
+                            </FormItem>
+                             <FormItem>
+                              <FormControl>
+                                <RadioGroupItem value="other" className="sr-only" />
+                              </FormControl>
+                              <FormLabel className="w-full">
+                                <Button type="button" variant={field.value === 'other' ? 'default' : 'outline'} className="w-full">
+                                  Otro
+                                </Button>
+                              </FormLabel>
+                            </FormItem>
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="saleDate"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center gap-2">
+                         <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={'outline'}
+                                className={cn(
+                                  'w-full justify-start text-left font-normal',
+                                  !field.value && 'text-muted-foreground'
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {field.value ? (
+                                  format(field.value, 'PPP', { locale: es })
+                                ) : (
+                                  <span>Fecha de venta</span>
+                                )}
                               </Button>
-                            </div>
-                            ))
-                         )}
-                      </ScrollArea>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="space-y-4 mt-auto pt-4">
+                    <Button type="button" onClick={() => setIsProductSelectorOpen(true)} className="w-full bg-gray-900 text-white hover:bg-gray-700">
+                        <Plus className="w-4 h-4 mr-2" /> Buscar Productos
+                    </Button>
+                    <div className="bg-slate-100 dark:bg-slate-900 p-4 rounded-lg border border-border text-center">
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">Total a Pagar</p>
+                        <p className="font-bold text-3xl text-primary">{formatBs(totalBs)}</p>
+                        <p className="text-sm text-muted-foreground font-medium">{formatCurrency(totalUSD)} USD</p>
                     </div>
+                    <Button type="submit" disabled={cartItems.length === 0} className="w-full text-lg h-12">
+                        Registrar Venta
+                    </Button>
+                </div>
+              </form>
+            </Form>
+        </div>
+
+        {/* Columna Derecha (Ticket) */}
+        <div className="p-6 bg-muted/40 flex flex-col border-l border-border/50">
+          <div className="flex flex-col h-full">
+              <div className="border-2 border-dashed border-destructive/20 p-5 rounded-md w-full bg-background mb-4 shadow-sm flex-grow">
+                <h3 className="text-xl font-black text-destructive text-center mb-4 italic">Recibo de Venta</h3>
+                <div className="space-y-3">
+                  <div className="flex font-bold text-[10px] uppercase text-muted-foreground border-b pb-2">
+                    <div className="flex-1">Producto</div>
+                    <div className="w-16 text-center">Cant.</div>
+                    <div className="text-right w-20">Subtotal</div>
+                    <div className="w-8 ml-2" />
                   </div>
-                  <div className="mt-auto flex justify-between items-center">
-                    <p className="text-[10px] text-muted-foreground italic">Tasa BCV: {bcvRate ? formatBs(bcvRate) : 'N/A'}</p>
-                    <DialogClose asChild>
-                      <Button type="button" variant="ghost" size="sm">Cerrar</Button>
-                    </DialogClose>
-                  </div>
+                  <ScrollArea className="h-72 pr-4">
+                     {cartItems.length === 0 ? (
+                       <p className="text-center text-muted-foreground pt-24 text-sm italic">Agregue artículos...</p>
+                     ) : (
+                       cartItems.map(item => (
+                        <div key={item.id} className="flex items-center text-sm py-2 border-b border-border/10 last:border-none">
+                          <div className="flex-1 pr-2">
+                            <p className="font-semibold truncate">{item.name}</p>
+                            <p className="text-[10px] text-muted-foreground font-mono">
+                              {formatCurrency(item.price)} c/u
+                            </p>
+                          </div>
+                          <div className="w-16 text-center font-medium">
+                              {item.quantity}
+                            </div>
+                          <div className="text-right font-mono text-xs w-20">{formatCurrency(item.price * (item.quantity || 0))}</div>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 ml-2 group" onClick={() => handleRemoveItem(item.id)}>
+                            <Trash2 className="h-4 w-4 text-destructive/70 group-hover:text-destructive" />
+                          </Button>
+                        </div>
+                        ))
+                     )}
+                  </ScrollArea>
+                </div>
               </div>
-            </div>
+              <div className="mt-auto flex justify-between items-center">
+                <p className="text-[10px] text-muted-foreground italic">Tasa BCV: {bcvRate ? formatBs(bcvRate) : 'N/A'}</p>
+              </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </div>
       
       <ProductSelectorModal
         open={isProductSelectorOpen}
@@ -330,6 +379,66 @@ export function SaleForm({
         onAddProduct={handleAddProduct}
         cartItems={cartItems}
       />
+      
+       <Dialog open={isPriceCheckerOpen} onOpenChange={(isOpen) => {
+          setIsPriceCheckerOpen(isOpen);
+          if (!isOpen) {
+            setSelectedPriceCheckerProductId(null);
+          }
+        }}>
+            <DialogContent className="max-w-md bg-background border-border/50">
+                <DialogHeader>
+                    <DialogTitle className="text-2xl text-foreground">Consultor de Precios</DialogTitle>
+                    <DialogDescription>
+                        Selecciona un producto para ver su precio en Bs. y USD.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-6 py-4">
+                    
+                     <div className="grid grid-cols-1 items-center gap-4">
+                        <label className="text-foreground font-semibold">Producto</label>
+                        <Select 
+                          value={selectedPriceCheckerProductId || ''}
+                          onValueChange={(productId) => {
+                            setSelectedPriceCheckerProductId(productId)
+                          }}
+                          disabled={isLoadingProducts}
+                        >
+                            <SelectTrigger className="w-full border-border/50 focus:ring-ring">
+                                <SelectValue placeholder={isLoadingProducts ? "Cargando..." : "Selecciona un producto"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {products.map(product => (
+                                    <SelectItem key={product.id} value={product.id}>
+                                        {product.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {selectedPriceCheckerProduct && bcvRate && (
+                        <Card className="col-span-3 mt-4 border-primary bg-primary/5">
+                            <CardContent className="pt-6 text-center">
+                                <p className="text-sm text-muted-foreground">{selectedPriceCheckerProduct.name}</p>
+                                <p className="text-6xl font-bold text-primary my-2">
+                                    {formatCurrency(selectedPriceCheckerProduct.price, 'VES')}
+                                </p>
+                                <p className="text-lg font-semibold text-muted-foreground">
+                                    {formatCurrency(selectedPriceCheckerProduct.price, 'USD')}
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {!bcvRate && (
+                      <div className="text-center text-muted-foreground p-4 bg-muted rounded-md">
+                        <p>Por favor, establece la tasa BCV en la página de <Link href="/configuraciones" className="text-primary underline">Configuraciones</Link> para ver los precios en Bolívares.</p>
+                      </div>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
     </>
   )
 }
