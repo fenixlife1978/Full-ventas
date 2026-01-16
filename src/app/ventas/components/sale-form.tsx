@@ -34,7 +34,7 @@ import { type Product } from '@/app/productos/page'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/hooks/use-toast'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 
 const formSchema = z.object({
@@ -153,7 +153,7 @@ export function SaleForm({
       <DialogContent className="max-w-7xl h-[calc(100vh-4rem)] flex flex-col p-0">
         <Form {...form}>
             <form onSubmit={form.handleSubmit(handleFormSubmit)} className="h-full flex flex-col">
-                 <DialogHeader className="p-6 pb-4 border-b">
+                <DialogHeader className="p-6 pb-4 border-b">
                     <div className="flex justify-between items-center gap-4">
                         <DialogTitle className="text-3xl font-black text-gray-800 tracking-tight">Nueva Venta</DialogTitle>
                         
@@ -203,31 +203,28 @@ export function SaleForm({
                 <div className="flex-1 flex flex-row overflow-hidden">
                     <div className="w-full lg:w-2/5 p-6 flex flex-col bg-white h-full">
                         <div className="flex-1 flex flex-col min-h-0">
-                            <div className="flex-1 overflow-y-auto pr-2 space-y-6">
-                                <div className="flex flex-col space-y-3">
-                                    <Label className="text-xs font-bold uppercase tracking-widest text-gray-400">Fecha de Registro</Label>
-                                    <div className="w-full h-14 flex items-center justify-start font-bold rounded-xl border border-gray-100 bg-white px-4">
-                                        <CalendarIcon className="mr-3 h-5 w-5 text-primary" />
-                                        <span>{format(form.getValues('saleDate'), 'PPP', { locale: es })}</span>
-                                    </div>
+                            <div className="pr-2 space-y-3">
+                                <Label className="text-xs font-bold uppercase tracking-widest text-gray-400">Fecha de Registro</Label>
+                                <div className="w-full h-14 flex items-center justify-start font-bold rounded-xl border border-gray-100 bg-white px-4">
+                                    <CalendarIcon className="mr-3 h-5 w-5 text-primary" />
+                                    <span>{format(form.getValues('saleDate'), 'PPP', { locale: es })}</span>
                                 </div>
                             </div>
-                            <div className="pt-6 mt-auto space-y-4 bg-white">
-                            <Button 
-                                type="button" 
-                                onClick={() => setIsProductSelectorOpen(true)} 
-                                className="w-full h-14 bg-black text-white hover:bg-black/80 rounded-2xl font-bold"
-                            >
-                                <Plus className="w-5 h-5 mr-2" /> AGREGAR PRODUCTOS
-                            </Button>
-                            <div className="bg-primary/10 p-6 rounded-[2rem] border border-primary/20 text-center">
-                                <p className="text-[10px] uppercase font-black text-primary/70 tracking-[0.2em] mb-1">Total a Pagar</p>
-                                <p className="text-5xl font-black text-primary tracking-tight">{formatBs(totalBs)}</p>
-                                {bcvRate && <p className="text-md font-bold text-gray-500 mt-1">{formatUSD(totalUSD)}</p>}
-                            </div>
-                            <Button type="submit" disabled={cartItems.length === 0} className="w-full h-16 text-xl font-black rounded-2xl shadow-xl shadow-primary/20 active:scale-[0.98] transition-transform">
-                                REGISTRAR VENTA
-                            </Button>
+
+                            <div className="flex-1" />
+
+                            <div className="pt-6 space-y-4 bg-white">
+                                <Button type="button" onClick={() => setIsProductSelectorOpen(true)} className="w-full h-14 bg-black text-white hover:bg-black/80 rounded-2xl font-bold">
+                                    <Plus className="w-5 h-5 mr-2" /> AGREGAR PRODUCTOS
+                                </Button>
+                                <div className="bg-primary/10 p-6 rounded-[2rem] border border-primary/20 text-center">
+                                    <p className="text-[10px] uppercase font-black text-primary/70 tracking-[0.2em] mb-1">Total a Pagar</p>
+                                    <p className="text-5xl font-black text-primary tracking-tight">{formatBs(totalBs)}</p>
+                                    {bcvRate && <p className="text-md font-bold text-gray-500 mt-1">{formatUSD(totalUSD)}</p>}
+                                </div>
+                                <Button type="submit" disabled={cartItems.length === 0} className="w-full h-16 text-xl font-black rounded-2xl shadow-xl shadow-primary/20 active:scale-[0.98] transition-transform">
+                                    REGISTRAR VENTA
+                                </Button>
                             </div>
                         </div>
                     </div>
