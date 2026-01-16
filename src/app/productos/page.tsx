@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Plus, Search, Edit, Trash2, AlertTriangle, Package } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, AlertTriangle, Package, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
@@ -30,6 +30,9 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import { format } from 'date-fns'
 
 
 export interface Product {
@@ -160,6 +163,35 @@ export default function ProductosPage() {
     return new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(value || 0)
   }
 
+  const exportToPDF = () => {
+    const doc = new jsPDF()
+
+    doc.setFontSize(20)
+    doc.text('Listado de Productos', 14, 22)
+    doc.setFontSize(11)
+    doc.setTextColor(100)
+    doc.text(`Generado el: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 28)
+
+    const tableData = filteredProducts.map(p => [
+      p.name,
+      p.category || 'N/A',
+      formatCurrency(p.price),
+      p.cost ? formatCurrency(p.cost) : 'N/A',
+      `${p.stock} ${p.unit}`,
+      p.status === 'active' ? 'Activo' : 'Inactivo',
+    ])
+
+    autoTable(doc, {
+      startY: 35,
+      head: [['Nombre', 'Categoría', 'Precio', 'Costo', 'Stock', 'Estado']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [31, 122, 85] },
+    })
+
+    doc.save(`listado-productos-${format(new Date(), 'yyyyMMdd')}.pdf`)
+  }
+
   return (
     <Layout currentPageName="Gestión de Productos">
     <div className="space-y-6 p-4 md:p-8">
@@ -168,10 +200,16 @@ export default function ProductosPage() {
           <h1 className="text-3xl md:text-4xl font-bold text-foreground">Productos</h1>
           <p className="text-muted-foreground mt-2">Gestiona el inventario de tu bodega</p>
         </div>
-        <Button onClick={handleCreateNew} className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg">
-          <Plus className="mr-2" />
-          Agregar Producto
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+            <Button onClick={exportToPDF} variant="outline" className="w-full sm:w-auto border-border text-foreground hover:bg-accent hover:text-accent-foreground">
+                <Download className="mr-2" />
+                Exportar PDF
+            </Button>
+            <Button onClick={handleCreateNew} className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg">
+              <Plus className="mr-2" />
+              Agregar Producto
+            </Button>
+        </div>
       </header>
 
       <Card className="bg-card border-border/50 shadow-sm">

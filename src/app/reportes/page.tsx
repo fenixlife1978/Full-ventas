@@ -20,6 +20,8 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart'
 import { Bar, BarChart, XAxis, YAxis } from 'recharts'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 import {
   startOfToday,
@@ -94,7 +96,7 @@ export default function ReportesPage() {
 
     // Summary
     const totalSales = filteredSales.length
-    const totalRevenueCents = filteredSales.reduce((sum, s) => sum + Math.round(s.totalAmount * 100), 0)
+    const totalRevenueCents = filteredSales.reduce((sum, s) => sum + Math.round((s.totalAmount || 0) * 100), 0)
     const totalRevenue = totalRevenueCents / 100
     const totalQuantity = allItems.reduce((sum, item) => sum + item.quantity, 0)
     const averageTicket = totalSales > 0 ? totalRevenue / totalSales : 0
@@ -110,7 +112,7 @@ export default function ReportesPage() {
           ventas: 0
         }
       }
-      salesByDate[dateKey].ingresosCents += Math.round(sale.totalAmount * 100)
+      salesByDate[dateKey].ingresosCents += Math.round((sale.totalAmount || 0) * 100)
       salesByDate[dateKey].ventas += 1;
     })
     const dailySales = Object.values(salesByDate).map(d => ({ ...d, ingresos: d.ingresosCents / 100 })).sort((a,b) => a.date.localeCompare(b.date));
@@ -146,6 +148,7 @@ export default function ReportesPage() {
     const paymentMethods: { [key: string]: { method: string, totalCents: number, cantidad: number } } = {}
      const getPaymentMethodLabel = (method: string) => {
         const labels = { cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia', other: 'Otro' };
+        // @ts-ignore
         return labels[method] || method;
     };
     filteredSales.forEach((sale) => {
@@ -157,7 +160,7 @@ export default function ReportesPage() {
           cantidad: 0
         }
       }
-      paymentMethods[method].totalCents += Math.round(sale.totalAmount * 100)
+      paymentMethods[method].totalCents += Math.round((sale.totalAmount || 0) * 100)
       paymentMethods[method].cantidad += 1
     })
     const salesByPayment = Object.values(paymentMethods).map(p => ({ ...p, total: p.totalCents / 100 }));
@@ -183,36 +186,73 @@ export default function ReportesPage() {
       year: 'Este Año',
       all: 'Todo el Tiempo',
     }
+    // @ts-ignore
     return labels[period] || period
   }
 
-  const exportToCSV = () => {
-    const csvData = [
-      ['Reporte de Ventas - ' + getPeriodLabel()],
-      [''],
-      ['Resumen'],
-      ['Total Transacciones', reportData.summary.totalSales],
-      ['Ingresos Totales (USD)', reportData.summary.totalRevenue.toFixed(2)],
-      ['Ticket Promedio (USD)', reportData.summary.averageTicket.toFixed(2)],
-      ['Cantidad Total de Productos Vendidos', reportData.summary.totalQuantity],
-      [''],
-      ['Productos Más Vendidos'],
-      ['Producto', 'Cantidad', 'Ingresos (USD)'],
-      ...reportData.topProducts.map((p) => [
-        p.productName,
-        p.quantity,
-        p.revenue.toFixed(2),
-      ]),
+  const exportToPDF = () => {
+    const doc = new jsPDF()
+    const periodLabel = getPeriodLabel()
+
+    // Title
+    doc.setFontSize(20)
+    doc.text(`Reporte de Ventas: ${periodLabel}`, 14, 22)
+    doc.setFontSize(11)
+    doc.setTextColor(100)
+    doc.text(`Generado el: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: es })}`, 14, 28)
+
+    // Summary Section
+    const summaryData = [
+      ['Total Transacciones', reportData.summary.totalSales.toString()],
+      ['Ingresos Totales', formatCurrency(reportData.summary.totalRevenue)],
+      ['Ticket Promedio', formatCurrency(reportData.summary.averageTicket)],
+      ['Productos Vendidos', reportData.summary.totalQuantity.toString()],
     ]
 
-    const csv = csvData.map((row) => row.join(',')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `reporte-ventas-${format(new Date(), 'yyyy-MM-dd')}.csv`
-    a.click()
-    window.URL.revokeObjectURL(url)
+    autoTable(doc, {
+      startY: 35,
+      head: [['Métrica', 'Valor']],
+      body: summaryData,
+      theme: 'striped',
+      headStyles: { fillColor: [31, 122, 85] },
+    })
+    
+    let lastTableY = (doc as any).lastAutoTable.finalY;
+
+    // Top Products Table
+    if (reportData.topProducts.length > 0) {
+      autoTable(doc, {
+        startY: lastTableY + 10,
+        head: [['#', 'Producto', 'Cantidad', 'Ingresos']],
+        body: reportData.topProducts.map((p, i) => [
+          i + 1,
+          p.productName,
+          p.quantity,
+          formatCurrency(p.revenue),
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [31, 122, 85] },
+      })
+      lastTableY = (doc as any).lastAutoTable.finalY;
+    }
+    
+    // Payment Methods Table
+     if (reportData.salesByPayment.length > 0) {
+        autoTable(doc, {
+            startY: lastTableY + 10,
+            head: [['Método de Pago', 'Cantidad', 'Total']],
+            body: reportData.salesByPayment.map(p => [
+                p.method,
+                p.cantidad,
+                formatCurrency(p.total)
+            ]),
+            theme: 'striped',
+            headStyles: { fillColor: [31, 122, 85] },
+        })
+    }
+
+
+    doc.save(`reporte-ventas-${period}-${format(new Date(), 'yyyyMMdd')}.pdf`)
   }
   
   const formatCurrency = (value: number) => {
@@ -263,7 +303,7 @@ export default function ReportesPage() {
             </Select>
             <Button
               variant="outline"
-              onClick={exportToCSV}
+              onClick={exportToPDF}
               className="border-border text-foreground hover:bg-accent hover:text-accent-foreground"
             >
               <Download className="mr-2" />
