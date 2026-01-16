@@ -193,7 +193,7 @@ export function SaleForm({
                         />
 
                         <div className="flex items-center gap-2">
-                            <Button onClick={() => setIsPriceCheckerOpen(true)} variant="outline" className="rounded-xl border-gray-200 whitespace-nowrap">
+                            <Button type="button" onClick={() => setIsPriceCheckerOpen(true)} variant="outline" className="rounded-xl border-gray-200 whitespace-nowrap">
                                 <DollarSign className="mr-2 h-4 w-4 text-primary" /> Consultar Precio
                             </Button>
                         </div>
@@ -202,7 +202,7 @@ export function SaleForm({
 
                 <div className="flex-1 flex flex-row overflow-hidden">
                     <div className="w-full lg:w-2/5 p-6 flex flex-col bg-white h-full">
-                        <div className="flex-1 flex flex-col min-h-0">
+                         <div className="flex-1 flex flex-col min-h-0">
                             <div className="pr-2 space-y-3">
                                 <Label className="text-xs font-bold uppercase tracking-widest text-gray-400">Fecha de Registro</Label>
                                 <div className="w-full h-14 flex items-center justify-start font-bold rounded-xl border border-gray-100 bg-white px-4">
@@ -210,8 +210,8 @@ export function SaleForm({
                                     <span>{format(form.getValues('saleDate'), 'PPP', { locale: es })}</span>
                                 </div>
                             </div>
-
-                            <div className="flex-1" />
+                            
+                            <div className="flex-grow" />
 
                             <div className="pt-6 space-y-4 bg-white">
                                 <Button type="button" onClick={() => setIsProductSelectorOpen(true)} className="w-full h-14 bg-black text-white hover:bg-black/80 rounded-2xl font-bold">
@@ -309,8 +309,14 @@ export function SaleForm({
             {selectedPriceCheckerProduct && (
             <Card className="bg-primary border-none rounded-[2rem] p-8 text-center shadow-xl shadow-primary/20">
                 <p className="text-[10px] font-black text-white/60 uppercase tracking-[0.2em] mb-2">Precio Actualizado</p>
-                <p className="text-5xl font-black text-white">{selectedPriceCheckerProduct.price.toLocaleString('es-VE', { style: 'currency', currency: 'USD' })}</p>
-                {bcvRate && <p className="text-xl font-bold text-white/80 mt-2">{formatBs(selectedPriceCheckerProduct.price * bcvRate)}</p>}
+                <p className="text-5xl font-black text-white">
+                    {bcvRate ? formatBs(selectedPriceCheckerProduct.price * bcvRate) : formatUSD(selectedPriceCheckerProduct.price)}
+                </p>
+                {bcvRate && (
+                    <p className="text-xl font-bold text-white/80 mt-2">
+                        {formatUSD(selectedPriceCheckerProduct.price)}
+                    </p>
+                )}
             </Card>
             )}
         </div>
