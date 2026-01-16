@@ -42,6 +42,7 @@ import { es } from 'date-fns/locale'
 import { useEffect, useMemo, useState } from 'react'
 import { type Product } from '@/app/productos/page'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { useToast } from '@/hooks/use-toast'
 
 const formSchema = z.object({
   saleDate: z.date({
@@ -78,6 +79,7 @@ export function SaleForm({
 }: SaleFormProps) {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [isProductSelectorOpen, setIsProductSelectorOpen] = useState(false)
+  const { toast } = useToast()
   
   const form = useForm<SaleFormValues>({
     resolver: zodResolver(formSchema),
@@ -88,8 +90,6 @@ export function SaleForm({
     },
   })
   
-  // EFECTO DE SINCRONIZACIÓN DE PRECIOS:
-  // Actualiza los precios en el carrito si cambian en la lista maestra (products)
   useEffect(() => {
     if (cartItems.length > 0 && products.length > 0) {
       setCartItems(prevItems => 
@@ -102,7 +102,7 @@ export function SaleForm({
         })
       );
     }
-  }, [products]);
+  }, [products, cartItems]);
 
   useEffect(() => {
     if(!open) {
@@ -112,31 +112,66 @@ export function SaleForm({
   }, [open, form])
 
   const totalUSD = useMemo(() => {
-    return cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
+    return cartItems.reduce((total, item) => total + item.price * (item.quantity || 0), 0)
   }, [cartItems])
 
   const totalBs = useMemo(() => {
     return totalUSD * (bcvRate || 0)
   }, [totalUSD, bcvRate])
 
-  const handleAddProduct = (product: Product, quantity: number) => {
+  const handleAddProduct = (product: Product) => {
     setCartItems(prev => {
-      const existingItem = prev.find(item => item.id === product.id)
+      const existingItem = prev.find(item => item.id === product.id);
       if (existingItem) {
-        return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + quantity, price: product.price } : item)
+        return prev;
       }
-      return [...prev, { ...product, quantity }]
-    })
+      return [...prev, { ...product, quantity: 1 }];
+    });
+    setIsProductSelectorOpen(false);
   }
+  
+  const handleUpdateQuantity = (productId: string, quantityStr: string) => {
+    const quantity = parseInt(quantityStr, 10);
+    setCartItems(prev => 
+      prev.map(item => {
+        if (item.id === productId) {
+          const newQuantity = isNaN(quantity) || quantity < 0 ? 0 : quantity;
+          const productInfo = products.find(p => p.id === productId);
+          const stock = productInfo ? productInfo.stock : item.stock;
+
+          if (newQuantity > stock) {
+            toast({
+              variant: 'destructive',
+              title: 'Stock Insuficiente',
+              description: `Solo quedan ${stock} unidades de ${item.name}.`
+            })
+            return { ...item, quantity: stock };
+          }
+          
+          return { ...item, quantity: newQuantity };
+        }
+        return item;
+      })
+    );
+  };
   
   const handleRemoveItem = (productId: string) => {
     setCartItems(prev => prev.filter(item => item.id !== productId));
   };
 
   const handleFormSubmit = (values: SaleFormValues) => {
+    const validItems = cartItems.filter(item => item.quantity > 0)
+    if (validItems.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Venta Vacía',
+        description: 'Debes agregar al menos un producto con cantidad mayor a 0.',
+      })
+      return;
+    }
     onSubmit({
       ...values,
-      items: cartItems,
+      items: validItems,
       totalAmount: totalUSD,
       saleNumber: saleCount + 1,
     })
@@ -272,8 +307,8 @@ export function SaleForm({
                     <div className="space-y-3">
                       <div className="flex font-bold text-[10px] uppercase text-muted-foreground border-b pb-2">
                         <div className="flex-1">Producto</div>
-                        <div className="text-right w-20">USD</div>
-                        <div className="text-right w-24">Bs.</div>
+                        <div className="w-16 text-center">Cant.</div>
+                        <div className="text-right w-20">Subtotal</div>
                         <div className="w-8 ml-2" />
                       </div>
                       <ScrollArea className="h-72 pr-4">
@@ -284,10 +319,21 @@ export function SaleForm({
                             <div key={item.id} className="flex items-center text-sm py-2 border-b border-border/10 last:border-none">
                               <div className="flex-1 pr-2">
                                 <p className="font-semibold truncate">{item.name}</p>
-                                <p className="text-[10px] text-muted-foreground font-mono">Cant: {item.quantity}</p>
+                                <p className="text-[10px] text-muted-foreground font-mono">
+                                  {formatCurrency(item.price)} c/u
+                                </p>
                               </div>
-                              <div className="text-right font-mono text-xs w-20">{formatCurrency(item.price * item.quantity)}</div>
-                              <div className="text-right font-bold text-xs w-24">{formatBs(item.price * item.quantity * (bcvRate || 0))}</div>
+                              <div className="w-16">
+                                <Input
+                                  type="number"
+                                  value={item.quantity || ''}
+                                  onChange={(e) => handleUpdateQuantity(item.id, e.target.value)}
+                                  className="h-8 w-full text-center p-1"
+                                  min="0"
+                                  max={item.stock}
+                                />
+                              </div>
+                              <div className="text-right font-mono text-xs w-20">{formatCurrency(item.price * (item.quantity || 0))}</div>
                               <Button variant="ghost" size="icon" className="h-8 w-8 ml-2 group" onClick={() => handleRemoveItem(item.id)}>
                                 <Trash2 className="h-4 w-4 text-destructive/70 group-hover:text-destructive" />
                               </Button>
@@ -314,6 +360,7 @@ export function SaleForm({
         onOpenChange={setIsProductSelectorOpen}
         products={products}
         onAddProduct={handleAddProduct}
+        cartItems={cartItems}
       />
     </>
   )
@@ -325,27 +372,26 @@ interface ProductSelectorModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   products: Product[];
-  onAddProduct: (product: Product, quantity: number) => void;
+  cartItems: CartItem[];
+  onAddProduct: (product: Product) => void;
 }
 
-function ProductSelectorModal({ open, onOpenChange, products, onAddProduct }: ProductSelectorModalProps) {
+function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddProduct }: ProductSelectorModalProps) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [quantity, setQuantity] = useState<{[key: string]: number}>({})
+  
+  const cartItemIds = useMemo(() => new Set(cartItems.map(item => item.id)), [cartItems]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((p: Product) => 
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
       p.status === 'active' && 
-      p.stock > 0
+      p.stock > 0 &&
+      !cartItemIds.has(p.id)
     )
-  }, [products, searchTerm])
+  }, [products, searchTerm, cartItemIds])
 
   const handleAdd = (product: Product) => {
-    const q = quantity[product.id] || 1
-    if(q > 0 && q <= product.stock) {
-      onAddProduct(product, q)
-      setQuantity(prev => ({...prev, [product.id]: 1}))
-    }
+    onAddProduct(product)
   }
 
   const formatCurrency = (value: number) => {
@@ -354,6 +400,12 @@ function ProductSelectorModal({ open, onOpenChange, products, onAddProduct }: Pr
       currency: 'USD',
     }).format(value)
   }
+  
+  useEffect(() => {
+    if (!open) {
+      setSearchTerm('')
+    }
+  }, [open])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -382,14 +434,6 @@ function ProductSelectorModal({ open, onOpenChange, products, onAddProduct }: Pr
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Input 
-                    type="number"
-                    min="1"
-                    max={product.stock}
-                    value={quantity[product.id] || '1'}
-                    onChange={e => setQuantity(prev => ({...prev, [product.id]: parseInt(e.target.value) || 1}))}
-                    className="w-16 h-8 text-center"
-                  />
                   <Button size="sm" onClick={() => handleAdd(product)} className="h-8">
                     <Plus className="w-3 h-3 mr-1"/> Añadir
                   </Button>
