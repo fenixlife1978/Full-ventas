@@ -3,7 +3,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -19,7 +18,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog'
 import {
   Select,
@@ -33,7 +31,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { CalendarIcon, Plus, Search, Trash2, DollarSign, CreditCard, Landmark } from 'lucide-react'
+import { CalendarIcon, Plus, Search, Trash2, DollarSign, CreditCard, Landmark, X } from 'lucide-react'
 import { Calendar } from '@/components/ui/calendar'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -45,7 +43,6 @@ import { useToast } from '@/hooks/use-toast'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-
 
 const formSchema = z.object({
   saleDate: z.date({
@@ -69,10 +66,18 @@ interface SaleFormProps {
   saleCount: number
 }
 
+// Nueva Interfaz para corregir el error de TS
+interface ProductSelectorModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  products: Product[];
+  cartItems: CartItem[];
+  onAddProduct: (product: Product, quantity: number) => void;
+}
+
 export function SaleForm({
   onSubmit,
   products,
-  isLoadingProducts,
   bcvRate,
   saleCount,
 }: SaleFormProps) {
@@ -97,7 +102,6 @@ export function SaleForm({
       return products.find(p => p.id === selectedPriceCheckerProductId) ?? null;
   }, [selectedPriceCheckerProductId, products]);
   
-  // Reset form on successful sale (indicated by saleCount change)
   useEffect(() => {
     form.reset({
         saleDate: new Date(),
@@ -106,26 +110,6 @@ export function SaleForm({
     });
     setCartItems([]);
   }, [saleCount, form])
-
-
-  useEffect(() => {
-    if (cartItems.length > 0 && products.length > 0) {
-      setCartItems(prevItems => 
-        prevItems.map(item => {
-          const freshProduct = products.find(p => p.id === item.id);
-          if (freshProduct && freshProduct.price !== item.price) {
-            toast({
-                title: 'Actualización de Precio',
-                description: `El precio de "${item.name}" ha cambiado. El recibo se ha actualizado.`,
-            });
-            return { ...item, price: freshProduct.price };
-          }
-          return item;
-        })
-      );
-    }
-  }, [products, toast, cartItems.length]);
-
 
   const totalUSD = useMemo(() => {
     return cartItems.reduce((total, item) => total + item.price * (item.quantity || 0), 0)
@@ -136,25 +120,15 @@ export function SaleForm({
   }, [totalUSD, bcvRate])
 
   const handleAddProduct = (product: Product, quantity: number) => {
+    if (quantity > product.stock) {
+      toast({ variant: 'destructive', title: 'Stock Insuficiente' });
+      return;
+    }
     const existingItem = cartItems.find(item => item.id === product.id);
     if (existingItem) {
-        toast({
-            variant: 'destructive',
-            title: 'Producto ya en el recibo',
-            description: `${product.name} ya ha sido agregado.`,
-        });
+        toast({ variant: 'destructive', title: 'Ya está en el recibo' });
         return;
     }
-
-    if (quantity > product.stock) {
-        toast({
-            variant: 'destructive',
-            title: 'Stock Insuficiente',
-            description: `Solo quedan ${product.stock} unidades de ${product.name}.`,
-        });
-        return;
-    }
-
     setCartItems(prev => [...prev, { ...product, quantity }]);
     setIsProductSelectorOpen(false);
   }
@@ -164,245 +138,176 @@ export function SaleForm({
   };
 
   const handleFormSubmit = (values: SaleFormValues) => {
-    const validItems = cartItems.filter(item => item.quantity > 0)
-    if (validItems.length === 0) {
-      toast({
-        variant: 'destructive',
-        title: 'Venta Vacía',
-        description: 'Debes agregar al menos un producto con cantidad mayor a 0.',
-      })
+    if (cartItems.length === 0) {
+      toast({ variant: 'destructive', title: 'Venta Vacía' });
       return;
     }
-    onSubmit({
-      ...values,
-      items: validItems,
-      totalAmount: totalUSD,
-      saleNumber: saleCount + 1,
-    })
+    onSubmit({ ...values, items: cartItems, totalAmount: totalUSD, saleNumber: saleCount + 1 })
   }
 
-  const formatCurrency = (value: number, currency: 'USD' | 'VES' = 'USD') => {
-      if (currency === 'VES' && bcvRate) {
-        value = value * bcvRate
-        return `Bs. ${new Intl.NumberFormat('es-VE', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }).format(value)}`
-      }
-      return new Intl.NumberFormat('es-VE', {
-        style: 'currency',
-        currency: 'USD',
-      }).format(value)
-  }
-
-  const formatBs = (value: number) => {
-    return `Bs. ${new Intl.NumberFormat('es-VE', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(value)}`
-  }
+  const formatBs = (value: number) => `Bs. ${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)}`
 
   return (
-    <>
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] bg-background">
-        {/* Columna Izquierda */}
-        <div className="w-full lg:w-1/2 p-6 flex flex-col">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl text-foreground font-bold">Nueva Venta</h2>
-              <Button onClick={() => setIsPriceCheckerOpen(true)} variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
-                <DollarSign className="mr-2 h-4 w-4" />
-                Consultar Precio
-              </Button>
-            </div>
-             <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleFormSubmit)} className="flex-1 flex flex-col space-y-4">
-                <div className="flex-grow space-y-4">
-                  <FormField
-                      control={form.control}
-                      name="notes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Observaciones de la venta..."
-                              className="resize-none border-border/50"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  <FormField
-                    control={form.control}
-                    name="paymentMethod"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            className="grid grid-cols-2 md:grid-cols-4 gap-2"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="cash" id="payment-cash" className="sr-only" />
-                              <Label
-                                htmlFor="payment-cash"
-                                className={cn(
-                                  "flex items-center justify-center p-2 rounded-md border-2 cursor-pointer transition-colors w-full",
-                                  field.value === 'cash'
-                                    ? "bg-primary border-primary text-primary-foreground"
-                                    : "border-border/50 text-foreground hover:bg-accent"
-                                )}
-                              >
-                                <DollarSign className="mr-2 h-4 w-4"/> Efectivo
-                              </Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="card" id="payment-card" className="sr-only" />
-                              <Label
-                                htmlFor="payment-card"
-                                className={cn(
-                                  "flex items-center justify-center p-2 rounded-md border-2 cursor-pointer transition-colors w-full",
-                                  field.value === 'card'
-                                    ? "bg-primary border-primary text-primary-foreground"
-                                    : "border-border/50 text-foreground hover:bg-accent"
-                                )}
-                              >
-                                <CreditCard className="mr-2 h-4 w-4"/> Tarjeta
-                              </Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="transfer" id="payment-transfer" className="sr-only" />
-                              <Label
-                                htmlFor="payment-transfer"
-                                className={cn(
-                                  "flex items-center justify-center p-2 rounded-md border-2 cursor-pointer transition-colors w-full",
-                                  field.value === 'transfer'
-                                    ? "bg-primary border-primary text-primary-foreground"
-                                    : "border-border/50 text-foreground hover:bg-accent"
-                                )}
-                              >
-                                <Landmark className="mr-2 h-4 w-4"/> Transf/PM
-                              </Label>
-                            </div>
-                             <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="other" id="payment-other" className="sr-only" />
-                              <Label
-                                htmlFor="payment-other"
-                                className={cn(
-                                  "flex items-center justify-center p-2 rounded-md border-2 cursor-pointer transition-colors w-full",
-                                  field.value === 'other'
-                                    ? "bg-primary border-primary text-primary-foreground"
-                                    : "border-border/50 text-foreground hover:bg-accent"
-                                )}
-                              >
-                                Otro
-                              </Label>
-                            </div>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="saleDate"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center gap-2">
-                         <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={'outline'}
-                                className={cn(
-                                  'w-full justify-start text-left font-normal border-border/50',
-                                  !field.value && 'text-muted-foreground'
-                                )}
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value ? (
-                                  format(field.value, 'PPP', { locale: es })
-                                ) : (
-                                  <span>Fecha de venta</span>
-                                )}
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="space-y-4 pt-4">
-                    <Button type="button" onClick={() => setIsProductSelectorOpen(true)} className="w-full bg-black text-white hover:bg-gray-800">
-                        <Plus className="w-4 h-4 mr-2" /> Buscar Productos
-                    </Button>
-                    <div className="bg-slate-100 dark:bg-slate-900 p-4 rounded-lg border border-border text-center">
-                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">Total a Pagar</p>
-                        <p className="font-bold text-3xl text-primary">{formatBs(totalBs)}</p>
-                        <p className="text-sm text-muted-foreground font-medium">{formatCurrency(totalUSD)} USD</p>
-                    </div>
-                    <Button type="submit" disabled={cartItems.length === 0} className="w-full text-lg h-12">
-                        Registrar Venta
-                    </Button>
-                </div>
-              </form>
-            </Form>
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] bg-[#f8f7f2] overflow-hidden">
+      
+      {/* COLUMNA IZQUIERDA: FORMULARIO */}
+      <div className="w-full lg:w-[40%] p-8 flex flex-col bg-white border-r border-gray-200 shadow-sm h-full">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-3xl font-black text-gray-800">Nueva Venta</h2>
+          <Button onClick={() => setIsPriceCheckerOpen(true)} variant="outline" className="rounded-xl">
+            <DollarSign className="mr-2 h-4 w-4" /> Consultar
+          </Button>
         </div>
 
-        {/* Columna Derecha (Ticket) */}
-        <div className="w-full lg:w-1/2 p-6 bg-muted/40 flex flex-col border-l border-border/50">
-          <div className="flex flex-col h-full">
-              <div className="border-2 border-dashed border-destructive/20 p-5 rounded-md w-full bg-background mb-4 shadow-sm flex-1 flex flex-col">
-                <h3 className="text-xl font-black text-destructive text-center mb-4 italic">Recibo de Venta</h3>
-                <div className="flex font-bold text-[10px] uppercase text-muted-foreground border-b pb-2">
-                  <div className="flex-1">Producto</div>
-                  <div className="w-16 text-center">Cant.</div>
-                  <div className="text-right w-20">Subtotal</div>
-                  <div className="w-8 ml-2" />
-                </div>
-                <ScrollArea className="flex-1 -mr-4 pr-4">
-                     {cartItems.length === 0 ? (
-                       <p className="text-center text-muted-foreground pt-24 text-sm italic">Agregue artículos...</p>
-                     ) : (
-                       cartItems.map(item => (
-                        <div key={item.id} className="flex items-center text-sm py-2 border-b border-border/10 last:border-none">
-                          <div className="flex-1 pr-2">
-                            <p className="font-semibold truncate">{item.name}</p>
-                            <p className="text-[10px] text-muted-foreground font-mono">
-                              {formatCurrency(item.price)} c/u
-                            </p>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+              <FormField
+                control={form.control}
+                name="paymentMethod"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-gray-400">Método de Pago</Label>
+                    <FormControl>
+                      <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-2 gap-3">
+                        {[
+                          { id: 'cash', label: 'Efectivo', icon: DollarSign },
+                          { id: 'card', label: 'Tarjeta', icon: CreditCard },
+                          { id: 'transfer', label: 'Pago Móvil', icon: Landmark },
+                          { id: 'other', label: 'Otro', icon: Plus },
+                        ].map((m) => (
+                          <div key={m.id}>
+                            <RadioGroupItem value={m.id} id={m.id} className="sr-only" />
+                            <Label
+                              htmlFor={m.id}
+                              className={cn(
+                                "flex items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all h-14",
+                                field.value === m.id ? "bg-primary border-primary text-white shadow-md" : "border-gray-100 hover:bg-gray-50 text-gray-500"
+                              )}
+                            >
+                              <m.icon className="mr-2 h-4 w-4" />
+                              <span className="font-bold">{m.label}</span>
+                            </Label>
                           </div>
-                          <div className="w-16 text-center font-medium">
-                              {item.quantity}
-                            </div>
-                          <div className="text-right font-mono text-xs w-20">{formatCurrency(item.price * (item.quantity || 0))}</div>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 ml-2 group" onClick={() => handleRemoveItem(item.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive/70 group-hover:text-destructive" />
+                        ))}
+                      </RadioGroup>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="saleDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col space-y-3">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-gray-400">Fecha</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button variant="outline" className="w-full h-14 justify-start font-bold rounded-xl border-gray-100">
+                            <CalendarIcon className="mr-3 h-5 w-5 text-primary" />
+                            {field.value ? format(field.value, 'PPP', { locale: es }) : "Seleccionar"}
                           </Button>
-                        </div>
-                        ))
-                     )}
-                </ScrollArea>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                      </PopoverContent>
+                    </Popover>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-gray-400">Observaciones</Label>
+                    <FormControl>
+                      <Textarea placeholder="Notas de la venta..." className="min-h-[100px] bg-gray-50 border-none rounded-xl" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* TOTALES FIJOS ABAJO */}
+            <div className="pt-6 mt-auto space-y-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsProductSelectorOpen(true)} 
+                className="w-full h-14 border-2 border-dashed border-gray-300 rounded-2xl text-gray-500 hover:border-primary hover:text-primary transition-all"
+              >
+                <Plus className="w-5 h-5 mr-2" /> Buscar Productos
+              </Button>
+              
+              <div className="bg-[#f1f5f3] p-6 rounded-3xl border border-[#d1dbd6] text-center">
+                <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-1">Total a Pagar</p>
+                <p className="text-4xl font-black text-[#2d5a4c]">{formatBs(totalBs)}</p>
+                <p className="text-sm font-bold text-gray-500">{totalUSD.toLocaleString('es-VE', { style: 'currency', currency: 'USD' })} USD</p>
               </div>
-              <div className="mt-auto flex justify-between items-center">
-                <p className="text-[10px] text-muted-foreground italic">Tasa BCV: {bcvRate ? formatBs(bcvRate) : 'N/A'}</p>
+
+              <Button type="submit" disabled={cartItems.length === 0} className="w-full h-16 text-xl font-black rounded-2xl shadow-lg">
+                REGISTRAR VENTA
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </div>
+
+      {/* COLUMNA DERECHA: RECIBO */}
+      <div className="w-full lg:w-[60%] p-8 flex flex-col h-full overflow-hidden">
+        <div className="flex-1 border-2 border-dashed border-red-200 rounded-[2.5rem] p-10 bg-white shadow-sm flex flex-col overflow-hidden relative">
+          
+          <div className="text-center mb-8">
+            <h3 className="text-2xl font-black text-red-500 italic tracking-tighter uppercase">Recibo de Venta</h3>
+            <p className="text-[10px] font-mono text-gray-400 mt-1">Nro: {(saleCount + 1).toString().padStart(7, '0')}</p>
+          </div>
+
+          <div className="grid grid-cols-12 font-black text-[10px] uppercase text-gray-400 border-b-2 border-gray-50 pb-4 mb-2 px-2">
+            <div className="col-span-6">Producto</div>
+            <div className="col-span-2 text-center">Cant.</div>
+            <div className="col-span-3 text-right">Subtotal</div>
+            <div className="col-span-1" />
+          </div>
+
+          <ScrollArea className="flex-1 pr-4">
+            {cartItems.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center opacity-20">
+                <p className="italic font-bold">Sin artículos...</p>
               </div>
+            ) : (
+              cartItems.map((item: CartItem) => (
+                <div key={item.id} className="grid grid-cols-12 py-4 items-center border-b border-gray-50 group px-2">
+                  <div className="col-span-6">
+                    <p className="font-bold text-gray-800 text-sm uppercase">{item.name}</p>
+                    <p className="text-[10px] text-gray-400 font-mono">${item.price.toFixed(2)} c/u</p>
+                  </div>
+                  <div className="col-span-2 text-center font-black text-gray-700">{item.quantity}</div>
+                  <div className="col-span-3 text-right font-bold text-gray-800">
+                    {formatBs(item.price * item.quantity * (bcvRate || 0))}
+                  </div>
+                  <div className="col-span-1 flex justify-end">
+                    <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.id)} className="text-red-200 hover:text-red-500">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </ScrollArea>
+
+          <div className="mt-auto pt-6 border-t border-gray-100 flex justify-between items-center text-[10px] font-bold text-gray-400 italic">
+            <span>Tasa BCV: {bcvRate ? formatBs(bcvRate) : '---'}</span>
+            <span>{format(new Date(), 'Pp', { locale: es })}</span>
           </div>
         </div>
       </div>
-      
+
+      {/* MODAL SELECCION PRODUCTOS */}
       <ProductSelectorModal
         open={isProductSelectorOpen}
         onOpenChange={setIsProductSelectorOpen}
@@ -410,180 +315,65 @@ export function SaleForm({
         onAddProduct={handleAddProduct}
         cartItems={cartItems}
       />
-      
-       <Dialog open={isPriceCheckerOpen} onOpenChange={(isOpen) => {
-          setIsPriceCheckerOpen(isOpen);
-          if (!isOpen) {
-            setSelectedPriceCheckerProductId(null);
-          }
-        }}>
-            <DialogContent className="max-w-md bg-background border-border/50">
-                <DialogHeader>
-                    <DialogTitle className="text-2xl text-foreground">Consultor de Precios</DialogTitle>
-                    <DialogDescription>
-                        Selecciona un producto para ver su precio en Bs. y USD.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-6 py-4">
-                    
-                     <div className="grid grid-cols-1 items-center gap-4">
-                        <Label className="text-foreground font-semibold">Producto</Label>
-                        <Select 
-                          value={selectedPriceCheckerProductId || ''}
-                          onValueChange={(productId) => {
-                            setSelectedPriceCheckerProductId(productId)
-                          }}
-                          disabled={isLoadingProducts}
-                        >
-                            <SelectTrigger className="w-full border-border/50 focus:ring-ring">
-                                <SelectValue placeholder={isLoadingProducts ? "Cargando..." : "Selecciona un producto"} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {products.map(product => (
-                                    <SelectItem key={product.id} value={product.id}>
-                                        {product.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
 
-                    {selectedPriceCheckerProduct && bcvRate && (
-                        <Card className="col-span-3 mt-4 border-primary bg-primary/5">
-                            <CardContent className="pt-6 text-center">
-                                <p className="text-sm text-muted-foreground">{selectedPriceCheckerProduct.name}</p>
-                                <p className="text-6xl font-bold text-primary my-2">
-                                    {formatCurrency(selectedPriceCheckerProduct.price, 'VES')}
-                                </p>
-                                <p className="text-lg font-semibold text-muted-foreground">
-                                    {formatCurrency(selectedPriceCheckerProduct.price, 'USD')}
-                                </p>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {!bcvRate && (
-                      <div className="text-center text-muted-foreground p-4 bg-muted rounded-md">
-                        <p>Por favor, establece la tasa BCV en la página de <Link href="/configuraciones" className="text-primary underline">Configuraciones</Link> para ver los precios en Bolívares.</p>
-                      </div>
-                    )}
-                </div>
-            </DialogContent>
-        </Dialog>
-    </>
+      {/* MODAL CONSULTOR PRECIO */}
+      <Dialog open={isPriceCheckerOpen} onOpenChange={setIsPriceCheckerOpen}>
+        <DialogContent className="max-w-md rounded-3xl">
+          <DialogHeader><DialogTitle>Consultar Precio</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4">
+            <Select onValueChange={setSelectedPriceCheckerProductId}>
+              <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Producto..." /></SelectTrigger>
+              <SelectContent>
+                {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {selectedPriceCheckerProduct && (
+              <Card className="bg-primary/5 border-none rounded-2xl p-6 text-center">
+                <p className="text-4xl font-black text-primary">{formatBs(selectedPriceCheckerProduct.price * (bcvRate || 0))}</p>
+                <p className="text-gray-500 font-bold mt-2">${selectedPriceCheckerProduct.price.toFixed(2)} USD</p>
+              </Card>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }
 
-interface ProductSelectorModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  products: Product[];
-  cartItems: CartItem[];
-  onAddProduct: (product: Product, quantity: number) => void;
-}
-
+// Sub-componente con tipos corregidos
 function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddProduct }: ProductSelectorModalProps) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
-  const { toast } = useToast();
-
-  const cartItemIds = useMemo(() => new Set(cartItems.map(item => item.id)), [cartItems]);
-
-  const filteredProducts = useMemo(() => {
-    return products.filter((p: Product) => 
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
-      p.status === 'active' && 
-      p.stock > 0 &&
-      !cartItemIds.has(p.id)
-    )
-  }, [products, searchTerm, cartItemIds])
-
-  const handleAdd = (product: Product) => {
-    const quantity = quantities[product.id] || 1;
-    if (quantity <= 0) {
-      toast({
-        variant: 'destructive',
-        title: 'Cantidad Inválida',
-        description: 'La cantidad debe ser mayor que 0.'
-      });
-      return;
-    }
-    if (quantity > product.stock) {
-      toast({
-        variant: 'destructive',
-        title: 'Stock Insuficiente',
-        description: `Solo quedan ${product.stock} unidades de ${product.name}.`
-      });
-      return;
-    }
-    onAddProduct(product, quantity);
-    setQuantities(prev => {
-      const newState = { ...prev };
-      delete newState[product.id];
-      return newState;
-    });
-  }
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-VE', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(value)
-  }
+  const [qty, setQty] = useState<{[key: string]: number}>({})
   
-  useEffect(() => {
-    if (!open) {
-      setSearchTerm('')
-      setQuantities({})
-    }
-  }, [open])
+  const cartIds = new Set(cartItems.map(i => i.id))
+  const filtered = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) && !cartIds.has(p.id) && p.stock > 0)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="font-bold">Selección de Inventario</DialogTitle>
-        </DialogHeader>
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar por nombre..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+      <DialogContent className="max-w-2xl h-[80vh] flex flex-col p-0 overflow-hidden rounded-[2rem]">
+        <div className="p-8 border-b">
+          <h2 className="text-2xl font-black mb-4">Añadir al Recibo</h2>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input placeholder="Buscar..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 h-12 rounded-xl" />
+          </div>
         </div>
-        <ScrollArea className="h-[400px]">
-          <div className="space-y-2 pr-4">
-            {filteredProducts.map((product: Product) => (
-              <div key={product.id} className="flex items-center gap-4 p-3 rounded-lg border border-border/40 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all">
-                <div className="flex-1">
-                  <p className="font-bold text-sm uppercase">{product.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Existencia: <span className={product.stock <= 3 ? "text-red-500 font-bold" : "font-semibold"}>{product.stock}</span> | 
-                    Precio Unitario: <span className="text-primary font-bold">{formatCurrency(product.price)}</span>
-                  </p>
+        <ScrollArea className="flex-1 p-8">
+          <div className="space-y-3">
+            {filtered.map(p => (
+              <div key={p.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-all">
+                <div>
+                  <p className="font-bold text-gray-800 uppercase text-sm">{p.name}</p>
+                   <p className="text-xs text-primary font-bold">
+                        Stock: {p.stock} | Precio: {new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(p.price)}
+                    </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Input 
-                    type="number"
-                    placeholder="Cant."
-                    className="h-8 w-16 text-center"
-                    min="1"
-                    defaultValue="1"
-                    onChange={(e) => setQuantities(prev => ({...prev, [product.id]: parseInt(e.target.value, 10)}))}
-                  />
-                  <Button size="sm" onClick={() => handleAdd(product)} className="h-8">
-                    <Plus className="w-3 h-3 mr-1"/> Añadir
-                  </Button>
+                <div className="flex items-center gap-3">
+                  <Input type="number" min="1" max={p.stock} className="w-20 h-10 text-center" defaultValue="1" onChange={e => setQty({...qty, [p.id]: parseInt(e.target.value)})} />
+                  <Button onClick={() => onAddProduct(p, qty[p.id] || 1)} size="sm" className="rounded-lg">Añadir</Button>
                 </div>
               </div>
             ))}
-            {filteredProducts.length === 0 && (
-              <div className="text-center py-20">
-                <p className="text-muted-foreground text-sm italic">No hay productos que coincidan con la búsqueda.</p>
-              </div>
-            )}
           </div>
         </ScrollArea>
       </DialogContent>
