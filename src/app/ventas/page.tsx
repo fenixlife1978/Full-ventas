@@ -234,6 +234,7 @@ export default function VentasPage() {
       transfer: 'Transferencia',
       other: 'Otro',
     };
+    // @ts-ignore
     return labels[method] || method;
   };
   
@@ -288,7 +289,12 @@ export default function VentasPage() {
               <DollarSign className="h-5 w-5 text-primary" />
             </CardHeader>
             <CardContent>
-              { isLoading ? <Skeleton className="h-8 w-1/3" /> : <div className="text-2xl font-bold text-foreground">{formatCurrency(summaryStats.totalRevenue)}</div> }
+              { isLoading ? <Skeleton className="h-8 w-1/3" /> : (
+                <>
+                  <div className="text-2xl font-bold text-foreground">{formatCurrency(summaryStats.totalRevenue, 'VES')}</div>
+                  {bcvRate && <p className="text-sm text-muted-foreground">{formatCurrency(summaryStats.totalRevenue, 'USD')}</p>}
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -369,8 +375,8 @@ export default function VentasPage() {
                     </div>
                      <div className="flex flex-col items-center justify-center bg-muted p-4 rounded-lg w-full sm:w-48 text-center">
                         <p className="text-xs text-muted-foreground">Total Venta</p>
-                        <p className="text-2xl font-bold text-foreground">{formatCurrency(sale.totalAmount)}</p>
-                         {bcvRate && <p className="text-sm text-muted-foreground">{formatCurrency(sale.totalAmount, 'VES')}</p>}
+                        <p className="text-2xl font-bold text-foreground">{formatCurrency(sale.totalAmount, 'VES')}</p>
+                         {bcvRate && <p className="text-sm text-muted-foreground">{formatCurrency(sale.totalAmount, 'USD')}</p>}
                     </div>
                   </div>
                 </CardContent>

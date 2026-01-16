@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { ProductForm, ProductFormValues } from './components/product-form'
-import { useCollection, useFirestore } from '@/firebase'
+import { useCollection, useFirestore, useDoc } from '@/firebase'
 import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore'
 import {
   AlertDialog,
@@ -33,6 +33,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { format } from 'date-fns'
+import { type Setting } from '../configuraciones/page'
 
 
 export interface Product {
@@ -65,8 +66,17 @@ export default function ProductosPage() {
     if (!firestore) return null;
     return collection(firestore, 'products')
   }, [firestore])
+  
+  const settingsDoc = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'settings', 'global')
+  }, [firestore])
 
-  const { data: products, isLoading } = useCollection<Product>(productsCollection)
+  const { data: products, isLoading: isLoadingProducts } = useCollection<Product>(productsCollection)
+  const { data: settings, isLoading: isLoadingSettings } = useDoc<Setting>(settingsDoc);
+  const bcvRate = useMemo(() => settings?.bcvRate || null, [settings]);
+
+  const isLoading = isLoadingProducts || isLoadingSettings;
 
   const categories = useMemo(() => {
     if (!products) return []
@@ -159,7 +169,14 @@ export default function ProductosPage() {
     setEditingProduct(null)
   }
   
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number, currency: 'USD' | 'VES' = 'USD') => {
+    if (currency === 'VES' && bcvRate) {
+      value = value * bcvRate
+      return `Bs. ${new Intl.NumberFormat('es-VE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(value || 0)}`
+    }
     return new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(value || 0)
   }
 
@@ -175,8 +192,8 @@ export default function ProductosPage() {
     const tableData = filteredProducts.map(p => [
       p.name,
       p.category || 'N/A',
-      formatCurrency(p.price),
-      p.cost ? formatCurrency(p.cost) : 'N/A',
+      bcvRate ? formatCurrency(p.price, 'VES') : formatCurrency(p.price, 'USD'),
+      p.cost ? (bcvRate ? formatCurrency(p.cost, 'VES') : formatCurrency(p.cost, 'USD')) : 'N/A',
       `${p.stock} ${p.unit}`,
       p.status === 'active' ? 'Activo' : 'Inactivo',
     ])
@@ -290,9 +307,10 @@ export default function ProductosPage() {
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Precio</p>
-                          <p className="text-sm font-medium text-foreground">
-                             {formatCurrency(product.price)}
-                          </p>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{bcvRate ? formatCurrency(product.price, 'VES') : formatCurrency(product.price, 'USD')}</p>
+                            {bcvRate && <p className="text-xs text-muted-foreground/80">{formatCurrency(product.price, 'USD')}</p>}
+                          </div>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Stock</p>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, ReactNode } from 'react'
 import {
   Package,
   AlertTriangle,
@@ -10,14 +10,15 @@ import {
   BarChart,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useCollection, useFirestore } from '@/firebase'
-import { collection } from 'firebase/firestore'
+import { useCollection, useFirestore, useDoc } from '@/firebase'
+import { collection, doc } from 'firebase/firestore'
 import { useMemoFirebase } from '@/firebase/provider'
 import { type Product } from './productos/page'
 import { type Sale } from './ventas/page'
 import { startOfMonth, isToday } from 'date-fns'
 import Layout from './layout-app'
 import { Skeleton } from '@/components/ui/skeleton'
+import { type Setting } from './configuraciones/page'
 
 interface TopProduct {
   productName: string
@@ -34,8 +35,8 @@ const StatCard = ({
   isLoading,
 }: {
   title: string
-  value: string | number
-  subtitle?: string
+  value: ReactNode
+  subtitle?: ReactNode
   icon: React.ElementType
   color: string
   isLoading: boolean
@@ -76,11 +77,19 @@ export default function DashboardPage() {
     () => (firestore ? collection(firestore, 'sales') : null),
     [firestore]
   )
+  const settingsDoc = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'settings', 'global') : null),
+    [firestore]
+  )
 
   const { data: products, isLoading: isLoadingProducts } =
     useCollection<Product>(productsCollection)
   const { data: sales, isLoading: isLoadingSales } =
     useCollection<Sale>(salesCollection)
+  const { data: settings, isLoading: isLoadingSettings } = useDoc<Setting>(settingsDoc)
+
+  const bcvRate = useMemo(() => settings?.bcvRate || null, [settings])
+
 
   const [stats, setStats] = useState({
     totalProducts: 0,
@@ -156,9 +165,16 @@ export default function DashboardPage() {
     setTopProducts(topProductsArray)
   }, [products, sales])
 
-  const isLoading = isLoadingProducts || isLoadingSales
+  const isLoading = isLoadingProducts || isLoadingSales || isLoadingSettings
   
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number, currency: 'USD' | 'VES' = 'USD') => {
+    if (currency === 'VES' && bcvRate) {
+      value = value * bcvRate
+      return `Bs. ${new Intl.NumberFormat('es-VE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(value)}`
+    }
     return new Intl.NumberFormat('es-VE', {
       style: 'currency',
       currency: 'USD',
@@ -197,7 +213,12 @@ export default function DashboardPage() {
           <StatCard
             title="Ventas Hoy"
             value={stats.todaySales}
-            subtitle={formatCurrency(stats.todayRevenue)}
+            subtitle={
+              <>
+                {bcvRate ? formatCurrency(stats.todayRevenue, 'VES') : formatCurrency(stats.todayRevenue, 'USD')}
+                {bcvRate && <span className="text-muted-foreground/80"> / {formatCurrency(stats.todayRevenue, 'USD')}</span>}
+              </>
+            }
             icon={ShoppingCart}
             color="text-primary"
             isLoading={isLoading}
@@ -211,7 +232,8 @@ export default function DashboardPage() {
           />
           <StatCard
             title="Ingresos del Mes"
-            value={formatCurrency(stats.monthRevenue)}
+            value={bcvRate ? formatCurrency(stats.monthRevenue, 'VES') : formatCurrency(stats.monthRevenue, 'USD')}
+            subtitle={bcvRate ? formatCurrency(stats.monthRevenue, 'USD') : undefined}
             icon={DollarSign}
             color="text-primary"
             isLoading={isLoading}
@@ -256,8 +278,9 @@ export default function DashboardPage() {
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-foreground">
-                        {formatCurrency(product.revenue)}
+                        {bcvRate ? formatCurrency(product.revenue, 'VES') : formatCurrency(product.revenue, 'USD')}
                       </p>
+                      {bcvRate && <p className="text-sm text-muted-foreground">{formatCurrency(product.revenue, 'USD')}</p>}
                     </div>
                   </div>
                 ))}

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { useCollection, useFirestore } from '@/firebase'
-import { collection } from 'firebase/firestore'
+import { useCollection, useFirestore, useDoc } from '@/firebase'
+import { collection, doc } from 'firebase/firestore'
 import { useMemoFirebase } from '@/firebase/provider'
 import { Download, BarChart3, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -35,6 +35,7 @@ import Layout from '@/app/layout-app'
 import { Skeleton } from '@/components/ui/skeleton'
 import { type Sale } from '../ventas/page'
 import { type Product } from '../productos/page'
+import { type Setting } from '../configuraciones/page'
 
 export default function ReportesPage() {
   const firestore = useFirestore()
@@ -48,9 +49,15 @@ export default function ReportesPage() {
     () => (firestore ? collection(firestore, 'products') : null),
     [firestore]
   )
+  const settingsDoc = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'settings', 'global') : null),
+    [firestore]
+  )
 
   const { data: sales, isLoading: isLoadingSales } = useCollection<Sale>(salesCollection)
   const { data: products, isLoading: isLoadingProducts } = useCollection<Product>(productsCollection)
+  const { data: settings, isLoading: isLoadingSettings } = useDoc<Setting>(settingsDoc)
+  const bcvRate = useMemo(() => settings?.bcvRate || null, [settings])
   
   const formattedSales = useMemo(() => {
     return sales?.map(sale => ({
@@ -189,6 +196,20 @@ export default function ReportesPage() {
     // @ts-ignore
     return labels[period] || period
   }
+  
+  const formatCurrency = (value: number, currency: 'USD' | 'VES' = 'USD') => {
+    if (currency === 'VES' && bcvRate) {
+      value = value * bcvRate
+      return `Bs. ${new Intl.NumberFormat('es-VE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(value)}`
+    }
+    return new Intl.NumberFormat('es-VE', {
+     style: 'currency',
+     currency: 'USD',
+   }).format(value)
+ }
 
   const exportToPDF = () => {
     const doc = new jsPDF()
@@ -204,8 +225,8 @@ export default function ReportesPage() {
     // Summary Section
     const summaryData = [
       ['Total Transacciones', reportData.summary.totalSales.toString()],
-      ['Ingresos Totales', formatCurrency(reportData.summary.totalRevenue)],
-      ['Ticket Promedio', formatCurrency(reportData.summary.averageTicket)],
+      ['Ingresos Totales', bcvRate ? formatCurrency(reportData.summary.totalRevenue, 'VES') : formatCurrency(reportData.summary.totalRevenue, 'USD')],
+      ['Ticket Promedio', bcvRate ? formatCurrency(reportData.summary.averageTicket, 'VES') : formatCurrency(reportData.summary.averageTicket, 'USD')],
       ['Productos Vendidos', reportData.summary.totalQuantity.toString()],
     ]
 
@@ -228,7 +249,7 @@ export default function ReportesPage() {
           i + 1,
           p.productName,
           p.quantity,
-          formatCurrency(p.revenue),
+          bcvRate ? formatCurrency(p.revenue, 'VES') : formatCurrency(p.revenue, 'USD'),
         ]),
         theme: 'striped',
         headStyles: { fillColor: [31, 122, 85] },
@@ -244,7 +265,7 @@ export default function ReportesPage() {
             body: reportData.salesByPayment.map(p => [
                 p.method,
                 p.cantidad,
-                formatCurrency(p.total)
+                bcvRate ? formatCurrency(p.total, 'VES') : formatCurrency(p.total, 'USD')
             ]),
             theme: 'striped',
             headStyles: { fillColor: [31, 122, 85] },
@@ -254,15 +275,8 @@ export default function ReportesPage() {
 
     doc.save(`reporte-ventas-${period}-${format(new Date(), 'yyyyMMdd')}.pdf`)
   }
-  
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-VE', {
-     style: 'currency',
-     currency: 'USD',
-   }).format(value)
- }
 
-  const isLoading = isLoadingSales || isLoadingProducts
+  const isLoading = isLoadingSales || isLoadingProducts || isLoadingSettings
   
   const chartConfig = {
       ingresos: { label: "Ingresos", color: "hsl(var(--primary))" },
@@ -335,9 +349,9 @@ export default function ReportesPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
-                {formatCurrency(reportData.summary.totalRevenue)}
+                {bcvRate ? formatCurrency(reportData.summary.totalRevenue, 'VES') : formatCurrency(reportData.summary.totalRevenue, 'USD')}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">{getPeriodLabel()}</p>
+              <p className="text-xs text-muted-foreground mt-1">{bcvRate ? formatCurrency(reportData.summary.totalRevenue, 'USD') : getPeriodLabel()}</p>
             </CardContent>
           </Card>
           <Card className="bg-card border-border/50 shadow-sm">
@@ -348,9 +362,9 @@ export default function ReportesPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
-                {formatCurrency(reportData.summary.averageTicket)}
+                {bcvRate ? formatCurrency(reportData.summary.averageTicket, 'VES') : formatCurrency(reportData.summary.averageTicket, 'USD')}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Por transacción</p>
+              <p className="text-xs text-muted-foreground mt-1">{bcvRate ? formatCurrency(reportData.summary.averageTicket, 'USD') : 'Por transacción'}</p>
             </CardContent>
           </Card>
           <Card className="bg-card border-border/50 shadow-sm">
@@ -384,7 +398,7 @@ export default function ReportesPage() {
                    <ChartContainer config={chartConfig} className="w-full h-full">
                         <BarChart data={reportData.dailySales} accessibilityLayer>
                           <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
-                          <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => `$${value}`} />
+                          <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => `Bs.${value}`} />
                            <ChartTooltip content={<ChartTooltipContent />} />
                           <Bar dataKey="ingresos" fill="var(--color-ingresos)" radius={4} />
                         </BarChart>
@@ -412,7 +426,7 @@ export default function ReportesPage() {
                   <ChartContainer config={chartConfig} className="w-full h-full">
                         <BarChart data={reportData.salesByPayment} accessibilityLayer>
                            <XAxis dataKey="method" tickLine={false} axisLine={false} tickMargin={8} />
-                           <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => `$${value}`} />
+                           <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => `Bs.${value}`} />
                            <ChartTooltip content={<ChartTooltipContent />} />
                            <Bar dataKey="total" fill="var(--color-total)" radius={4} />
                         </BarChart>
@@ -453,8 +467,9 @@ export default function ReportesPage() {
                         <td className="py-3 px-4 text-muted-foreground">{index + 1}</td>
                         <td className="py-3 px-4 font-medium text-primary">{product.productName}</td>
                         <td className="py-3 px-4 text-right text-muted-foreground">{product.quantity}</td>
-                        <td className="py-3 px-4 text-right font-semibold text-primary">
-                          {formatCurrency(product.revenue)}
+                        <td className="py-3 px-4 text-right">
+                          <div className="font-semibold text-primary">{bcvRate ? formatCurrency(product.revenue, 'VES') : formatCurrency(product.revenue, 'USD')}</div>
+                          {bcvRate && <div className="text-xs text-muted-foreground">{formatCurrency(product.revenue, 'USD')}</div>}
                         </td>
                       </tr>
                     ))}
