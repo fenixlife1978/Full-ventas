@@ -1,7 +1,8 @@
+
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { Plus, Search, ShoppingCart, DollarSign, Trash2 } from 'lucide-react'
+import { Plus, Search, ShoppingCart, DollarSign, Trash2, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
@@ -36,7 +37,7 @@ import { format } from 'date-fns'
 import { type Setting } from '../configuraciones/page'
 import { SaleForm, type SaleFormValues, type CartItem } from './components/sale-form'
 
-
+// Interfaces permanecen igual
 export interface SaleItem {
   productId: string
   productName: string
@@ -63,6 +64,7 @@ export default function VentasPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('today')
   
+  // Lógica de Firebase permanece igual...
   const salesCollection = useMemoFirebase(() => {
     if (!firestore) return null
     return collection(firestore, 'sales')
@@ -72,7 +74,6 @@ export default function VentasPage() {
     if (!firestore) return null
     return collection(firestore, 'products')
   }, [firestore])
-
 
   const settingsDoc = useMemoFirebase(() => {
     if (!firestore) return null
@@ -96,10 +97,8 @@ export default function VentasPage() {
     })).sort((a, b) => b.saleNumber - a.saleNumber) || []
   }, [sales])
 
-
   const filteredSales = useMemo(() => {
     let filtered = [...formattedSales]
-
     const now = new Date()
     const startOfToday = new Date(now.setHours(0, 0, 0, 0))
     const weekStartDate = startOfWeek(now)
@@ -123,10 +122,8 @@ export default function VentasPage() {
         )
       })
     }
-
     return filtered
   }, [formattedSales, searchTerm, dateFilter])
-
 
   const summaryStats = useMemo(() => {
     const totalSales = filteredSales.length
@@ -134,10 +131,8 @@ export default function VentasPage() {
     return { totalSales, totalRevenue }
   }, [filteredSales])
 
-
   const handleFormSubmit = async (values: SaleFormValues & { items: CartItem[], totalAmount: number, saleNumber: number }) => {
     if (!firestore) return
-
     const saleData = {
       saleNumber: values.saleNumber,
       items: values.items.map(item => ({
@@ -155,85 +150,49 @@ export default function VentasPage() {
     try {
       await runTransaction(firestore, async (transaction) => {
         const salesRef = doc(collection(firestore, 'sales'))
-
         for (const item of values.items) {
            const productRef = doc(firestore, 'products', item.id)
            const productDoc = await transaction.get(productRef)
-           if (!productDoc.exists()) {
-             throw new Error(`El producto "${item.name}" no existe.`)
-           }
+           if (!productDoc.exists()) throw new Error(`El producto "${item.name}" no existe.`)
            const currentStock = productDoc.data().stock
            const newStock = currentStock - item.quantity
-           if (newStock < 0) {
-             throw new Error(`Stock insuficiente para "${item.name}".`)
-           }
+           if (newStock < 0) throw new Error(`Stock insuficiente para "${item.name}".`)
            transaction.update(productRef, { stock: newStock })
         }
-        
         transaction.set(salesRef, saleData)
       })
-
-      toast({
-        title: 'Venta Registrada',
-        description: `La venta se ha registrado exitosamente.`,
-      })
+      toast({ title: 'Venta Registrada', description: `La venta se ha registrado exitosamente.` })
       setIsFormOpen(false);
-
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Error al registrar la venta',
-        description: error.message || 'Ocurrió un error inesperado.',
-      })
+      toast({ variant: 'destructive', title: 'Error al registrar la venta', description: error.message || 'Ocurrió un error inesperado.' })
     }
   }
 
-
-  const handleDelete = (sale: Sale) => {
-    setDeletingSale(sale)
-  }
-  
   const confirmDelete = async () => {
     if (deletingSale && firestore) {
       const saleRef = doc(firestore, 'sales', deletingSale.id)
-      
       try {
         await runTransaction(firestore, async (transaction) => {
           for (const item of deletingSale.items) {
             const productRef = doc(firestore, 'products', item.productId);
             const productDoc = await transaction.get(productRef);
-            
             if(productDoc.exists()) {
               const currentStock = productDoc.data().stock;
-              const newStock = currentStock + item.quantity;
-              transaction.update(productRef, { stock: newStock });
+              transaction.update(productRef, { stock: currentStock + item.quantity });
             }
           }
-          
           transaction.delete(saleRef);
         })
-        toast({
-          title: 'Venta Eliminada',
-          description: 'La venta ha sido eliminada y el stock ha sido restaurado.',
-        })
+        toast({ title: 'Venta Eliminada', description: 'La venta ha sido eliminada y el stock restaurado.' })
         setDeletingSale(null)
       } catch (error) {
-         toast({
-          variant: "destructive",
-          title: 'Error al eliminar',
-          description: 'No se pudo eliminar la venta y restaurar el stock.',
-        });
+         toast({ variant: "destructive", title: 'Error al eliminar', description: 'No se pudo eliminar la venta.' });
       }
     }
   }
 
   const getPaymentMethodLabel = (method: string) => {
-    const labels = {
-      cash: 'Efectivo',
-      card: 'Tarjeta',
-      transfer: 'Transferencia',
-      other: 'Otro',
-    };
+    const labels = { cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia', other: 'Otro' };
     // @ts-ignore
     return labels[method] || method;
   };
@@ -241,158 +200,160 @@ export default function VentasPage() {
   const formatCurrency = (value: number, currency: 'USD' | 'VES' = 'USD') => {
     if (currency === 'VES' && bcvRate) {
       value = value * bcvRate
-      return `Bs. ${new Intl.NumberFormat('es-VE', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(value)}`
+      return `Bs. ${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(value)}`
     }
-    return new Intl.NumberFormat('es-VE', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(value)
+    return new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(value)
   }
 
- const isLoading = isLoadingSales || isLoadingSettings || isLoadingProducts;
+  const isLoading = isLoadingSales || isLoadingSettings || isLoadingProducts;
 
   return (
     <Layout currentPageName="Gestión de Ventas">
-      <div className="space-y-6 p-4 md:p-8">
-        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* 1. Fondo beige global para la página */}
+      <div className="min-h-screen bg-background space-y-6 p-4 md:p-10 transition-colors duration-300">
+        
+        {/* Header Estilo Full-Ventas */}
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground">Gestión de Ventas</h1>
-            <p className="text-muted-foreground mt-2">Consulta y gestiona el historial de ventas</p>
+            <h1 className="text-3xl md:text-4xl font-black text-primary uppercase tracking-tighter italic">
+              Gestión de Ventas
+            </h1>
+            <p className="text-muted-foreground font-medium uppercase text-xs tracking-widest mt-1">
+              Consulta y gestiona el historial de ventas
+            </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={() => setIsFormOpen(true)} className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold uppercase tracking-tighter italic shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all duration-200">
-                <Plus className="mr-2" />
-                Nueva Venta
-            </Button>
-          </div>
+          <Button 
+            onClick={() => setIsFormOpen(true)} 
+            className="w-full sm:w-auto bg-primary text-white px-8 py-6 rounded-xl font-black uppercase tracking-tighter italic shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            Nueva Venta
+          </Button>
         </header>
 
-         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="bg-card border-border/50 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Ventas ({dateFilter === 'today' ? 'Hoy' : dateFilter === 'week' ? 'Esta Semana' : dateFilter === 'month' ? 'Este Mes' : 'Todas'})
+        {/* Summary Cards con borde de color */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="bg-card border-border rounded-2xl shadow-sm overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-primary/5">
+              <CardTitle className="text-xs font-black text-primary uppercase tracking-wider">
+                Total Ventas ({dateFilter === 'today' ? 'Hoy' : 'Periodo'})
               </CardTitle>
               <ShoppingCart className="h-5 w-5 text-primary" />
             </CardHeader>
-            <CardContent>
-             { isLoading ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold text-foreground">{summaryStats.totalSales}</div> }
+            <CardContent className="pt-4">
+              { isLoading ? <Skeleton className="h-8 w-1/4" /> : <div className="text-4xl font-black text-foreground tracking-tighter">{summaryStats.totalSales}</div> }
             </CardContent>
           </Card>
-          <Card className="bg-card border-border/50 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Ingresos Totales</CardTitle>
+
+          <Card className="bg-card border-border rounded-2xl shadow-sm overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-primary/5">
+              <CardTitle className="text-xs font-black text-primary uppercase tracking-wider">Ingresos Totales</CardTitle>
               <DollarSign className="h-5 w-5 text-primary" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               { isLoading ? <Skeleton className="h-8 w-1/3" /> : (
-                <>
-                  <div className="text-2xl font-bold text-foreground">{formatCurrency(summaryStats.totalRevenue, 'VES')}</div>
-                  {bcvRate && <p className="text-sm text-muted-foreground">{formatCurrency(summaryStats.totalRevenue, 'USD')}</p>}
-                </>
+                <div className="flex flex-col">
+                  <span className="text-3xl font-black text-primary tracking-tighter">{formatCurrency(summaryStats.totalRevenue, 'VES')}</span>
+                  {bcvRate && <span className="text-sm font-bold text-muted-foreground uppercase italic">{formatCurrency(summaryStats.totalRevenue, 'USD')}</span>}
+                </div>
               )}
             </CardContent>
           </Card>
         </div>
 
-
-        {/* Filters */}
-        <Card className="bg-card border-border/50 shadow-sm">
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por Nº Venta, producto o notas..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 border-border/50 focus:ring-ring"
-                />
-              </div>
-              <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger className="border-border/50 focus:ring-ring">
-                  <SelectValue placeholder="Filtrar por fecha" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="today">Hoy</SelectItem>
-                  <SelectItem value="week">Esta Semana</SelectItem>
-                  <SelectItem value="month">Este Mes</SelectItem>
-                  <SelectItem value="all">Todas</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Filters Adaptados */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2 relative group">
+            <Search className="absolute left-4 top-3.5 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors z-10" />
+            <Input
+              placeholder="Buscar por Nº Venta, producto o notas..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-6 bg-card border-border rounded-xl focus:border-primary focus:ring-0 outline-none transition-all font-medium text-sm h-auto"
+            />
+          </div>
+          <div className="relative group">
+            <Calendar className="absolute left-4 top-3.5 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors z-10" />
+            <Select value={dateFilter} onValueChange={setDateFilter}>
+              <SelectTrigger className="w-full pl-12 py-6 bg-card border-border rounded-xl focus:border-primary transition-all font-bold text-sm h-auto">
+                <SelectValue placeholder="Fecha" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Hoy</SelectItem>
+                <SelectItem value="week">Esta Semana</SelectItem>
+                <SelectItem value="month">Este Mes</SelectItem>
+                <SelectItem value="all">Todas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         
         {/* Sales List */}
-        <div className="grid grid-cols-1 gap-4">
+        <div className="space-y-4">
           {isLoading ? (
-            Array.from({length: 3}).map((_, i) => (
-                <Card key={i} className="bg-card border-border/50">
-                    <CardContent className="p-6">
-                        <Skeleton className="h-24 w-full" />
-                    </CardContent>
-                </Card>
-            ))
+            Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)
           ) : filteredSales.length > 0 ? (
             filteredSales.map(sale => (
-              <Card key={sale.id} className="bg-card border-border/50 hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="flex-1 space-y-3">
-                      <div className="flex items-start justify-between">
+              <Card key={sale.id} className="bg-card border-border rounded-2xl hover:shadow-md transition-all group overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="flex flex-col sm:flex-row">
+                    <div className="flex-1 p-6 space-y-4">
+                      <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="text-xl font-bold text-foreground">Venta Nº{sale.saleNumber.toString().padStart(7, '0')}</h3>
-                           <p className="text-sm text-muted-foreground">
-                             {format(sale.saleDate, 'dd/MM/yyyy - HH:mm', { locale: es })}
+                          <h3 className="text-xl font-black text-foreground uppercase italic tracking-tighter">
+                            Venta Nº{sale.saleNumber.toString().padStart(7, '0')}
+                          </h3>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                            {format(sale.saleDate, "EEEE, dd 'de' MMMM", { locale: es })} • {format(sale.saleDate, "HH:mm")}
                           </p>
                         </div>
-                         <div className="flex items-center gap-2">
-                           <Badge className="bg-primary text-primary-foreground">{getPaymentMethodLabel(sale.paymentMethod)}</Badge>
-                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(sale)}>
-                               <Trash2 className="h-4 w-4 text-destructive" />
-                           </Button>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="border-primary text-primary font-black uppercase text-[10px] italic">
+                            {getPaymentMethodLabel(sale.paymentMethod)}
+                          </Badge>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors" 
+                            onClick={() => setDeletingSale(sale)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
 
-                      <div className="border-t border-border/50 pt-2">
-                          <p className="text-xs text-muted-foreground mb-1">Productos:</p>
-                          {sale.items.map(item => (
-                              <div key={item.productId} className="flex justify-between items-center text-sm">
-                                  <span>{item.productName} <span className="text-muted-foreground">x{item.quantity}</span></span>
-                                  <span>{formatCurrency(item.unitPrice * item.quantity)}</span>
-                              </div>
-                          ))}
+                      <div className="space-y-1">
+                        {sale.items.map(item => (
+                          <div key={item.productId} className="flex justify-between items-center text-sm font-medium">
+                            <span className="text-foreground uppercase text-xs font-bold">
+                              {item.productName} <span className="text-muted-foreground font-normal italic">x{item.quantity}</span>
+                            </span>
+                            <span className="text-primary font-black">{formatCurrency(item.unitPrice * item.quantity)}</span>
+                          </div>
+                        ))}
                       </div>
 
                       {sale.notes && (
-                        <p className="text-sm text-muted-foreground italic pt-2 border-t border-border/50">"{sale.notes}"</p>
+                        <div className="pt-2 border-t border-border/50">
+                          <p className="text-[11px] text-muted-foreground italic font-medium">"{sale.notes}"</p>
+                        </div>
                       )}
                     </div>
-                     <div className="flex flex-col items-center justify-center bg-muted p-4 rounded-lg w-full sm:w-48 text-center">
-                        <p className="text-xs text-muted-foreground">Total Venta</p>
-                        <p className="text-2xl font-bold text-foreground">{formatCurrency(sale.totalAmount, 'VES')}</p>
-                         {bcvRate && <p className="text-sm text-muted-foreground">{formatCurrency(sale.totalAmount, 'USD')}</p>}
+
+                    <div className="bg-primary/5 sm:w-48 p-6 flex flex-col items-center justify-center border-l border-border/50 text-center">
+                      <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Total Cobrado</p>
+                      <p className="text-2xl font-black text-primary tracking-tighter">{formatCurrency(sale.totalAmount, 'VES')}</p>
+                      {bcvRate && <p className="text-xs font-bold text-muted-foreground italic">{formatCurrency(sale.totalAmount, 'USD')}</p>}
                     </div>
                   </div>
                 </CardContent>
               </Card>
             ))
           ) : (
-            <Card className="bg-card border-border/50">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <ShoppingCart className="h-12 w-12 text-primary mb-4" />
-                <p className="text-muted-foreground text-center">
-                  {searchTerm || dateFilter !== 'all'
-                    ? 'No se encontraron ventas con los filtros aplicados'
-                    : 'No hay ventas registradas. ¡Registra tu primera venta!'}
-                </p>
-              </CardContent>
-            </Card>
+            <div className="bg-card border border-border border-dashed rounded-2xl p-16 flex flex-col items-center justify-center text-muted-foreground">
+              <ShoppingCart className="h-16 w-16 mb-4 opacity-10 text-primary" />
+              <p className="font-black uppercase tracking-widest text-xs">No se encontraron registros</p>
+            </div>
           )}
         </div>
 
@@ -406,24 +367,19 @@ export default function VentasPage() {
           saleCount={sales?.length || 0}
         />
 
-        <AlertDialog
-          open={!!deletingSale}
-          onOpenChange={(isOpen) => !isOpen && setDeletingSale(null)}
-        >
-          <AlertDialogContent>
+        {/* AlertDialog conservado pero estilizado sutilmente */}
+        <AlertDialog open={!!deletingSale} onOpenChange={(isOpen) => !isOpen && setDeletingSale(null)}>
+          <AlertDialogContent className="rounded-2xl border-border">
             <AlertDialogHeader>
-              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Esta acción no se puede deshacer. Esto eliminará permanentemente la venta Nº{deletingSale?.saleNumber.toString().padStart(7,'0')} y restaurará el stock de los productos involucrados.
+              <AlertDialogTitle className="font-black uppercase italic text-primary">¿Anular esta venta?</AlertDialogTitle>
+              <AlertDialogDescription className="text-xs font-medium">
+                Se restaurará el stock de los productos. Esta acción es permanente.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={confirmDelete}
-                className="bg-destructive hover:bg-destructive/90"
-              >
-                Eliminar y restaurar stock
+              <AlertDialogCancel className="rounded-xl font-bold text-xs uppercase">Volver</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white rounded-xl font-black text-xs uppercase tracking-tighter">
+                Confirmar Anulación
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
