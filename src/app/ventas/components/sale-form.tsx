@@ -12,7 +12,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
@@ -26,13 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
 import { CalendarIcon, Plus, Search, Trash2, DollarSign, CreditCard, Landmark } from 'lucide-react'
-import { Calendar } from '@/components/ui/calendar'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -49,7 +42,6 @@ const formSchema = z.object({
     required_error: 'La fecha de venta es requerida.',
   }),
   paymentMethod: z.enum(['cash', 'card', 'transfer', 'other']),
-  notes: z.string().optional(),
 })
 
 export type SaleFormValues = z.infer<typeof formSchema>
@@ -95,7 +87,6 @@ export function SaleForm({
     defaultValues: {
       saleDate: new Date(),
       paymentMethod: 'cash',
-      notes: '',
     },
   })
 
@@ -110,7 +101,6 @@ export function SaleForm({
       form.reset({
           saleDate: new Date(),
           paymentMethod: 'cash',
-          notes: '',
       });
       setCartItems([]);
     }
@@ -155,6 +145,7 @@ export function SaleForm({
   }
 
   const formatBs = (value: number) => `Bs. ${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)}`
+  const formatUSD = (value: number) => new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(value)
 
   return (
     <>
@@ -162,51 +153,49 @@ export function SaleForm({
       <DialogContent className="max-w-7xl h-[calc(100vh-4rem)] flex flex-col p-0">
         <Form {...form}>
             <form onSubmit={form.handleSubmit(handleFormSubmit)} className="h-full flex flex-col">
-                <DialogHeader className="p-6 pb-4 border-b">
+                 <DialogHeader className="p-6 pb-4 border-b">
                     <div className="flex justify-between items-center gap-4">
                         <DialogTitle className="text-3xl font-black text-gray-800 tracking-tight">Nueva Venta</DialogTitle>
                         
-                        <div className="flex-grow">
-                            <FormField
-                                control={form.control}
-                                name="paymentMethod"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormControl>
-                                    <RadioGroup
-                                        onValueChange={field.onChange}
-                                        value={field.value}
-                                        className="grid grid-cols-4 gap-2 justify-center"
-                                    >
-                                        {paymentMethods.map(({ id, label, icon: Icon }) => (
-                                        <FormItem key={id} className="flex items-center justify-center">
-                                            <FormControl>
-                                            <RadioGroupItem value={id} id={`pay-${id}`} className="sr-only" />
-                                            </FormControl>
-                                            <Label
-                                            htmlFor={`pay-${id}`}
-                                            className={cn(
-                                                "flex items-center justify-center w-full px-3 py-2 rounded-lg border-2 cursor-pointer transition-all h-10 text-xs font-bold",
-                                                field.value === id ? "bg-primary border-primary text-white" : "border-gray-200 bg-white hover:bg-gray-50 text-gray-500"
-                                            )}
-                                            >
-                                            <Icon className="mr-2 h-4 w-4" />
-                                            <span>{label}</span>
-                                            </Label>
-                                        </FormItem>
-                                        ))}
-                                    </RadioGroup>
-                                    </FormControl>
-                                    <FormMessage className="text-center" />
-                                </FormItem>
-                                )}
-                            />
-                        </div>
+                        <FormField
+                            control={form.control}
+                            name="paymentMethod"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormControl>
+                                <RadioGroup
+                                    onValueChange={field.onChange}
+                                    value={field.value}
+                                    className="grid grid-cols-4 gap-2"
+                                >
+                                    {paymentMethods.map(({ id, label, icon: Icon }) => (
+                                    <FormItem key={id} className="flex items-center justify-center">
+                                        <FormControl>
+                                        <RadioGroupItem value={id} id={`pay-${id}`} className="sr-only" />
+                                        </FormControl>
+                                        <Label
+                                        htmlFor={`pay-${id}`}
+                                        className={cn(
+                                            "flex items-center justify-center w-full px-3 py-2 rounded-lg border-2 cursor-pointer transition-all h-10 text-xs font-bold",
+                                            field.value === id ? "bg-primary border-primary text-white" : "border-gray-200 bg-white hover:bg-gray-50 text-gray-500"
+                                        )}
+                                        >
+                                        <Icon className="mr-2 h-4 w-4" />
+                                        <span>{label}</span>
+                                        </Label>
+                                    </FormItem>
+                                    ))}
+                                </RadioGroup>
+                                </FormControl>
+                                <FormMessage className="text-center" />
+                            </FormItem>
+                            )}
+                        />
 
                         <div className="flex items-center gap-2">
-                        <Button onClick={() => setIsPriceCheckerOpen(true)} variant="outline" className="rounded-xl border-gray-200 whitespace-nowrap">
-                            <DollarSign className="mr-2 h-4 w-4 text-primary" /> Consultar Precio
-                        </Button>
+                            <Button onClick={() => setIsPriceCheckerOpen(true)} variant="outline" className="rounded-xl border-gray-200 whitespace-nowrap">
+                                <DollarSign className="mr-2 h-4 w-4 text-primary" /> Consultar Precio
+                            </Button>
                         </div>
                     </div>
                 </DialogHeader>
@@ -215,40 +204,13 @@ export function SaleForm({
                     <div className="w-full lg:w-2/5 p-6 flex flex-col bg-white h-full">
                         <div className="flex-1 flex flex-col min-h-0">
                             <div className="flex-1 overflow-y-auto pr-2 space-y-6">
-                            <FormField
-                                control={form.control}
-                                name="saleDate"
-                                render={({ field }) => (
-                                <FormItem className="flex flex-col space-y-3">
+                                <div className="flex flex-col space-y-3">
                                     <Label className="text-xs font-bold uppercase tracking-widest text-gray-400">Fecha de Registro</Label>
-                                    <Popover>
-                                    <PopoverTrigger asChild>
-                                        <FormControl>
-                                        <Button variant="outline" className="w-full h-14 justify-start font-bold rounded-xl border-gray-100 bg-white">
-                                            <CalendarIcon className="mr-3 h-5 w-5 text-primary" />
-                                            {field.value ? format(field.value, 'PPP', { locale: es }) : "Seleccionar"}
-                                        </Button>
-                                        </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                    </PopoverContent>
-                                    </Popover>
-                                </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="notes"
-                                render={({ field }) => (
-                                <FormItem className="space-y-3">
-                                    <Label className="text-xs font-bold uppercase tracking-widest text-gray-400">Observaciones Internas</Label>
-                                    <FormControl>
-                                    <Textarea placeholder="Ej: Pago pendiente..." className="min-h-[100px] bg-white border-gray-200 rounded-xl p-4 focus-visible:ring-primary" {...field} />
-                                    </FormControl>
-                                </FormItem>
-                                )}
-                            />
+                                    <div className="w-full h-14 flex items-center justify-start font-bold rounded-xl border border-gray-100 bg-white px-4">
+                                        <CalendarIcon className="mr-3 h-5 w-5 text-primary" />
+                                        <span>{format(form.getValues('saleDate'), 'PPP', { locale: es })}</span>
+                                    </div>
+                                </div>
                             </div>
                             <div className="pt-6 mt-auto space-y-4 bg-white">
                             <Button 
@@ -260,8 +222,8 @@ export function SaleForm({
                             </Button>
                             <div className="bg-primary/10 p-6 rounded-[2rem] border border-primary/20 text-center">
                                 <p className="text-[10px] uppercase font-black text-primary/70 tracking-[0.2em] mb-1">Total a Pagar</p>
-                                <p className="text-5xl font-black text-primary tracking-tight">{totalUSD.toLocaleString('es-VE', { style: 'currency', currency: 'USD' })}</p>
-                                {bcvRate && <p className="text-md font-bold text-gray-500 mt-1">{formatBs(totalBs)}</p>}
+                                <p className="text-5xl font-black text-primary tracking-tight">{formatBs(totalBs)}</p>
+                                {bcvRate && <p className="text-md font-bold text-gray-500 mt-1">{formatUSD(totalUSD)}</p>}
                             </div>
                             <Button type="submit" disabled={cartItems.length === 0} className="w-full h-16 text-xl font-black rounded-2xl shadow-xl shadow-primary/20 active:scale-[0.98] transition-transform">
                                 REGISTRAR VENTA
