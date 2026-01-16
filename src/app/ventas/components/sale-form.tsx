@@ -119,41 +119,16 @@ export function SaleForm({
     return totalUSD * (bcvRate || 0)
   }, [totalUSD, bcvRate])
 
-  const handleAddProduct = (product: Product) => {
+  const handleAddProduct = (product: Product, quantity: number) => {
     setCartItems(prev => {
       const existingItem = prev.find(item => item.id === product.id);
       if (existingItem) {
         return prev;
       }
-      return [...prev, { ...product, quantity: 1 }];
+      return [...prev, { ...product, quantity }];
     });
     setIsProductSelectorOpen(false);
   }
-  
-  const handleUpdateQuantity = (productId: string, quantityStr: string) => {
-    const quantity = parseInt(quantityStr, 10);
-    setCartItems(prev => 
-      prev.map(item => {
-        if (item.id === productId) {
-          const newQuantity = isNaN(quantity) || quantity < 0 ? 0 : quantity;
-          const productInfo = products.find(p => p.id === productId);
-          const stock = productInfo ? productInfo.stock : item.stock;
-
-          if (newQuantity > stock) {
-            toast({
-              variant: 'destructive',
-              title: 'Stock Insuficiente',
-              description: `Solo quedan ${stock} unidades de ${item.name}.`
-            })
-            return { ...item, quantity: stock };
-          }
-          
-          return { ...item, quantity: newQuantity };
-        }
-        return item;
-      })
-    );
-  };
   
   const handleRemoveItem = (productId: string) => {
     setCartItems(prev => prev.filter(item => item.id !== productId));
@@ -323,15 +298,8 @@ export function SaleForm({
                                   {formatCurrency(item.price)} c/u
                                 </p>
                               </div>
-                              <div className="w-16">
-                                <Input
-                                  type="number"
-                                  value={item.quantity || ''}
-                                  onChange={(e) => handleUpdateQuantity(item.id, e.target.value)}
-                                  className="h-8 w-full text-center p-1"
-                                  min="0"
-                                  max={item.stock}
-                                />
+                              <div className="w-16 text-center font-medium text-sm">
+                                {item.quantity}
                               </div>
                               <div className="text-right font-mono text-xs w-20">{formatCurrency(item.price * (item.quantity || 0))}</div>
                               <Button variant="ghost" size="icon" className="h-8 w-8 ml-2 group" onClick={() => handleRemoveItem(item.id)}>
@@ -366,19 +334,19 @@ export function SaleForm({
   )
 }
 
-// --- SUB-COMPONENTE CORREGIDO CON TIPOS DE TYPESCRIPT ---
-
 interface ProductSelectorModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   products: Product[];
   cartItems: CartItem[];
-  onAddProduct: (product: Product) => void;
+  onAddProduct: (product: Product, quantity: number) => void;
 }
 
 function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddProduct }: ProductSelectorModalProps) {
   const [searchTerm, setSearchTerm] = useState('')
-  
+  const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
+  const { toast } = useToast();
+
   const cartItemIds = useMemo(() => new Set(cartItems.map(item => item.id)), [cartItems]);
 
   const filteredProducts = useMemo(() => {
@@ -391,7 +359,30 @@ function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddPr
   }, [products, searchTerm, cartItemIds])
 
   const handleAdd = (product: Product) => {
-    onAddProduct(product)
+    const quantity = quantities[product.id] || 1;
+    if (quantity <= 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Cantidad Inválida',
+        description: 'La cantidad debe ser mayor que 0.'
+      });
+      return;
+    }
+    if (quantity > product.stock) {
+      toast({
+        variant: 'destructive',
+        title: 'Stock Insuficiente',
+        description: `Solo quedan ${product.stock} unidades de ${product.name}.`
+      });
+      return;
+    }
+    onAddProduct(product, quantity);
+    // Reset quantity for that product to avoid confusion
+    setQuantities(prev => {
+      const newState = { ...prev };
+      delete newState[product.id];
+      return newState;
+    });
   }
 
   const formatCurrency = (value: number) => {
@@ -404,6 +395,7 @@ function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddPr
   useEffect(() => {
     if (!open) {
       setSearchTerm('')
+      setQuantities({})
     }
   }, [open])
 
@@ -434,6 +426,14 @@ function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddPr
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
+                  <Input 
+                    type="number"
+                    placeholder="Cant."
+                    className="h-8 w-16 text-center"
+                    min="1"
+                    defaultValue="1"
+                    onChange={(e) => setQuantities(prev => ({...prev, [product.id]: parseInt(e.target.value, 10)}))}
+                  />
                   <Button size="sm" onClick={() => handleAdd(product)} className="h-8">
                     <Plus className="w-3 h-3 mr-1"/> Añadir
                   </Button>
