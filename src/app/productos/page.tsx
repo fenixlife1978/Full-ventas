@@ -203,7 +203,7 @@ export default function ProductosPage() {
       head: [['Nombre', 'Categoría', 'Precio (USD)', 'Costo (USD)', 'Stock', 'Estado']],
       body: tableData,
       theme: 'striped',
-      headStyles: { fillColor: [31, 122, 85] },
+      headStyles: { fillColor: [34, 100, 130] },
     })
 
     doc.save(`listado-productos-${format(new Date(), 'yyyyMMdd')}.pdf`)
@@ -218,11 +218,11 @@ export default function ProductosPage() {
           <p className="text-muted-foreground mt-2">Gestiona el inventario de tu bodega</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-            <Button onClick={exportToPDF} className="w-full sm:w-auto bg-white border-2 border-primary text-primary px-6 py-3 rounded-xl font-bold uppercase tracking-tighter hover:bg-primary/5 transition-all duration-200">
+            <Button onClick={exportToPDF} className="flex items-center justify-center gap-2 bg-white border-2 border-primary text-primary px-6 py-3 rounded-xl font-bold uppercase tracking-tighter hover:bg-primary/5 transition-all duration-200">
                 <Download className="mr-2" />
                 Exportar PDF
             </Button>
-            <Button onClick={handleCreateNew} className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold uppercase tracking-tighter italic shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all duration-200">
+            <Button onClick={handleCreateNew} className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl font-bold uppercase tracking-tighter italic shadow-lg shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] active:scale-95 transition-all duration-200">
               <Plus className="mr-2" />
               Agregar Producto
             </Button>
@@ -266,100 +266,85 @@ export default function ProductosPage() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 gap-4">
-          {isLoading ? (
-             Array.from({ length: 3 }).map((_, i) => (
-                <Card key={i} className="bg-card border-border/50">
-                    <CardContent className="p-6">
-                        <Skeleton className="h-24 w-full" />
-                    </CardContent>
-                </Card>
-             ))
-          ) : filteredProducts.length > 0 ? (
-            filteredProducts.map(product => (
-              <Card key={product.id} className="bg-card border-border/50 hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="text-lg font-semibold text-foreground">{product.name}</h3>
+        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-primary/5 border-b border-border">
+                <tr>
+                  <th className="p-4 text-xs font-black uppercase text-primary tracking-wider">Producto</th>
+                  <th className="p-4 text-xs font-black uppercase text-primary tracking-wider">Stock</th>
+                  <th className="p-4 text-xs font-black uppercase text-primary tracking-wider text-right">Precio</th>
+                  <th className="p-4 text-xs font-black uppercase text-primary tracking-wider text-center">Estado</th>
+                  <th className="p-4 text-xs font-black uppercase text-primary tracking-wider text-center">Acciones</th>
+                </tr>
+              </thead>
+               {isLoading ? (
+                <tbody>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={i} className="border-b border-border/20">
+                          <td className="p-4"><Skeleton className="h-5 w-3/4" /></td>
+                          <td className="p-4"><Skeleton className="h-5 w-1/2" /></td>
+                          <td className="p-4 text-right"><Skeleton className="h-5 w-1/4 ml-auto" /></td>
+                          <td className="p-4 text-center"><Skeleton className="h-6 w-16 mx-auto" /></td>
+                          <td className="p-4 text-center"><Skeleton className="h-8 w-20 mx-auto" /></td>
+                      </tr>
+                  ))}
+                </tbody>
+              ) : filteredProducts.length > 0 ? (
+              <tbody className="divide-y divide-border/50">
+                {filteredProducts.map(product => (
+                  <tr key={product.id} className="hover:bg-primary/5 transition-colors group">
+                    <td className="p-4">
+                      <p className="font-bold text-foreground uppercase text-sm">{product.name}</p>
+                      <p className="text-[10px] text-muted-foreground font-medium italic">{product.category || 'Sin categoría'}</p>
+                    </td>
+                    <td className="p-4">
+                       <span className={`px-2 py-1 rounded-md text-xs font-bold ${
+                          product.stock <= (product.minStock || 0)
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-emerald-100 text-emerald-700'
+                        }`}>
+                        {product.stock} {product.unit}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right">
+                       <div>
+                          <p className="font-black text-primary">{formatCurrency(product.price, 'USD')}</p>
+                          {bcvRate && <p className="text-[10px] text-muted-foreground font-medium">{formatCurrency(product.price, 'VES')}</p>}
                         </div>
-                        <div className="flex gap-2">
-                          {product.stock <= (product.minStock || 0) && (
-                            <Badge variant="destructive" className="flex items-center gap-1">
-                              <AlertTriangle className="h-3 w-3" />
-                              Stock Bajo
-                            </Badge>
-                          )}
-                          <Badge variant={product.status === 'active' ? 'default' : 'secondary'} className={product.status === 'active' ? 'bg-primary text-primary-foreground' : ''}>
-                            {product.status === 'active' ? 'Activo' : 'Inactivo'}
-                          </Badge>
-                        </div>
-                      </div>
-                      {product.description && (
-                        <p className="text-sm text-muted-foreground">{product.description}</p>
-                      )}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-                        <div>
-                          <p className="text-xs text-muted-foreground">Categoría</p>
-                          <p className="text-sm font-medium text-foreground">{product.category || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Precio</p>
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{formatCurrency(product.price, 'USD')}</p>
-                            {bcvRate && <p className="text-xs text-muted-foreground/80">{formatCurrency(product.price, 'VES')}</p>}
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Stock</p>
-                          <p className="text-sm font-medium text-foreground">
-                            {product.stock} {product.unit}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Stock Mínimo</p>
-                          <p className="text-sm font-medium text-foreground">{product.minStock || 0}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex lg:flex-col gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(product)}
-                        className="flex-1 lg:flex-none border-border text-foreground hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <Edit className="mr-2" />
-                        Editar
+                    </td>
+                    <td className="p-4 text-center">
+                        <Badge variant={product.status === 'active' ? 'default' : 'secondary'} className={product.status === 'active' ? 'bg-primary text-primary-foreground' : ''}>
+                          {product.status === 'active' ? 'Activo' : 'Inactivo'}
+                        </Badge>
+                    </td>
+                    <td className="p-4 text-center space-x-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEdit(product)}>
+                        <Edit className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(product)}
-                        className="flex-1 lg:flex-none"
-                      >
-                        <Trash2 className="mr-2" />
-                        Eliminar
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(product)}>
+                        <Trash2 className="h-4 w-4" />
                       </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <Card className="bg-card border-border/50">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Package className="h-12 w-12 text-primary mb-4" />
-                <p className="text-muted-foreground text-center">
-                  {searchTerm || categoryFilter !== 'all' || statusFilter !== 'all'
-                    ? 'No se encontraron productos con los filtros aplicados'
-                    : 'No hay productos registrados. ¡Agrega tu primer producto!'}
-                </p>
-              </CardContent>
-            </Card>
-          )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              ) : (
+                <tbody>
+                    <tr>
+                        <td colSpan={5} className="text-center py-12">
+                            <Package className="h-12 w-12 text-primary mx-auto mb-4" />
+                            <p className="text-muted-foreground">
+                            {searchTerm || categoryFilter !== 'all' || statusFilter !== 'all'
+                                ? 'No se encontraron productos con los filtros aplicados'
+                                : 'No hay productos registrados. ¡Agrega tu primer producto!'}
+                            </p>
+                        </td>
+                    </tr>
+                </tbody>
+              )}
+            </table>
+          </div>
         </div>
 
 
