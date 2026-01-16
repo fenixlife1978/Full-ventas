@@ -10,7 +10,6 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -34,7 +33,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { CalendarIcon, Plus, Search, Trash2, X, DollarSign, CreditCard, Landmark } from 'lucide-react'
+import { CalendarIcon, Plus, Search, Trash2, DollarSign, CreditCard, Landmark } from 'lucide-react'
 import { Calendar } from '@/components/ui/calendar'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -115,13 +114,17 @@ export function SaleForm({
         prevItems.map(item => {
           const freshProduct = products.find(p => p.id === item.id);
           if (freshProduct && freshProduct.price !== item.price) {
+            toast({
+                title: 'Actualización de Precio',
+                description: `El precio de "${item.name}" ha cambiado. El recibo se ha actualizado.`,
+            });
             return { ...item, price: freshProduct.price };
           }
           return item;
         })
       );
     }
-  }, [products]);
+  }, [products, toast]);
 
 
   const totalUSD = useMemo(() => {
@@ -133,13 +136,27 @@ export function SaleForm({
   }, [totalUSD, bcvRate])
 
   const handleAddProduct = (product: Product, quantity: number) => {
-    setCartItems(prev => {
-      const existingItem = prev.find(item => item.id === product.id);
-      if (existingItem) {
-        return prev;
-      }
-      return [...prev, { ...product, quantity }];
-    });
+    const existingItem = cartItems.find(item => item.id === product.id);
+    if (existingItem) {
+        // If item exists, just show a toast and don't add
+        toast({
+            variant: 'destructive',
+            title: 'Producto ya en el recibo',
+            description: `${product.name} ya ha sido agregado.`,
+        });
+        return;
+    }
+
+    if (quantity > product.stock) {
+        toast({
+            variant: 'destructive',
+            title: 'Stock Insuficiente',
+            description: `Solo quedan ${product.stock} unidades de ${product.name}.`,
+        });
+        return;
+    }
+
+    setCartItems(prev => [...prev, { ...product, quantity }]);
     setIsProductSelectorOpen(false);
   }
   
@@ -411,7 +428,7 @@ export function SaleForm({
                 <div className="grid gap-6 py-4">
                     
                      <div className="grid grid-cols-1 items-center gap-4">
-                        <label className="text-foreground font-semibold">Producto</label>
+                        <Label className="text-foreground font-semibold">Producto</Label>
                         <Select 
                           value={selectedPriceCheckerProductId || ''}
                           onValueChange={(productId) => {
