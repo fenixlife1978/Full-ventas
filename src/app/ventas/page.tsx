@@ -72,7 +72,7 @@ export default function VentasPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('today')
   const [selectedPriceCheckerProduct, setSelectedPriceCheckerProduct] = useState<Product | null>(null)
-  const [, setRefreshTrigger] = useState(0)
+  const [refreshKey, setRefreshKey] = useState(0)
 
 
   const salesCollection = useMemoFirebase(() => {
@@ -83,7 +83,7 @@ export default function VentasPage() {
   const productsCollection = useMemoFirebase(() => {
     if (!firestore) return null
     return collection(firestore, 'products')
-  }, [firestore])
+  }, [firestore, refreshKey])
 
   const settingsDoc = useMemoFirebase(() => {
     if (!firestore) return null
@@ -155,7 +155,7 @@ export default function VentasPage() {
   }
   
   const handleRefresh = () => {
-    setRefreshTrigger(t => t + 1);
+    setRefreshKey(t => t + 1);
     toast({
         title: 'Vista actualizada',
         description: 'Los datos han sido sincronizados.',
@@ -514,3 +514,5 @@ export default function VentasPage() {
     </Layout>
   )
 }
+
+    
