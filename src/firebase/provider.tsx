@@ -83,7 +83,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         if (firebaseUser) {
           setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
         } else {
-          initiateAnonymousSignIn(auth);
+          // Instead of anonymous sign-in, we now set the user to null to trigger the login page.
+          setUserAuthState({ user: null, isUserLoading: false, userError: null });
         }
       },
       (error) => { // Auth listener error
@@ -107,10 +108,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       userError: userAuthState.userError,
     };
   }, [firebaseApp, firestore, auth, userAuthState]);
-
-  if (userAuthState.isUserLoading) {
-    return null; // O un componente de carga global
-  }
 
   return (
     <FirebaseContext.Provider value={contextValue}>
