@@ -328,7 +328,7 @@ export default function ComprasPage() {
             Gestiona las compras de inventario
           </p>
         </div>
-        <Button onClick={handleCreateNew} className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg">
+        <Button onClick={handleCreateNew} className="px-6 py-3 rounded-xl font-bold uppercase tracking-tighter italic shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all duration-200">
           <Plus className="mr-2" />
           Nueva Compra
         </Button>

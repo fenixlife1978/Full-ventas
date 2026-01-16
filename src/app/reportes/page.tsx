@@ -316,9 +316,8 @@ export default function ReportesPage() {
               </SelectContent>
             </Select>
             <Button
-              variant="outline"
               onClick={exportToPDF}
-              className="border-border text-foreground hover:bg-accent hover:text-accent-foreground"
+              className="bg-white border-2 border-primary text-primary px-6 py-3 rounded-xl font-bold uppercase tracking-tighter hover:bg-primary/5 transition-all duration-200"
             >
               <Download className="mr-2" />
               Exportar

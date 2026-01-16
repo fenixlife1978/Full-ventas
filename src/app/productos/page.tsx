@@ -218,11 +218,11 @@ export default function ProductosPage() {
           <p className="text-muted-foreground mt-2">Gestiona el inventario de tu bodega</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-            <Button onClick={exportToPDF} variant="outline" className="w-full sm:w-auto border-border text-foreground hover:bg-accent hover:text-accent-foreground">
+            <Button onClick={exportToPDF} className="w-full sm:w-auto bg-white border-2 border-primary text-primary px-6 py-3 rounded-xl font-bold uppercase tracking-tighter hover:bg-primary/5 transition-all duration-200">
                 <Download className="mr-2" />
                 Exportar PDF
             </Button>
-            <Button onClick={handleCreateNew} className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg">
+            <Button onClick={handleCreateNew} className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold uppercase tracking-tighter italic shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all duration-200">
               <Plus className="mr-2" />
               Agregar Producto
             </Button>

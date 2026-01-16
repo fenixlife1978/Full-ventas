@@ -263,7 +263,7 @@ export default function VentasPage() {
             <p className="text-muted-foreground mt-2">Consulta y gestiona el historial de ventas</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => setIsFormOpen(true)} className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg">
+            <Button onClick={() => setIsFormOpen(true)} className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold uppercase tracking-tighter italic shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all duration-200">
                 <Plus className="mr-2" />
                 Nueva Venta
             </Button>

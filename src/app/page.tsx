@@ -8,6 +8,7 @@ import {
   DollarSign,
   ShoppingCart,
   BarChart,
+  ArrowUpRight,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useCollection, useFirestore, useDoc } from '@/firebase'
@@ -33,40 +34,60 @@ const StatCard = ({
   subtitle,
   icon: Icon,
   isLoading,
-  cardClassName,
+  variant = 'default',
 }: {
   title: string
   value: ReactNode
   subtitle?: ReactNode
   icon: React.ElementType
   isLoading: boolean
-  cardClassName?: string
-}) => (
-  <Card className={cn(cardClassName)}>
-    <CardContent className="flex items-center justify-between p-6">
-      {isLoading ? (
-        <div className="flex w-full items-center justify-between">
-          <div className="space-y-2">
-            <Skeleton className="h-5 w-[120px]" />
-            <Skeleton className="h-8 w-[90px]" />
+  variant?: 'default' | 'highlight' | 'warning'
+}) => {
+  const variants = {
+    default: "bg-card border-border text-foreground",
+    highlight: "bg-primary text-primary-foreground shadow-lg shadow-primary/20",
+    warning: "bg-white border-2 border-destructive/20 text-foreground",
+  }
+
+  return (
+    <Card className={cn("overflow-hidden transition-all duration-300 hover:shadow-md", variants[variant])}>
+      <CardContent className="p-6">
+        {isLoading ? (
+          <div className="flex w-full items-center justify-between">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-[100px]" />
+              <Skeleton className="h-8 w-[120px]" />
+            </div>
+            <Skeleton className="h-12 w-12 rounded-xl" />
           </div>
-          <Skeleton className="h-10 w-10 rounded-md" />
-        </div>
-      ) : (
-        <>
-          <div className="space-y-1">
-            <p className="text-sm font-medium uppercase opacity-80">{title}</p>
-            <p className="text-3xl font-bold">{value}</p>
-             {subtitle && (
-              <p className="text-xs opacity-80">{subtitle}</p>
-            )}
+        ) : (
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className={cn(
+                "text-xs font-black uppercase tracking-widest opacity-70",
+                variant === 'highlight' ? "text-white/80" : "text-muted-foreground"
+              )}>
+                {title}
+              </p>
+              <p className="text-3xl font-black tracking-tighter">{value}</p>
+              {subtitle && (
+                <p className={cn("text-xs font-medium mt-1", variant === 'highlight' ? "text-white/60" : "text-muted-foreground")}>
+                  {subtitle}
+                </p>
+              )}
+            </div>
+            <div className={cn(
+              "p-3 rounded-2xl",
+              variant === 'highlight' ? "bg-white/20" : "bg-primary/10 text-primary"
+            )}>
+              <Icon className="h-7 w-7" />
+            </div>
           </div>
-          <Icon className="h-10 w-10 opacity-90" />
-        </>
-      )}
-    </CardContent>
-  </Card>
-)
+        )}
+      </CardContent>
+    </Card>
+  )
+}
 
 export default function DashboardPage() {
   const firestore = useFirestore()
@@ -84,14 +105,11 @@ export default function DashboardPage() {
     [firestore]
   )
 
-  const { data: products, isLoading: isLoadingProducts } =
-    useCollection<Product>(productsCollection)
-  const { data: sales, isLoading: isLoadingSales } =
-    useCollection<Sale>(salesCollection)
+  const { data: products, isLoading: isLoadingProducts } = useCollection<Product>(productsCollection)
+  const { data: sales, isLoading: isLoadingSales } = useCollection<Sale>(salesCollection)
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Setting>(settingsDoc)
 
   const bcvRate = useMemo(() => settings?.bcvRate || null, [settings])
-
 
   const [stats, setStats] = useState({
     totalProducts: 0,
@@ -106,51 +124,37 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!products || !sales) return
 
-    // Product stats
     const totalProducts = products.length
-    const lowStockProducts = products.filter(
-      (p) => p.stock <= (p.minStock || 0)
-    ).length
+    const lowStockProducts = products.filter((p) => p.stock <= (p.minStock || 0)).length
 
-    // Sales stats
     const today = new Date()
     const monthStartDate = startOfMonth(today)
 
     const todaySalesData = sales.filter((s) => {
-        const saleDate = (s.saleDate as any).toDate ? (s.saleDate as any).toDate() : new Date(s.saleDate)
-        return isToday(saleDate)
+      const saleDate = (s.saleDate as any).toDate ? (s.saleDate as any).toDate() : new Date(s.saleDate)
+      return isToday(saleDate)
     })
-    const todaySalesCount = todaySalesData.length
     const todayRevenueCents = todaySalesData.reduce((sum, s) => sum + Math.round((s.totalAmount || 0) * 100), 0)
 
     const monthSalesData = sales.filter((s) => {
-        const saleDate = (s.saleDate as any).toDate ? (s.saleDate as any).toDate() : new Date(s.saleDate)
-        return saleDate >= monthStartDate
+      const saleDate = (s.saleDate as any).toDate ? (s.saleDate as any).toDate() : new Date(s.saleDate)
+      return saleDate >= monthStartDate
     })
-    const monthSalesCount = monthSalesData.length
     const monthRevenueCents = monthSalesData.reduce((sum, s) => sum + Math.round((s.totalAmount || 0) * 100), 0)
 
-    // Top products this month
     const productSales: { [key: string]: { productName: string, quantity: number, revenueCents: number } } = {}
-    const monthItems = monthSalesData.flatMap(s => s.items || [])
-    monthItems.forEach((item) => {
+    monthSalesData.flatMap(s => s.items || []).forEach((item) => {
       if (!productSales[item.productId]) {
-        productSales[item.productId] = {
-          productName: item.productName,
-          quantity: 0,
-          revenueCents: 0,
-        }
+        productSales[item.productId] = { productName: item.productName, quantity: 0, revenueCents: 0 }
       }
       productSales[item.productId].quantity += item.quantity
-      const itemRevenueCents = Math.round(item.unitPrice * item.quantity * 100);
-      productSales[item.productId].revenueCents += itemRevenueCents;
+      productSales[item.productId].revenueCents += Math.round(item.unitPrice * item.quantity * 100)
     })
-
 
     const topProductsArray = Object.values(productSales)
       .sort((a, b) => b.revenueCents - a.revenueCents)
       .slice(0, 5)
-       .map(p => ({
+      .map(p => ({
         productName: p.productName,
         quantity: p.quantity,
         revenue: p.revenueCents / 100,
@@ -159,8 +163,8 @@ export default function DashboardPage() {
     setStats({
       totalProducts,
       lowStockProducts,
-      todaySales: todaySalesCount,
-      monthSales: monthSalesCount,
+      todaySales: todaySalesData.length,
+      monthSales: monthSalesData.length,
       todayRevenue: todayRevenueCents / 100,
       monthRevenue: monthRevenueCents / 100,
     })
@@ -171,123 +175,136 @@ export default function DashboardPage() {
   
   const formatCurrency = (value: number, currency: 'USD' | 'VES' = 'USD') => {
     if (currency === 'VES' && bcvRate) {
-      value = value * bcvRate
-      return `Bs. ${new Intl.NumberFormat('es-VE', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(value)}`
+      const vesValue = value * bcvRate
+      return `Bs. ${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(vesValue)}`
     }
-    return new Intl.NumberFormat('es-VE', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(value)
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)
   }
 
   return (
-    <Layout currentPageName="Dashboard">
-      <div className="space-y-8 p-4 md:p-8">
-        <div>
-          <h1 className="text-4xl font-bold text-primary">
-            Dashboard Financiero
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Un resumen de tu actividad financiera
-          </p>
+    <Layout currentPageName="Resumen Financiero">
+      <div className="space-y-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-primary uppercase tracking-tighter italic">
+              Dashboard Financiero
+            </h1>
+            <p className="text-muted-foreground text-sm font-medium">
+              Vista general del rendimiento de Full-Ventas
+            </p>
+          </div>
+          <div className="bg-white px-4 py-2 rounded-xl border border-border shadow-sm flex items-center gap-3">
+             <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+             <span className="text-xs font-bold text-primary uppercase">BCV: {bcvRate ? `Bs. ${bcvRate}` : '---'}</span>
+          </div>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <StatCard
-            title="Total Productos"
-            value={stats.totalProducts}
-            icon={Package}
-            isLoading={isLoading}
-            cardClassName="bg-primary text-primary-foreground"
-          />
-           <StatCard
             title="Ingresos del Mes"
-            value={formatCurrency(stats.monthRevenue, 'VES')}
-            subtitle={bcvRate ? formatCurrency(stats.monthRevenue, 'USD') : undefined}
+            value={formatCurrency(stats.monthRevenue, 'USD')}
+            subtitle={formatCurrency(stats.monthRevenue, 'VES')}
             icon={DollarSign}
             isLoading={isLoading}
-            cardClassName="bg-primary text-primary-foreground"
-          />
-           <StatCard
-            title="Stock Bajo"
-            value={stats.lowStockProducts}
-            icon={AlertTriangle}
-            isLoading={isLoading}
-            cardClassName="bg-secondary text-secondary-foreground"
+            variant="highlight"
           />
           <StatCard
-            title="Ventas del Mes"
-            value={stats.monthSales}
-            icon={BarChart}
-            isLoading={isLoading}
-            cardClassName="bg-primary text-primary-foreground"
-          />
-           <StatCard
-            title="Ventas Hoy"
+            title="Ventas de Hoy"
             value={stats.todaySales}
-            subtitle={formatCurrency(stats.todayRevenue, 'VES')}
+            subtitle={`Total: ${formatCurrency(stats.todayRevenue, 'USD')}`}
             icon={ShoppingCart}
             isLoading={isLoading}
-            cardClassName="bg-primary text-primary-foreground"
+          />
+          <StatCard
+            title="Alerta de Stock"
+            value={stats.lowStockProducts}
+            subtitle="Productos por agotarse"
+            icon={AlertTriangle}
+            isLoading={isLoading}
+            variant={stats.lowStockProducts > 0 ? 'warning' : 'default'}
           />
         </div>
 
-        {/* Top Products */}
-        <Card className="bg-card border-border/50 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl text-foreground flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Productos Más Vendidos (Este Mes)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-                <div className="space-y-4">
-                    {Array.from({length: 3}).map((_, i) => (
-                        <div key={i} className="flex items-center justify-between border-b pb-3 last:border-0">
-                            <div className="flex-1 space-y-2">
-                                <Skeleton className="h-5 w-3/5" />
-                                <Skeleton className="h-4 w-2/5" />
-                            </div>
-                            <Skeleton className="h-6 w-1/4" />
-                        </div>
-                    ))}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Top Products Table */}
+          <Card className="lg:col-span-2 bg-card border-border shadow-sm overflow-hidden">
+            <CardHeader className="border-b border-border/50 bg-gray-50/50">
+              <CardTitle className="text-lg font-black uppercase tracking-tighter flex items-center gap-2 text-primary">
+                <TrendingUp className="h-5 w-5" />
+                Productos Estrella
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {isLoading ? (
+                <div className="p-6 space-y-4">
+                  {Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
                 </div>
-            ) : topProducts.length > 0 ? (
-              <div className="space-y-4">
-                {topProducts.map((product, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between border-b border-border/20 pb-3 last:border-0"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">
-                        {product.productName}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {product.quantity} unidades vendidas
-                      </p>
+              ) : topProducts.length > 0 ? (
+                <div className="divide-y divide-border">
+                  {topProducts.map((product, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-full bg-primary/5 flex items-center justify-center font-bold text-primary">
+                          #{index + 1}
+                        </div>
+                        <div>
+                          <p className="font-bold text-foreground uppercase text-sm leading-none mb-1">
+                            {product.productName}
+                          </p>
+                          <p className="text-xs text-muted-foreground font-medium">
+                            {product.quantity} unidades desplazadas
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-black text-primary leading-none">
+                          {formatCurrency(product.revenue, 'USD')}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-1 font-bold">
+                          {formatCurrency(product.revenue, 'VES')}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-foreground">
-                        {formatCurrency(product.revenue, 'VES')}
-                      </p>
-                      {bcvRate && <p className="text-sm text-muted-foreground">{formatCurrency(product.revenue, 'USD')}</p>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-center py-4">
-                No hay ventas registradas este mes
-              </p>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-10 text-center text-muted-foreground italic">No hay datos suficientes este mes</div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Quick Stats Sidebar */}
+          <div className="space-y-6">
+            <Card className="bg-primary/5 border-primary/10">
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="bg-primary text-white p-2 rounded-lg">
+                  <Package size={20} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-primary uppercase">Inventario Total</p>
+                  <p className="text-2xl font-black text-primary">{stats.totalProducts}</p>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-white border-border shadow-sm">
+              <CardContent className="p-6">
+                <p className="text-xs font-bold text-muted-foreground uppercase mb-4">Actividad Mensual</p>
+                <div className="flex items-end justify-between gap-2 h-20">
+                  {/* Gráfico simple de barras decorativo */}
+                  {[40, 70, 45, 90, 65, 80, 50].map((h, i) => (
+                    <div key={i} className="bg-primary/20 w-full rounded-t-sm group hover:bg-primary transition-colors cursor-help" style={{ height: `${h}%` }} />
+                  ))}
+                </div>
+                <div className="mt-4 flex justify-between items-center">
+                  <span className="text-sm font-bold text-foreground">{stats.monthSales} Ventas</span>
+                  <span className="text-[10px] font-black text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded">ONLINE</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </Layout>
   )
