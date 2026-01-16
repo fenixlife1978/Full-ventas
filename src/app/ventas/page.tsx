@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Plus, Search, ShoppingCart, DollarSign, Trash2, FileText, RefreshCw } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { Plus, Search, ShoppingCart, DollarSign, Trash2, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -72,7 +72,6 @@ export default function VentasPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('today')
   const [selectedPriceCheckerProduct, setSelectedPriceCheckerProduct] = useState<Product | null>(null)
-  const [refreshKey, setRefreshKey] = useState(0)
 
 
   const salesCollection = useMemoFirebase(() => {
@@ -83,7 +82,7 @@ export default function VentasPage() {
   const productsCollection = useMemoFirebase(() => {
     if (!firestore) return null
     return collection(firestore, 'products')
-  }, [firestore, refreshKey])
+  }, [firestore])
 
   const settingsDoc = useMemoFirebase(() => {
     if (!firestore) return null
@@ -93,6 +92,15 @@ export default function VentasPage() {
   const { data: sales, isLoading: isLoadingSales } = useCollection<Sale>(salesCollection)
   const { data: products, isLoading: isLoadingProducts } = useCollection<Product>(productsCollection)
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Setting>(settingsDoc)
+
+  useEffect(() => {
+    if (selectedPriceCheckerProduct && products) {
+      const updatedProduct = products.find(p => p.id === selectedPriceCheckerProduct.id);
+      if (updatedProduct && JSON.stringify(updatedProduct) !== JSON.stringify(selectedPriceCheckerProduct)) {
+        setSelectedPriceCheckerProduct(updatedProduct);
+      }
+    }
+  }, [products, selectedPriceCheckerProduct]);
 
   const bcvRate = useMemo(() => settings?.bcvRate || null, [settings])
 
@@ -154,15 +162,6 @@ export default function VentasPage() {
     setDeletingSale(sale)
   }
   
-  const handleRefresh = () => {
-    setRefreshKey(t => t + 1);
-    toast({
-        title: 'Vista actualizada',
-        description: 'Los datos han sido sincronizados.',
-    });
-  };
-
-
   const confirmDelete = async () => {
     if (deletingSale && firestore) {
       const saleRef = doc(firestore, 'sales', deletingSale.id)
@@ -286,10 +285,6 @@ export default function VentasPage() {
             <p className="text-muted-foreground mt-2">Registra y gestiona las ventas diarias</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={handleRefresh} variant="outline" className="w-full sm:w-auto border-border text-foreground hover:bg-accent hover:text-accent-foreground shadow-lg">
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Actualizar
-            </Button>
             <Button onClick={() => setIsPriceCheckerOpen(true)} variant="outline" className="w-full sm:w-auto border-primary text-primary hover:bg-primary hover:text-primary-foreground shadow-lg">
               <DollarSign className="mr-2" />
               Consultar Precio
@@ -514,5 +509,3 @@ export default function VentasPage() {
     </Layout>
   )
 }
-
-    
