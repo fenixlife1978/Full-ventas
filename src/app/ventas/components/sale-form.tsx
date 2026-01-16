@@ -227,7 +227,7 @@ export function SaleForm({
                                     <p className="text-5xl font-black text-primary tracking-tight">{formatBs(totalBs)}</p>
                                     {bcvRate && <p className="text-md font-bold text-gray-500 mt-1">{formatUSD(totalUSD)}</p>}
                                 </div>
-                                <Button type="submit" disabled={cartItems.length === 0} className="w-full h-16 text-xl font-black rounded-2xl shadow-xl shadow-primary/20 active:scale-[0.98] transition-transform">
+                                <Button type="submit" className="w-full h-16 text-xl font-black rounded-2xl shadow-xl shadow-primary/20 active:scale-[0.98] transition-transform">
                                     REGISTRAR VENTA
                                 </Button>
                             </div>
@@ -262,7 +262,7 @@ export function SaleForm({
                                           {item.unit === 'kg' || item.unit === 'litro' ? item.quantity.toFixed(3) : item.quantity}
                                         </div>
                                         <div className="col-span-3 text-right font-bold text-gray-800">
-                                            {formatUSD(item.price * item.quantity)}
+                                            {formatBs((item.price * item.quantity) * (bcvRate || 0))}
                                         </div>
                                         <div className="col-span-1 flex justify-end">
                                             <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.id)} className="text-red-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100">
