@@ -1,13 +1,12 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { Plus, Search, ShoppingCart, DollarSign, Trash2, FileText } from 'lucide-react'
-import Link from 'next/link'
+import { Plus, Search, ShoppingCart, DollarSign, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { useCollection, useFirestore, useDoc } from '@/firebase'
-import { collection, doc, Timestamp, runTransaction, addDoc } from 'firebase/firestore'
+import { collection, doc, Timestamp, runTransaction } from 'firebase/firestore'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +34,7 @@ import { startOfWeek, startOfMonth } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { format } from 'date-fns'
 import { type Setting } from '../configuraciones/page'
+import { SaleForm, type SaleFormValues, type CartItem } from './components/sale-form'
 
 
 export interface SaleItem {
@@ -55,6 +55,7 @@ export interface Sale {
 }
 
 export default function VentasPage() {
+  const [isFormOpen, setIsFormOpen] = useState(false)
   const [deletingSale, setDeletingSale] = useState<Sale | null>(null)
   const { toast } = useToast()
   const firestore = useFirestore()
@@ -67,15 +68,26 @@ export default function VentasPage() {
     return collection(firestore, 'sales')
   }, [firestore])
 
+  const productsCollection = useMemoFirebase(() => {
+    if (!firestore) return null
+    return collection(firestore, 'products')
+  }, [firestore])
+
+
   const settingsDoc = useMemoFirebase(() => {
     if (!firestore) return null
     return doc(firestore, 'settings', 'global')
   }, [firestore])
 
   const { data: sales, isLoading: isLoadingSales } = useCollection<Sale>(salesCollection)
+  const { data: products, isLoading: isLoadingProducts } = useCollection<Product>(productsCollection)
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Setting>(settingsDoc)
   
   const bcvRate = useMemo(() => settings?.bcvRate || null, [settings])
+
+  const activeProducts = useMemo(() => {
+    return products?.filter(p => p.status === 'active') || []
+  }, [products])
 
   const formattedSales = useMemo(() => {
     return sales?.map(sale => ({
@@ -121,6 +133,60 @@ export default function VentasPage() {
     const totalRevenue = filteredSales.reduce((sum, sale) => sum + sale.totalAmount, 0)
     return { totalSales, totalRevenue }
   }, [filteredSales])
+
+
+  const handleFormSubmit = async (values: SaleFormValues & { items: CartItem[], totalAmount: number, saleNumber: number }) => {
+    if (!firestore) return
+
+    const saleData = {
+      saleNumber: values.saleNumber,
+      items: values.items.map(item => ({
+        productId: item.id,
+        productName: item.name,
+        quantity: item.quantity,
+        unitPrice: item.price,
+      })),
+      totalAmount: values.totalAmount,
+      paymentMethod: values.paymentMethod,
+      notes: values.notes,
+      saleDate: Timestamp.fromDate(values.saleDate),
+    }
+
+    try {
+      await runTransaction(firestore, async (transaction) => {
+        const salesRef = doc(collection(firestore, 'sales'))
+
+        for (const item of values.items) {
+           const productRef = doc(firestore, 'products', item.id)
+           const productDoc = await transaction.get(productRef)
+           if (!productDoc.exists()) {
+             throw new Error(`El producto "${item.name}" no existe.`)
+           }
+           const currentStock = productDoc.data().stock
+           const newStock = currentStock - item.quantity
+           if (newStock < 0) {
+             throw new Error(`Stock insuficiente para "${item.name}".`)
+           }
+           transaction.update(productRef, { stock: newStock })
+        }
+        
+        transaction.set(salesRef, saleData)
+      })
+
+      toast({
+        title: 'Venta Registrada',
+        description: `La venta se ha registrado exitosamente.`,
+      })
+      setIsFormOpen(false);
+
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error al registrar la venta',
+        description: error.message || 'Ocurrió un error inesperado.',
+      })
+    }
+  }
 
 
   const handleDelete = (sale: Sale) => {
@@ -185,7 +251,7 @@ export default function VentasPage() {
     }).format(value)
   }
 
- const isLoading = isLoadingSales || isLoadingSettings;
+ const isLoading = isLoadingSales || isLoadingSettings || isLoadingProducts;
 
   return (
     <Layout currentPageName="Gestión de Ventas">
@@ -196,11 +262,9 @@ export default function VentasPage() {
             <p className="text-muted-foreground mt-2">Consulta y gestiona el historial de ventas</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button asChild className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg">
-              <Link href="/monitor-de-venta">
+            <Button onClick={() => setIsFormOpen(true)} className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg">
                 <Plus className="mr-2" />
-                Ir al Monitor de Venta
-              </Link>
+                Nueva Venta
             </Button>
           </div>
         </header>
@@ -325,6 +389,16 @@ export default function VentasPage() {
             </Card>
           )}
         </div>
+
+        <SaleForm
+          open={isFormOpen}
+          onOpenChange={setIsFormOpen}
+          onSubmit={handleFormSubmit}
+          products={activeProducts}
+          isLoadingProducts={isLoadingProducts}
+          bcvRate={bcvRate}
+          saleCount={sales?.length || 0}
+        />
 
         <AlertDialog
           open={!!deletingSale}

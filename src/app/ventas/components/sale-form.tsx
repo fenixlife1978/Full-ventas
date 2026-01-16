@@ -31,7 +31,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { CalendarIcon, Plus, Search, Trash2, DollarSign, CreditCard, Landmark, X } from 'lucide-react'
+import { CalendarIcon, Plus, Search, Trash2, DollarSign, CreditCard, Landmark } from 'lucide-react'
 import { Calendar } from '@/components/ui/calendar'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -59,6 +59,8 @@ export interface CartItem extends Product {
 }
 
 interface SaleFormProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
   onSubmit: (values: SaleFormValues & { items: CartItem[], totalAmount: number, saleNumber: number }) => void
   products: Product[]
   isLoadingProducts: boolean
@@ -66,16 +68,9 @@ interface SaleFormProps {
   saleCount: number
 }
 
-// Nueva Interfaz para corregir el error de TS
-interface ProductSelectorModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  products: Product[];
-  cartItems: CartItem[];
-  onAddProduct: (product: Product, quantity: number) => void;
-}
-
 export function SaleForm({
+  open,
+  onOpenChange,
   onSubmit,
   products,
   bcvRate,
@@ -103,13 +98,15 @@ export function SaleForm({
   }, [selectedPriceCheckerProductId, products]);
   
   useEffect(() => {
-    form.reset({
-        saleDate: new Date(),
-        paymentMethod: 'cash',
-        notes: '',
-    });
-    setCartItems([]);
-  }, [saleCount, form])
+    if(open) {
+      form.reset({
+          saleDate: new Date(),
+          paymentMethod: 'cash',
+          notes: '',
+      });
+      setCartItems([]);
+    }
+  }, [open, form])
 
   const totalUSD = useMemo(() => {
     return cartItems.reduce((total, item) => total + item.price * (item.quantity || 0), 0)
@@ -120,10 +117,6 @@ export function SaleForm({
   }, [totalUSD, bcvRate])
 
   const handleAddProduct = (product: Product, quantity: number) => {
-    if (quantity > product.stock) {
-      toast({ variant: 'destructive', title: 'Stock Insuficiente' });
-      return;
-    }
     const existingItem = cartItems.find(item => item.id === product.id);
     if (existingItem) {
         toast({ variant: 'destructive', title: 'Ya está en el recibo' });
@@ -148,232 +141,279 @@ export function SaleForm({
   const formatBs = (value: number) => `Bs. ${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)}`
 
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] bg-[#f8f7f2] overflow-hidden">
-      
-      {/* COLUMNA IZQUIERDA: FORMULARIO */}
-      <div className="w-full lg:w-[40%] p-8 flex flex-col bg-white border-r border-gray-200 shadow-sm h-full">
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-black text-gray-800">Nueva Venta</h2>
-          <Button onClick={() => setIsPriceCheckerOpen(true)} variant="outline" className="rounded-xl">
-            <DollarSign className="mr-2 h-4 w-4" /> Consultar
-          </Button>
-        </div>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="flex-1 flex flex-col min-h-0">
-            <div className="flex-1 overflow-y-auto pr-2 space-y-6">
-              <FormField
-                control={form.control}
-                name="paymentMethod"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <Label className="text-xs font-bold uppercase tracking-widest text-gray-400">Método de Pago</Label>
-                    <FormControl>
-                      <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-2 gap-3">
-                        {[
-                          { id: 'cash', label: 'Efectivo', icon: DollarSign },
-                          { id: 'card', label: 'Tarjeta', icon: CreditCard },
-                          { id: 'transfer', label: 'Pago Móvil', icon: Landmark },
-                          { id: 'other', label: 'Otro', icon: Plus },
-                        ].map((m) => (
-                          <div key={m.id}>
-                            <RadioGroupItem value={m.id} id={m.id} className="sr-only" />
-                            <Label
-                              htmlFor={m.id}
-                              className={cn(
-                                "flex items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all h-14",
-                                field.value === m.id ? "bg-primary border-primary text-white shadow-md" : "border-gray-100 hover:bg-gray-50 text-gray-500"
-                              )}
-                            >
-                              <m.icon className="mr-2 h-4 w-4" />
-                              <span className="font-bold">{m.label}</span>
-                            </Label>
-                          </div>
-                        ))}
-                      </RadioGroup>
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="saleDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col space-y-3">
-                    <Label className="text-xs font-bold uppercase tracking-widest text-gray-400">Fecha</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button variant="outline" className="w-full h-14 justify-start font-bold rounded-xl border-gray-100">
-                            <CalendarIcon className="mr-3 h-5 w-5 text-primary" />
-                            {field.value ? format(field.value, 'PPP', { locale: es }) : "Seleccionar"}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                      </PopoverContent>
-                    </Popover>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <Label className="text-xs font-bold uppercase tracking-widest text-gray-400">Observaciones</Label>
-                    <FormControl>
-                      <Textarea placeholder="Notas de la venta..." className="min-h-[100px] bg-gray-50 border-none rounded-xl" {...field} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* TOTALES FIJOS ABAJO */}
-            <div className="pt-6 mt-auto space-y-4">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setIsProductSelectorOpen(true)} 
-                className="w-full h-14 border-2 border-dashed border-gray-300 rounded-2xl text-gray-500 hover:border-primary hover:text-primary transition-all"
-              >
-                <Plus className="w-5 h-5 mr-2" /> Buscar Productos
-              </Button>
-              
-              <div className="bg-[#f1f5f3] p-6 rounded-3xl border border-[#d1dbd6] text-center">
-                <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-1">Total a Pagar</p>
-                <p className="text-4xl font-black text-[#2d5a4c]">{formatBs(totalBs)}</p>
-                <p className="text-sm font-bold text-gray-500">{totalUSD.toLocaleString('es-VE', { style: 'currency', currency: 'USD' })} USD</p>
-              </div>
-
-              <Button type="submit" disabled={cartItems.length === 0} className="w-full h-16 text-xl font-black rounded-2xl shadow-lg">
-                REGISTRAR VENTA
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </div>
-
-      {/* COLUMNA DERECHA: RECIBO */}
-      <div className="w-full lg:w-[60%] p-8 flex flex-col h-full overflow-hidden">
-        <div className="flex-1 border-2 border-dashed border-red-200 rounded-[2.5rem] p-10 bg-white shadow-sm flex flex-col overflow-hidden relative">
-          
-          <div className="text-center mb-8">
-            <h3 className="text-2xl font-black text-red-500 italic tracking-tighter uppercase">Recibo de Venta</h3>
-            <p className="text-[10px] font-mono text-gray-400 mt-1">Nro: {(saleCount + 1).toString().padStart(7, '0')}</p>
+    <>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-7xl h-[90vh] flex flex-col p-0 bg-gray-50">
+        <DialogHeader className="p-6 pb-0">
+          <div className="flex justify-between items-center">
+            <DialogTitle className="text-3xl font-black text-gray-800 tracking-tight">Nueva Venta</DialogTitle>
+            <Button onClick={() => setIsPriceCheckerOpen(true)} variant="outline" className="rounded-xl border-gray-200">
+              <DollarSign className="mr-2 h-4 w-4 text-primary" /> Consultar Precio
+            </Button>
           </div>
+        </DialogHeader>
 
-          <div className="grid grid-cols-12 font-black text-[10px] uppercase text-gray-400 border-b-2 border-gray-50 pb-4 mb-2 px-2">
-            <div className="col-span-6">Producto</div>
-            <div className="col-span-2 text-center">Cant.</div>
-            <div className="col-span-3 text-right">Subtotal</div>
-            <div className="col-span-1" />
-          </div>
-
-          <ScrollArea className="flex-1 pr-4">
-            {cartItems.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center opacity-20">
-                <p className="italic font-bold">Sin artículos...</p>
-              </div>
-            ) : (
-              cartItems.map((item: CartItem) => (
-                <div key={item.id} className="grid grid-cols-12 py-4 items-center border-b border-gray-50 group px-2">
-                  <div className="col-span-6">
-                    <p className="font-bold text-gray-800 text-sm uppercase">{item.name}</p>
-                    <p className="text-[10px] text-gray-400 font-mono">${item.price.toFixed(2)} c/u</p>
+        <div className="flex-1 flex flex-row overflow-hidden">
+            {/* Left Column: Form */}
+            <div className="w-full lg:w-2/5 p-6 flex flex-col bg-white border-r border-gray-100 h-full">
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleFormSubmit)} className="flex-1 flex flex-col min-h-0">
+                  <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+                    {/* Payment Method */}
+                    <FormField
+                      control={form.control}
+                      name="paymentMethod"
+                      render={({ field }) => (
+                        <FormItem className="space-y-3">
+                          <Label className="text-xs font-bold uppercase tracking-widest text-gray-400">Método de Pago</Label>
+                          <FormControl>
+                            <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-2 gap-3">
+                              {[
+                                { id: 'cash', label: 'Efectivo', icon: DollarSign },
+                                { id: 'card', label: 'Tarjeta', icon: CreditCard },
+                                { id: 'transfer', label: 'Pago Móvil', icon: Landmark },
+                                { id: 'other', label: 'Otro', icon: Plus },
+                              ].map((m) => (
+                                <div key={m.id}>
+                                  <RadioGroupItem value={m.id} id={`pay-${m.id}`} className="sr-only" />
+                                  <Label
+                                    htmlFor={`pay-${m.id}`}
+                                    className={cn(
+                                      "flex items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all h-14",
+                                      field.value === m.id ? "bg-primary border-primary text-white shadow-md scale-[1.02]" : "border-gray-100 bg-white hover:bg-gray-50 text-gray-500"
+                                    )}
+                                  >
+                                    <m.icon className="mr-2 h-4 w-4" />
+                                    <span className="font-bold text-sm">{m.label}</span>
+                                  </Label>
+                                </div>
+                              ))}
+                            </RadioGroup>
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    {/* Sale Date */}
+                    <FormField
+                      control={form.control}
+                      name="saleDate"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col space-y-3">
+                          <Label className="text-xs font-bold uppercase tracking-widest text-gray-400">Fecha de Registro</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button variant="outline" className="w-full h-14 justify-start font-bold rounded-xl border-gray-100 bg-white">
+                                  <CalendarIcon className="mr-3 h-5 w-5 text-primary" />
+                                  {field.value ? format(field.value, 'PPP', { locale: es }) : "Seleccionar"}
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                            </PopoverContent>
+                          </Popover>
+                        </FormItem>
+                      )}
+                    />
+                    {/* Notes */}
+                    <FormField
+                      control={form.control}
+                      name="notes"
+                      render={({ field }) => (
+                        <FormItem className="space-y-3">
+                          <Label className="text-xs font-bold uppercase tracking-widest text-gray-400">Observaciones Internas</Label>
+                          <FormControl>
+                            <Textarea placeholder="Ej: Pago pendiente..." className="min-h-[100px] bg-white border-gray-200 rounded-xl p-4 focus-visible:ring-primary" {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
                   </div>
-                  <div className="col-span-2 text-center font-black text-gray-700">{item.quantity}</div>
-                  <div className="col-span-3 text-right font-bold text-gray-800">
-                    {formatBs(item.price * item.quantity * (bcvRate || 0))}
-                  </div>
-                  <div className="col-span-1 flex justify-end">
-                    <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.id)} className="text-red-200 hover:text-red-500">
-                      <Trash2 className="h-4 w-4" />
+                  {/* Bottom section */}
+                  <div className="pt-6 mt-auto space-y-4 bg-white">
+                    <Button 
+                      type="button" 
+                      onClick={() => setIsProductSelectorOpen(true)} 
+                      className="w-full h-14 bg-black text-white hover:bg-black/80 rounded-2xl font-bold"
+                    >
+                      <Plus className="w-5 h-5 mr-2" /> AGREGAR PRODUCTOS
+                    </Button>
+                    <div className="bg-primary/10 p-6 rounded-[2rem] border border-primary/20 text-center">
+                      <p className="text-[10px] uppercase font-black text-primary/70 tracking-[0.2em] mb-1">Total a Pagar</p>
+                      <p className="text-5xl font-black text-primary tracking-tight">{totalUSD.toLocaleString('es-VE', { style: 'currency', currency: 'USD' })}</p>
+                      {bcvRate && <p className="text-md font-bold text-gray-500 mt-1">{formatBs(totalBs)}</p>}
+                    </div>
+                    <Button type="submit" disabled={cartItems.length === 0} className="w-full h-16 text-xl font-black rounded-2xl shadow-xl shadow-primary/20 active:scale-[0.98] transition-transform">
+                      REGISTRAR VENTA
                     </Button>
                   </div>
+                </form>
+              </Form>
+            </div>
+            {/* Right Column: Receipt */}
+            <div className="w-full lg:w-3/5 p-6 flex flex-col h-full overflow-hidden">
+                <div className="flex-1 border-2 border-dashed border-gray-200 rounded-[3rem] p-10 bg-white shadow-inner flex flex-col overflow-hidden relative">
+                    <div className="text-center mb-10">
+                        <h3 className="text-3xl font-black text-red-600/80 italic tracking-tighter uppercase">Recibo de Venta</h3>
+                        <div className="h-1 w-20 bg-red-100 mx-auto mt-2 rounded-full" />
+                    </div>
+                    <div className="grid grid-cols-12 font-black text-[10px] uppercase text-gray-400 border-b border-gray-100 pb-4 mb-2 px-2 tracking-widest">
+                        <div className="col-span-6">Descripción</div>
+                        <div className="col-span-2 text-center">Cant.</div>
+                        <div className="col-span-3 text-right">Subtotal</div>
+                        <div className="col-span-1" />
+                    </div>
+                    <ScrollArea className="flex-1 pr-4">
+                        {cartItems.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-gray-300 py-20">
+                            <Search className="w-16 h-16 mb-4" />
+                            <p className="font-bold text-lg">Esperando artículos...</p>
+                        </div>
+                        ) : (
+                        cartItems.map((item: CartItem) => (
+                            <div key={item.id} className="grid grid-cols-12 py-5 items-center border-b border-gray-50 group px-2 hover:bg-gray-50/50 rounded-xl transition-colors">
+                                <div className="col-span-6 pr-4">
+                                    <p className="font-bold text-gray-800 text-sm uppercase leading-tight">{item.name}</p>
+                                    <p className="text-[10px] text-gray-400 font-mono mt-1">{item.price.toLocaleString('es-VE', { style: 'currency', currency: 'USD' })} / unidad</p>
+                                </div>
+                                <div className="col-span-2 text-center font-black text-primary text-lg">{item.quantity}</div>
+                                <div className="col-span-3 text-right font-bold text-gray-800">
+                                    {(item.price * item.quantity).toLocaleString('es-VE', { style: 'currency', currency: 'USD' })}
+                                </div>
+                                <div className="col-span-1 flex justify-end">
+                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.id)} className="text-red-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100">
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        ))
+                        )}
+                    </ScrollArea>
+                    <div className="mt-auto pt-8 border-t-2 border-double border-gray-100 flex justify-between items-end">
+                        <div className="space-y-1">
+                             <p className="text-xs font-mono font-bold text-gray-400">Venta #{saleCount + 1}</p>
+                        </div>
+                        <div className="text-right">
+                             <p className="text-xs font-mono font-bold text-gray-400">{format(new Date(), 'Pp', { locale: es })}</p>
+                        </div>
+                    </div>
                 </div>
-              ))
-            )}
-          </ScrollArea>
-
-          <div className="mt-auto pt-6 border-t border-gray-100 flex justify-between items-center text-[10px] font-bold text-gray-400 italic">
-            <span>Tasa BCV: {bcvRate ? formatBs(bcvRate) : '---'}</span>
-            <span>{format(new Date(), 'Pp', { locale: es })}</span>
-          </div>
+            </div>
         </div>
-      </div>
+      </DialogContent>
+    </Dialog>
 
-      {/* MODAL SELECCION PRODUCTOS */}
-      <ProductSelectorModal
+    <ProductSelectorModal
         open={isProductSelectorOpen}
         onOpenChange={setIsProductSelectorOpen}
         products={products}
         onAddProduct={handleAddProduct}
         cartItems={cartItems}
-      />
-
-      {/* MODAL CONSULTOR PRECIO */}
-      <Dialog open={isPriceCheckerOpen} onOpenChange={setIsPriceCheckerOpen}>
-        <DialogContent className="max-w-md rounded-3xl">
-          <DialogHeader><DialogTitle>Consultar Precio</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-4">
+    />
+    
+    <Dialog open={isPriceCheckerOpen} onOpenChange={setIsPriceCheckerOpen}>
+        <DialogContent className="max-w-md rounded-[2.5rem] p-8">
+        <DialogHeader>
+            <DialogTitle className="text-2xl font-black text-center">Consultor de Precios</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-6 py-4">
             <Select onValueChange={setSelectedPriceCheckerProductId}>
-              <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Producto..." /></SelectTrigger>
-              <SelectContent>
-                {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-              </SelectContent>
+            <SelectTrigger className="h-14 rounded-2xl border-gray-100 bg-gray-50 font-bold">
+                <SelectValue placeholder="Busca un producto..." />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+                {products.map(p => (
+                <SelectItem key={p.id} value={p.id} className="font-bold uppercase text-xs py-3 italic">
+                    {p.name}
+                </SelectItem>
+                ))}
+            </SelectContent>
             </Select>
             {selectedPriceCheckerProduct && (
-              <Card className="bg-primary/5 border-none rounded-2xl p-6 text-center">
-                <p className="text-4xl font-black text-primary">{formatBs(selectedPriceCheckerProduct.price * (bcvRate || 0))}</p>
-                <p className="text-gray-500 font-bold mt-2">${selectedPriceCheckerProduct.price.toFixed(2)} USD</p>
-              </Card>
+            <Card className="bg-primary border-none rounded-[2rem] p-8 text-center shadow-xl shadow-primary/20">
+                <p className="text-[10px] font-black text-white/60 uppercase tracking-[0.2em] mb-2">Precio Actualizado</p>
+                <p className="text-5xl font-black text-white">{selectedPriceCheckerProduct.price.toLocaleString('es-VE', { style: 'currency', currency: 'USD' })}</p>
+                {bcvRate && <p className="text-xl font-bold text-white/80 mt-2">{formatBs(selectedPriceCheckerProduct.price * bcvRate)}</p>}
+            </Card>
             )}
-          </div>
+        </div>
         </DialogContent>
-      </Dialog>
-    </div>
+    </Dialog>
+    </>
   )
 }
 
-// Sub-componente con tipos corregidos
-function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddProduct }: ProductSelectorModalProps) {
+function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddProduct }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  products: Product[];
+  cartItems: CartItem[];
+  onAddProduct: (product: Product, quantity: number) => void;
+}) {
   const [searchTerm, setSearchTerm] = useState('')
   const [qty, setQty] = useState<{[key: string]: number}>({})
   
   const cartIds = new Set(cartItems.map(i => i.id))
-  const filtered = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) && !cartIds.has(p.id) && p.stock > 0)
+  const filtered = products.filter(p => 
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
+    !cartIds.has(p.id) && 
+    p.stock > 0 &&
+    p.status === 'active'
+  )
+
+  useEffect(() => {
+    if (!open) {
+      setSearchTerm('')
+      setQty({})
+    }
+  }, [open])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[80vh] flex flex-col p-0 overflow-hidden rounded-[2rem]">
-        <div className="p-8 border-b">
-          <h2 className="text-2xl font-black mb-4">Añadir al Recibo</h2>
+      <DialogContent className="max-w-3xl h-[85vh] flex flex-col p-0 overflow-hidden rounded-[3rem] border-none shadow-2xl">
+        <div className="p-10 border-b border-gray-50 bg-white">
+          <DialogTitle className="text-3xl font-black mb-6 tracking-tight">Inventario de Tienda</DialogTitle>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input placeholder="Buscar..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 h-12 rounded-xl" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300" />
+            <Input 
+              placeholder="Buscar producto por nombre..." 
+              value={searchTerm} 
+              onChange={e => setSearchTerm(e.target.value)} 
+              className="pl-12 h-14 rounded-2xl bg-gray-50 border-none text-lg font-medium placeholder:text-gray-300" 
+            />
           </div>
         </div>
-        <ScrollArea className="flex-1 p-8">
-          <div className="space-y-3">
-            {filtered.map(p => (
-              <div key={p.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-all">
-                <div>
-                  <p className="font-bold text-gray-800 uppercase text-sm">{p.name}</p>
-                   <p className="text-xs text-primary font-bold">
-                        Stock: {p.stock} | Precio: {new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(p.price)}
-                    </p>
+        <ScrollArea className="flex-1 p-10 bg-gray-50/30">
+          <div className="grid grid-cols-1 gap-4">
+            {filtered.length === 0 ? (
+              <p className="text-center py-20 text-gray-400 font-bold italic">No se encontraron productos disponibles...</p>
+            ) : (
+              filtered.map(p => (
+                <div key={p.id} className="flex items-center justify-between p-6 bg-white rounded-3xl border border-gray-100 hover:shadow-md transition-all group">
+                  <div>
+                    <p className="font-black text-gray-800 uppercase text-sm tracking-tight">{p.name}</p>
+                    <p className="text-xs text-primary font-black mt-1">Disponible: {p.stock} unids.</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col items-center">
+                       <Label className="text-[10px] font-black text-gray-300 mb-1 uppercase">Cant.</Label>
+                       <Input 
+                        type="number" 
+                        min="1" 
+                        max={p.stock}
+                        className="w-20 h-12 text-center font-black rounded-xl border-gray-100 bg-gray-50" 
+                        defaultValue="1" 
+                        onChange={e => setQty({...qty, [p.id]: parseInt(e.target.value)})} 
+                      />
+                    </div>
+                    <Button onClick={() => onAddProduct(p, qty[p.id] || 1)} className="rounded-xl h-12 px-6 font-black shadow-lg shadow-primary/10">
+                      AÑADIR
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Input type="number" min="1" max={p.stock} className="w-20 h-10 text-center" defaultValue="1" onChange={e => setQty({...qty, [p.id]: parseInt(e.target.value)})} />
-                  <Button onClick={() => onAddProduct(p, qty[p.id] || 1)} size="sm" className="rounded-lg">Añadir</Button>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </ScrollArea>
       </DialogContent>
