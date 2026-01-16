@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Plus, Search, ShoppingCart, DollarSign, Trash2, FileText } from 'lucide-react'
+import { Plus, Search, ShoppingCart, DollarSign, Trash2, FileText, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -72,6 +72,7 @@ export default function VentasPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('today')
   const [selectedPriceCheckerProduct, setSelectedPriceCheckerProduct] = useState<Product | null>(null)
+  const [, setRefreshTrigger] = useState(0)
 
 
   const salesCollection = useMemoFirebase(() => {
@@ -152,6 +153,15 @@ export default function VentasPage() {
   const handleDelete = (sale: Sale) => {
     setDeletingSale(sale)
   }
+  
+  const handleRefresh = () => {
+    setRefreshTrigger(t => t + 1);
+    toast({
+        title: 'Vista actualizada',
+        description: 'Los datos han sido sincronizados.',
+    });
+  };
+
 
   const confirmDelete = async () => {
     if (deletingSale && firestore) {
@@ -275,7 +285,11 @@ export default function VentasPage() {
             <h1 className="text-3xl md:text-4xl font-bold text-foreground">Ventas</h1>
             <p className="text-muted-foreground mt-2">Registra y gestiona las ventas diarias</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={handleRefresh} variant="outline" className="w-full sm:w-auto border-border text-foreground hover:bg-accent hover:text-accent-foreground shadow-lg">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Actualizar
+            </Button>
             <Button onClick={() => setIsPriceCheckerOpen(true)} variant="outline" className="w-full sm:w-auto border-primary text-primary hover:bg-primary hover:text-primary-foreground shadow-lg">
               <DollarSign className="mr-2" />
               Consultar Precio
