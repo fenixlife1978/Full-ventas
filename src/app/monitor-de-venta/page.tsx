@@ -81,7 +81,7 @@ export default function MonitorDeVentaPage() {
 
       toast({
         title: 'Venta Registrada',
-        description: `La venta Nº${values.saleNumber.toString().padStart(7, '0')} se ha registrado exitosamente.`,
+        description: `La venta se ha registrado exitosamente.`,
       })
       // The form should reset itself after a successful submission. This will be handled inside SaleForm.
 

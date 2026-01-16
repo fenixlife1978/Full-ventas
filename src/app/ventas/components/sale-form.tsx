@@ -120,7 +120,7 @@ export function SaleForm({
         })
       );
     }
-  }, [products, cartItems]);
+  }, [products]);
 
 
   const totalUSD = useMemo(() => {
