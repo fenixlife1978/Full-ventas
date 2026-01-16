@@ -10,12 +10,9 @@ import {
   FormField,
   FormItem,
 } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   CalendarIcon,
@@ -25,7 +22,6 @@ import {
   DollarSign,
   CreditCard,
   Landmark,
-  ShoppingBag
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -36,12 +32,15 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/hooks/use-toast'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+
 
 const formSchema = z.object({
   saleDate: z.date({
     required_error: 'La fecha es requerida.',
   }),
   paymentMethod: z.enum(['cash', 'card', 'transfer', 'other']),
+  notes: z.string().optional(),
 })
 
 export type SaleFormValues = z.infer<typeof formSchema>
@@ -53,7 +52,7 @@ export interface CartItem extends Product {
 interface SaleFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (values: SaleFormValues & { items: CartItem[], totalAmount: number, saleNumber: number }) => void
+  onSubmit: (values: SaleFormValues & { items: CartItem[], totalAmount: number, saleNumber: number, notes?: string }) => void
   products: Product[]
   isLoadingProducts: boolean
   bcvRate: number | null
@@ -84,12 +83,13 @@ export function SaleForm({
     defaultValues: {
       saleDate: new Date(),
       paymentMethod: 'cash',
+      notes: '',
     },
   })
 
   useEffect(() => {
     if(open) {
-      form.reset({ saleDate: new Date(), paymentMethod: 'cash' });
+      form.reset({ saleDate: new Date(), paymentMethod: 'cash', notes: '' });
       setCartItems([]);
     }
   }, [open, form])
@@ -116,171 +116,122 @@ export function SaleForm({
 
   const handleFormSubmit = (values: SaleFormValues) => {
     if (cartItems.length === 0) {
-      toast({ variant: 'destructive', title: 'Venta Vacía' });
+      toast({ variant: 'destructive', title: 'Venta Vacía', description: 'Agrega al menos un producto para registrar la venta.' });
       return;
     }
     onSubmit({ ...values, items: cartItems, totalAmount: totalUSD, saleNumber: saleCount + 1 })
   }
 
-  const formatBs = (value: number) => `Bs. ${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(value)}`
-  const formatUSD = (value: number) => new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(value)
+  const formatBs = (value: number) => `Bs. ${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)}`
+  const formatUSD = (value: number) => `USD ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)}`
 
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-[1400px] h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl rounded-[3rem]">
+      <DialogContent className="max-w-7xl w-full p-0 overflow-hidden">
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="h-full flex flex-col">
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="grid grid-cols-1 lg:grid-cols-2">
+            
+            {/* LEFT PANE */}
+            <div className="p-8 space-y-6 flex flex-col bg-white">
+              <div className="flex justify-between items-start">
+                <h1 className="text-4xl font-extrabold text-foreground">Nueva<br/>Venta</h1>
+              </div>
+
+              <FormField
+                control={form.control}
+                name="paymentMethod"
+                render={({ field }) => (
+                  <FormItem>
+                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-wrap gap-2">
+                      {paymentMethods.map(({ id, label, icon: Icon }) => (
+                        <div key={id}>
+                          <RadioGroupItem value={id} id={`pay-${id}`} className="sr-only" />
+                          <Label htmlFor={`pay-${id}`} className={cn(
+                            "flex items-center justify-center p-3 rounded-lg border-2 cursor-pointer transition-all min-w-[120px]",
+                            field.value === id
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-transparent text-muted-foreground border-gray-200 hover:border-primary/50"
+                          )}>
+                            <Icon className="mr-2 h-4 w-4" />
+                            <span className="text-sm font-semibold">{label}</span>
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  </FormItem>
+                )}
+              />
+
+              <div className="border-t border-primary/10" />
+              
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Fecha de Registro</p>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-100/80 border border-gray-200/80">
+                    <CalendarIcon className="h-5 w-5 text-primary"/>
+                    <span className="font-bold text-foreground">{format(form.getValues('saleDate'), "d 'de' MMMM 'de' yyyy", { locale: es })}</span>
+                </div>
+              </div>
+              
+              <Button type="button" onClick={() => setIsProductSelectorOpen(true)} className="w-full h-14 bg-gray-900 text-white hover:bg-black rounded-lg font-bold text-lg">
+                <Plus className="mr-2"/>
+                AGREGAR PRODUCTOS
+              </Button>
+              
+              <div className="flex-grow"></div> {/* Spacer */}
+
+              <div className="bg-primary/5 p-6 rounded-2xl text-center border-2 border-primary/10">
+                <p className="text-sm font-bold text-primary/80 uppercase tracking-widest">Total a Pagar</p>
+                <p className="text-5xl font-black text-primary my-1">{formatBs(totalBs)}</p>
+                <p className="text-md font-bold text-primary/60 uppercase">{formatUSD(totalUSD)}</p>
+              </div>
+
+              <Button type="submit" className="w-full h-16 bg-primary hover:bg-primary/90 text-white rounded-lg font-bold text-lg">
+                REGISTRAR VENTA
+              </Button>
+            </div>
+
+            {/* RIGHT PANE */}
+            <div className="bg-gray-50/70 p-8 flex flex-col">
+              <div className="flex-1 border-2 border-dashed border-gray-200 rounded-3xl p-8 flex flex-col bg-white shadow-inner">
+                <div className="text-center">
+                  <h2 className="text-2xl font-black text-destructive uppercase tracking-wider">Monitor de Venta</h2>
+                  <div className="w-12 h-1 bg-destructive/20 mx-auto mt-2 rounded-full"/>
+                </div>
+
+                <div className="grid grid-cols-12 font-bold text-xs uppercase text-gray-400 border-b-2 border-gray-100 pb-3 my-6">
+                  <div className="col-span-6">Descripción</div>
+                  <div className="col-span-3 text-center">Cant.</div>
+                  <div className="col-span-3 text-right">Subtotal</div>
+                </div>
+
+                <ScrollArea className="flex-1 pr-4 -mr-4">
+                  {cartItems.length === 0 ? (
+                    <div className="h-full flex items-center justify-center flex-col text-gray-300">
+                       <div className="w-16 h-16 border-4 border-gray-200 border-t-transparent rounded-full animate-spin mb-4"/>
+                       <p className="text-sm font-semibold">Esperando productos...</p>
+                    </div>
+                  ) : (
+                    cartItems.map((item) => {
+                       const subtotalBs = bcvRate ? (item.price * item.quantity) * bcvRate : 0;
+                       return (
+                          <div key={item.id} className="grid grid-cols-12 py-4 items-center text-foreground border-b border-gray-100/80">
+                              <div className="col-span-6 font-semibold pr-2">{item.name}</div>
+                              <div className="col-span-3 text-center font-semibold text-primary">{item.quantity}</div>
+                              <div className="col-span-3 text-right font-bold">{formatBs(subtotalBs)}</div>
+                          </div>
+                       )
+                    })
+                  )}
+                </ScrollArea>
                 
-                {/* Header */}
-                <div className="px-10 py-6 bg-[#F8F9F8] border-b border-gray-100 flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                        <div className="bg-[#107C41] p-3 rounded-2xl">
-                            <ShoppingBag className="text-white h-6 w-6" />
-                        </div>
-                        <h2 className="text-3xl font-black text-[#1A1C1E] tracking-tight">Nueva Venta</h2>
-                    </div>
-                    
-                    <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2 text-gray-500 font-bold bg-white px-4 py-2 rounded-xl border border-gray-100">
-                            <CalendarIcon className="h-4 w-4 text-[#107C41]" />
-                            <span className="text-sm">{format(new Date(), "d 'de' MMMM", { locale: es })}</span>
-                        </div>
-                        <FormField
-                            control={form.control}
-                            name="paymentMethod"
-                            render={({ field }) => (
-                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-2">
-                                {paymentMethods.map(({ id, label, icon: Icon }) => (
-                                    <div key={id}>
-                                        <RadioGroupItem value={id} id={`pay-${id}`} className="sr-only" />
-                                        <Label
-                                            htmlFor={`pay-${id}`}
-                                            className={cn(
-                                                "flex items-center px-4 py-2 rounded-xl border transition-all h-10 text-xs font-black cursor-pointer uppercase tracking-wider",
-                                                field.value === id ? "bg-[#107C41] border-[#107C41] text-white shadow-lg shadow-[#107C41]/20" : "border-gray-200 bg-white text-gray-400 hover:bg-gray-50"
-                                            )}
-                                        >
-                                            <Icon className="mr-2 h-3.5 w-3.5" /> {label}
-                                        </Label>
-                                    </div>
-                                ))}
-                            </RadioGroup>
-                            )}
-                        />
-                    </div>
+                <div className="flex justify-between items-center text-xs text-gray-400 font-semibold pt-4 mt-auto">
+                    <span>Venta #{saleCount + 1}</span>
+                    <span>{format(new Date(), "dd/MM/yyyy, HH:mm")}</span>
                 </div>
-
-                <div className="flex-1 flex flex-row overflow-hidden bg-white">
-                    
-                    {/* COLUMNA IZQUIERDA: BUSQUEDA Y TOTALES */}
-                    <div className="w-[450px] bg-[#F8F9F8] p-8 flex flex-col border-r border-gray-100">
-                        <div className="space-y-8">
-                            <section>
-                                <Label className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2 mb-3 block">Acciones</Label>
-                                <Button 
-                                    type="button" 
-                                    onClick={() => setIsProductSelectorOpen(true)} 
-                                    className="w-full h-20 bg-black text-white hover:bg-black/90 rounded-[2rem] font-black text-xl shadow-xl transition-transform active:scale-95"
-                                >
-                                    <Search className="w-6 h-6 mr-3" /> BUSCAR PRODUCTOS
-                                </Button>
-                            </section>
-
-                            <section className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm text-center space-y-2">
-                                <p className="text-[11px] uppercase font-black text-[#107C41] tracking-[0.2em]">TOTAL A PAGAR</p>
-                                <p className="text-6xl font-black text-[#107C41] tracking-tighter">
-                                    {formatBs(totalBs)}
-                                </p>
-                                <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-400">
-                                    <span>{formatUSD(totalUSD)}</span>
-                                </div>
-                            </section>
-
-                            <div className="bg-[#E7F3ED] px-6 py-4 rounded-2xl flex justify-between items-center">
-                                <span className="text-xs font-black text-[#107C41]/70 uppercase tracking-widest">Tasa BCV</span>
-                                <span className="font-black text-[#107C41]">{bcvRate ? `Bs. ${bcvRate.toFixed(2)}` : '---'}</span>
-                            </div>
-                        </div>
-
-                        <div className="mt-auto pt-8">
-                            <Button type="submit" className="w-full h-24 text-2xl font-black rounded-[2.5rem] bg-[#8DBDA2] hover:bg-[#7CAF93] text-white shadow-2xl shadow-[#8DBDA2]/30 transition-all active:scale-95">
-                                REGISTRAR VENTA
-                            </Button>
-                        </div>
-                    </div>
-
-                    {/* COLUMNA DERECHA: MONITOR DE VENTA (RECIBO) */}
-                    <div className="flex-1 p-10 flex flex-col overflow-hidden">
-                        <div className="flex-1 border-4 border-dashed border-gray-100 rounded-[4rem] p-10 flex flex-col overflow-hidden">
-                            
-                            <div className="flex justify-between items-end mb-10 px-4">
-                                <div>
-                                    <h3 className="text-4xl font-black text-[#E94E4E] italic tracking-tighter uppercase">RECIBO</h3>
-                                    <p className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-widest">Venta #{saleCount + 1}</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-xs font-black text-gray-300 uppercase tracking-widest">Artículos</p>
-                                    <p className="text-2xl font-black text-gray-800">{cartItems.length}</p>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-12 font-black text-[10px] uppercase text-gray-400 border-b border-gray-100 pb-4 mb-2 px-4 tracking-[0.2em]">
-                                <div className="col-span-5">Descripción</div>
-                                <div className="col-span-2 text-center">Unidad</div>
-                                <div className="col-span-2 text-center">Cant.</div>
-                                <div className="col-span-3 text-right">Sub-total</div>
-                            </div>
-
-                            <ScrollArea className="flex-1 px-4">
-                                {cartItems.length === 0 ? (
-                                    <div className="h-full flex flex-col items-center justify-center text-gray-200 py-32 opacity-40">
-                                        <div className="w-20 h-20 border-4 border-dashed border-gray-200 rounded-full flex items-center justify-center mb-4">
-                                            <Plus className="w-8 h-8" />
-                                        </div>
-                                        <p className="font-bold text-lg uppercase tracking-widest">Esperando productos...</p>
-                                    </div>
-                                ) : (
-                                    cartItems.map((item) => {
-                                        const subtotalUSD = item.price * item.quantity;
-                                        const subtotalBs = bcvRate ? subtotalUSD * bcvRate : 0;
-                                        return (
-                                            <div key={item.id} className="grid grid-cols-12 py-5 items-center border-b border-gray-50 group transition-all hover:translate-x-1">
-                                                <div className="col-span-5">
-                                                    <p className="font-black text-[#1A1C1E] text-sm uppercase leading-tight">{item.name}</p>
-                                                    <p className="text-[10px] text-gray-400 font-bold">{formatUSD(item.price)} x {item.unit}</p>
-                                                </div>
-                                                <div className="col-span-2 text-center text-[10px] font-black text-gray-400 uppercase">
-                                                    {item.unit}
-                                                </div>
-                                                <div className="col-span-2 flex justify-center">
-                                                    <span className="bg-gray-100 px-3 py-1 rounded-lg font-black text-[#107C41] text-sm">
-                                                        {item.quantity}
-                                                    </span>
-                                                </div>
-                                                <div className="col-span-3 text-right flex items-center justify-end gap-3">
-                                                    <div className="text-right">
-                                                        <p className="font-black text-[#1A1C1E] text-base leading-none">{formatBs(subtotalBs)}</p>
-                                                        <p className="text-[10px] text-gray-400 font-bold">{formatUSD(subtotalUSD)}</p>
-                                                    </div>
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="icon" 
-                                                        onClick={() => handleRemoveItem(item.id)} 
-                                                        className="text-red-200 hover:text-red-500 hover:bg-red-50 rounded-full h-8 w-8 opacity-0 group-hover:opacity-100 transition-all"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        )
-                                    })
-                                )}
-                            </ScrollArea>
-                        </div>
-                    </div>
-                </div>
-            </form>
+              </div>
+            </div>
+          </form>
         </Form>
       </DialogContent>
     </Dialog>
@@ -291,40 +242,36 @@ export function SaleForm({
         products={products}
         onAddProduct={handleAddProduct}
         cartItems={cartItems}
-        bcvRate={bcvRate}
     />
     </>
   )
 }
 
-/** * Subcomponentes para mantener la limpieza 
- */
 
-function ProductListItem({ product, bcvRate, onAddProduct }: {
-  product: Product; bcvRate: number | null; onAddProduct: (product: Product, quantity: number) => void;
+function ProductListItem({ product, onAddProduct }: {
+  product: Product; onAddProduct: (product: Product, quantity: number) => void;
 }) {
   const [value, setValue] = useState('1');
-  const isByWeight = product.unit === 'kg' || product.unit === 'litro';
   
   return (
-    <div className="flex items-center justify-between p-6 bg-white rounded-[2rem] border border-gray-100 hover:border-[#107C41]/30 transition-all">
+    <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 hover:border-primary/30 transition-all">
       <div className="flex-1">
-        <p className="font-black text-[#1A1C1E] uppercase text-sm tracking-tight">{product.name}</p>
+        <p className="font-bold text-foreground uppercase text-sm tracking-tight">{product.name}</p>
         <div className="flex gap-3 mt-1">
             <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-black text-gray-500 uppercase">{product.unit}</span>
-            <span className="text-[10px] font-black text-[#107C41]">Stock: {product.stock}</span>
+            <span className="text-[10px] font-black text-primary">Stock: {product.stock}</span>
         </div>
       </div>
       <div className="flex items-center gap-3">
         <Input 
             type="number" 
-            className="w-20 h-11 text-center font-black rounded-xl bg-gray-50 border-none" 
+            className="w-20 h-11 text-center font-bold rounded-xl bg-gray-100 border-gray-200" 
             value={value} 
             onChange={(e) => setValue(e.target.value)} 
         />
         <Button 
-            onClick={() => { onAddProduct(product, parseFloat(value)); setValue('1'); }} 
-            className="h-11 px-6 rounded-xl font-black bg-[#107C41] hover:bg-[#0D6334]"
+            onClick={() => { onAddProduct(product, parseFloat(value) || 0); setValue('1'); }} 
+            className="h-11 px-6 rounded-xl font-bold bg-primary hover:bg-primary/90"
         >
             AÑADIR
         </Button>
@@ -333,31 +280,31 @@ function ProductListItem({ product, bcvRate, onAddProduct }: {
   );
 }
 
-function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddProduct, bcvRate }: {
-  open: boolean; onOpenChange: (open: boolean) => void; products: Product[]; cartItems: CartItem[]; onAddProduct: (product: Product, quantity: number) => void; bcvRate: number | null;
+function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddProduct }: {
+  open: boolean; onOpenChange: (open: boolean) => void; products: Product[]; cartItems: CartItem[]; onAddProduct: (product: Product, quantity: number) => void;
 }) {
   const [searchTerm, setSearchTerm] = useState('')
   const cartIds = new Set(cartItems.map(i => i.id))
-  const filtered = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) && !cartIds.has(p.id) && p.status === 'active')
+  const filtered = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) && !cartIds.has(p.id) && p.status === 'active' && p.stock > 0)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0 overflow-hidden rounded-[3.5rem] border-none bg-[#F8F9F8]">
-        <div className="p-10 pb-6 bg-white border-b border-gray-100">
-          <DialogTitle className="text-3xl font-black mb-6 tracking-tight">Buscar Artículos</DialogTitle>
+      <DialogContent className="max-w-2xl h-[70vh] flex flex-col p-0 overflow-hidden rounded-3xl border-none bg-gray-50">
+        <div className="p-8 pb-6">
+          <h2 className="text-2xl font-bold mb-4 tracking-tight">Buscar Artículos</h2>
           <div className="relative">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <Input 
-                placeholder="Nombre del producto..." 
+                placeholder="Escribe el nombre del producto..." 
                 value={searchTerm} 
                 onChange={e => setSearchTerm(e.target.value)} 
-                className="pl-14 h-14 rounded-2xl bg-[#F8F9F8] border-none text-lg font-bold" 
+                className="pl-12 h-12 rounded-xl bg-white border-gray-200 text-md font-medium" 
             />
           </div>
         </div>
-        <ScrollArea className="flex-1 p-8">
-          <div className="grid gap-4">
-            {filtered.map(p => <ProductListItem key={p.id} product={p} bcvRate={bcvRate} onAddProduct={onAddProduct} />)}
+        <ScrollArea className="flex-1 px-8">
+          <div className="grid gap-3 pb-8">
+            {filtered.map(p => <ProductListItem key={p.id} product={p} onAddProduct={onAddProduct} />)}
           </div>
         </ScrollArea>
       </DialogContent>
