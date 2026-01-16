@@ -71,7 +71,7 @@ export default function VentasPage() {
 
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('today')
-  const [selectedPriceCheckerProduct, setSelectedPriceCheckerProduct] = useState<Product | null>(null)
+  const [selectedPriceCheckerProductId, setSelectedPriceCheckerProductId] = useState<string | null>(null)
 
 
   const salesCollection = useMemoFirebase(() => {
@@ -93,14 +93,10 @@ export default function VentasPage() {
   const { data: products, isLoading: isLoadingProducts } = useCollection<Product>(productsCollection)
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Setting>(settingsDoc)
 
-  useEffect(() => {
-    if (selectedPriceCheckerProduct && products) {
-      const updatedProduct = products.find(p => p.id === selectedPriceCheckerProduct.id);
-      if (updatedProduct && JSON.stringify(updatedProduct) !== JSON.stringify(selectedPriceCheckerProduct)) {
-        setSelectedPriceCheckerProduct(updatedProduct);
-      }
-    }
-  }, [products, selectedPriceCheckerProduct]);
+  const selectedPriceCheckerProduct = useMemo(() => {
+      if (!selectedPriceCheckerProductId || !products) return null;
+      return products.find(p => p.id === selectedPriceCheckerProductId) || null;
+  }, [selectedPriceCheckerProductId, products]);
 
   const bcvRate = useMemo(() => settings?.bcvRate || null, [settings])
 
@@ -451,7 +447,12 @@ export default function VentasPage() {
           </AlertDialogContent>
         </AlertDialog>
 
-        <Dialog open={isPriceCheckerOpen} onOpenChange={setIsPriceCheckerOpen}>
+        <Dialog open={isPriceCheckerOpen} onOpenChange={(isOpen) => {
+          setIsPriceCheckerOpen(isOpen);
+          if (!isOpen) {
+            setSelectedPriceCheckerProductId(null);
+          }
+        }}>
             <DialogContent className="max-w-md bg-background border-border/50">
                 <DialogHeader>
                     <DialogTitle className="text-2xl text-foreground">Consultor de Precios</DialogTitle>
@@ -464,9 +465,9 @@ export default function VentasPage() {
                      <div className="grid grid-cols-1 items-center gap-4">
                         <label className="text-foreground font-semibold">Producto</label>
                         <Select 
+                          value={selectedPriceCheckerProductId || ''}
                           onValueChange={(productId) => {
-                            const product = products?.find(p => p.id === productId)
-                            setSelectedPriceCheckerProduct(product || null)
+                            setSelectedPriceCheckerProductId(productId)
                           }}
                           disabled={isLoadingProducts}
                         >
