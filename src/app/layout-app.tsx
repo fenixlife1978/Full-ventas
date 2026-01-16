@@ -85,28 +85,46 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
                 >
                   <defs>
                     <linearGradient id="logo-gold" x1="0.5" y1="0" x2="0.5" y2="1">
-                      <stop offset="0" stopColor="#f4d03f" />
-                      <stop offset="1" stopColor="#b5830d" />
+                        <stop offset="0" stopColor="#f4d03f" />
+                        <stop offset="1" stopColor="#b5830d" />
                     </linearGradient>
-                    <linearGradient id="logo-green" x1="0.5" y1="0" x2="0.5" y2="1">
-                      <stop offset="0" stopColor="#1dd1a1" />
-                      <stop offset="1" stopColor="#108967" />
+                    <linearGradient id="shield-gradient" x1="0.5" y1="0" x2="0.5" y2="1">
+                        <stop offset="0" stopColor="#1faa8d" />
+                        <stop offset="1" stopColor="#226482" />
                     </linearGradient>
                   </defs>
+
                   <path
                     d="M32 2C52 8 62 26 62 38 62 52 48 62 32 62 16 62 2 52 2 38 2 26 12 8 32 2z"
                     stroke="url(#logo-gold)"
                     strokeWidth="4"
                   />
+
                   <path
                     d="M32 6C49 12 58 27 58 38c0 12-12 20-26 20S6 50 6 38C6 27 15 12 32 6z"
-                    fill="url(#logo-green)"
+                    fill="url(#shield-gradient)"
                   />
-                  <path d="M16 48l3-18h31l-4.5 13H19" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  <circle cx="22" cy="53" r="3" fill="#fff" />
-                  <circle cx="43" cy="53" r="3" fill="#fff" />
-                  <path d="M16 30l-3-9M22 42v-8m8 8v-12m8 12v-16M24 30l12-10 12 4M42 21l4-5-5-2" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  <text x="32.5" y="56" fill="#f4d03f" fontSize="10" fontWeight="bold" textAnchor="middle">$</text>
+
+                  <g stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" transform="translate(0, -2)">
+                    {/* Cart */}
+                    <path d="M14 24h-4l-3-4h6l4 18h26l4-14H19"/>
+                    {/* Wheels */}
+                    <circle cx="23" cy="46" r="3" fill="#fff" stroke="none" />
+                    <circle cx="40" cy="46" r="3" fill="#fff" stroke="none" />
+
+                    {/* Graph */}
+                    <g strokeWidth="3.5">
+                        <path d="M26 42V32" />
+                        <path d="M31 42V26" />
+                        <path d="M36 42V34" />
+                        <path d="M41 42V22" />
+                        
+                        <path d="M26 32L31 26L36 34L41 22L47 16" />
+                        <path d="M44 15L47 16L46 19" />
+                    </g>
+                  </g>
+
+                  <text x="32" y="57" fill="url(#logo-gold)" fontSize="16" fontWeight="bold" textAnchor="middle" stroke="#a1740b" strokeWidth="0.5">$</text>
                 </svg>
               </div>
               <h1 className="text-lg font-black text-white tracking-tighter uppercase leading-none">
