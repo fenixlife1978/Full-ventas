@@ -1,7 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import {
@@ -28,14 +28,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { type Product } from '../page'
-import { useEffect, useCallback } from 'react'
+import { useEffect } from 'react'
 
 const formSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido.'),
   description: z.string().optional(),
   category: z.string().optional(),
   price: z.coerce.number().min(0, 'El precio no puede ser negativo.'),
-  cost: z.coerce.number().optional(),
+  cost: z.coerce.number().min(0, 'El costo no puede ser negativo.').optional(),
   profitMargin: z.coerce.number().optional(),
   stock: z.coerce.number().int('El stock debe ser un número entero.'),
   minStock: z.coerce.number().int('El stock mínimo debe ser un número entero.').optional(),
@@ -64,7 +64,6 @@ const productCategories = [
   "Otros",
 ];
 
-
 export function ProductForm({
   open,
   onOpenChange,
@@ -88,56 +87,60 @@ export function ProductForm({
     },
   })
 
-  const cost = form.watch('cost');
-  const profitMargin = form.watch('profitMargin');
+  // Observamos los cambios en costo y ganancia en tiempo real
+  const watchedCost = useWatch({ control: form.control, name: 'cost' });
+  const watchedProfit = useWatch({ control: form.control, name: 'profitMargin' });
 
-  const calculatePrice = useCallback(() => {
-    const costValue = form.getValues('cost');
-    const profitMarginValue = form.getValues('profitMargin');
-    
-    if (typeof costValue === 'number' && typeof profitMarginValue === 'number') {
-      const newPrice = costValue * (1 + profitMarginValue / 100);
-      form.setValue('price', parseFloat(newPrice.toFixed(2)), { shouldValidate: true });
-    }
-  }, [form]);
-
-
+  // Efecto para calcular el precio de venta inmediatamente
   useEffect(() => {
-    if (product) {
-      form.reset({
-        ...product,
-        name: product.name || '',
-        description: product.description || '',
-        category: product.category || '',
-        price: product.price || 0,
-        cost: product.cost || 0,
-        profitMargin: product.profitMargin || 0,
-        stock: product.stock || 0,
-        minStock: product.minStock || 0,
-        unit: product.unit || 'unidad',
-        supplier: product.supplier || '',
-        status: product.status || 'active',
-      })
-    } else {
-      form.reset({
-        name: '',
-        description: '',
-        category: '',
-        price: 0,
-        cost: 0,
-        profitMargin: 0,
-        stock: 0,
-        minStock: 0,
-        unit: 'unidad',
-        supplier: '',
-        status: 'active',
-      })
+    const costValue = Number(watchedCost) || 0;
+    const profitValue = Number(watchedProfit) || 0;
+
+    if (costValue >= 0) {
+      const newPrice = costValue + (costValue * (profitValue / 100));
+      // Actualizamos el precio con 2 decimales
+      form.setValue('price', parseFloat(newPrice.toFixed(2)), { 
+        shouldValidate: true,
+        shouldDirty: true 
+      });
+    }
+  }, [watchedCost, watchedProfit, form]);
+
+  // Resetear el formulario cuando cambia el producto o se abre el modal
+  useEffect(() => {
+    if (open) {
+      if (product) {
+        form.reset({
+          ...product,
+          name: product.name || '',
+          description: product.description || '',
+          category: product.category || '',
+          price: product.price || 0,
+          cost: product.cost || 0,
+          profitMargin: product.profitMargin || 0,
+          stock: product.stock || 0,
+          minStock: product.minStock || 0,
+          unit: product.unit || 'unidad',
+          supplier: product.supplier || '',
+          status: product.status || 'active',
+        })
+      } else {
+        form.reset({
+          name: '',
+          description: '',
+          category: '',
+          price: 0,
+          cost: 0,
+          profitMargin: 0,
+          stock: 0,
+          minStock: 0,
+          unit: 'unidad',
+          supplier: '',
+          status: 'active',
+        })
+      }
     }
   }, [product, form, open])
-
-  useEffect(() => {
-    calculatePrice();
-  }, [cost, profitMargin, calculatePrice]);
 
   const handleFormSubmit = (values: ProductFormValues) => {
     onSubmit(values)
@@ -145,12 +148,12 @@ export function ProductForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-background border-border/50">
-            <DialogHeader>
-              <DialogTitle className="text-2xl text-foreground">
-                {product ? 'Editar Producto' : 'Agregar Nuevo Producto'}
-              </DialogTitle>
-            </DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-background border-border/50">
+        <DialogHeader>
+          <DialogTitle className="text-2xl text-foreground font-bold">
+            {product ? 'Editar Producto' : 'Agregar Nuevo Producto'}
+          </DialogTitle>
+        </DialogHeader>
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleFormSubmit)}
@@ -161,20 +164,20 @@ export function ProductForm({
               name="name"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
-                  <FormLabel className="text-foreground font-semibold">Nombre *</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Nombre del Producto *</FormLabel>
                   <FormControl>
-                    <Input {...field} className="border-border/50 focus:ring-ring" required />
+                    <Input {...field} className="border-border/50 focus:ring-ring" placeholder="Ej: Harina Pan" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-             <FormField
+            <FormField
               control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
-                  <FormLabel className="text-foreground font-semibold">Descripción</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Descripción Corta</FormLabel>
                   <FormControl>
                     <Input {...field} className="border-border/50 focus:ring-ring" />
                   </FormControl>
@@ -188,10 +191,10 @@ export function ProductForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-foreground font-semibold">Categoría</FormLabel>
-                   <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger className="border-border/50 focus:ring-ring">
-                        <SelectValue placeholder="Selecciona una categoría" />
+                      <SelectTrigger className="border-border/50">
+                        <SelectValue placeholder="Seleccionar..." />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -211,18 +214,18 @@ export function ProductForm({
                 <FormItem>
                   <FormLabel className="text-foreground font-semibold">Proveedor</FormLabel>
                   <FormControl>
-                     <Input {...field} className="border-border/50 focus:ring-ring" />
+                    <Input {...field} className="border-border/50 focus:ring-ring" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-             <FormField
+            <FormField
               control={form.control}
               name="cost"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-foreground font-semibold">Costo (USD)</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Costo Base (USD)</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" {...field} className="border-border/50 focus:ring-ring" />
                   </FormControl>
@@ -235,9 +238,9 @@ export function ProductForm({
               name="profitMargin"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-foreground font-semibold">% Ganancia</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">% Margen de Ganancia</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.1" placeholder="Ej: 30" {...field} className="border-border/50 focus:ring-ring" />
+                    <Input type="number" step="0.1" placeholder="Ej: 25" {...field} className="border-border/50 focus:ring-ring" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -248,34 +251,40 @@ export function ProductForm({
               name="price"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-foreground font-semibold">Precio de Venta (USD)*</FormLabel>
+                  <FormLabel className="text-primary font-bold italic">Precio Final de Venta (USD)</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" {...field} className="border-border/50 focus:ring-ring" disabled />
+                    <Input 
+                      type="number" 
+                      step="0.01" 
+                      {...field} 
+                      className="bg-muted/50 border-primary/20 font-bold text-primary" 
+                      readOnly 
+                    />
                   </FormControl>
+                  <p className="text-[10px] text-muted-foreground uppercase italic font-bold">Calculado automáticamente</p>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
             <FormField
               control={form.control}
               name="stock"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-foreground font-semibold">Stock Actual *</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Existencia Inicial *</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} className="border-border/50 focus:ring-ring" required />
+                    <Input type="number" {...field} className="border-border/50 focus:ring-ring" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-             <FormField
+            <FormField
               control={form.control}
               name="minStock"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-foreground font-semibold">Stock Mínimo</FormLabel>
+                  <FormLabel className="text-foreground font-semibold">Alerta Stock Mínimo</FormLabel>
                   <FormControl>
                     <Input type="number" {...field} className="border-border/50 focus:ring-ring" />
                   </FormControl>
@@ -287,20 +296,19 @@ export function ProductForm({
               control={form.control}
               name="unit"
               render={({ field }) => (
-                 <FormItem>
-                  <FormLabel className="text-foreground font-semibold">Unidad de Medida</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormItem>
+                  <FormLabel className="text-foreground font-semibold">Unidad</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger className="border-border/50 focus:ring-ring">
-                        <SelectValue placeholder="Selecciona una unidad" />
+                      <SelectTrigger className="border-border/50">
+                        <SelectValue />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="unidad">Unidad</SelectItem>
-                      <SelectItem value="caja">Caja</SelectItem>
-                      <SelectItem value="kg">Kilogramo</SelectItem>
-                      <SelectItem value="litro">Litro</SelectItem>
-                      <SelectItem value="metro">Metro</SelectItem>
+                      <SelectItem value="unidad">Unidad (ud)</SelectItem>
+                      <SelectItem value="caja">Caja (cj)</SelectItem>
+                      <SelectItem value="kg">Kilogramo (kg)</SelectItem>
+                      <SelectItem value="litro">Litro (lt)</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -312,32 +320,29 @@ export function ProductForm({
               name="status"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-foreground font-semibold">Estado</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <FormLabel className="text-foreground font-semibold">Disponibilidad</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger className="border-border/50 focus:ring-ring">
-                        <SelectValue placeholder="Selecciona un estado" />
+                      <SelectTrigger className="border-border/50">
+                        <SelectValue />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="active">Activo</SelectItem>
-                      <SelectItem value="inactive">Inactivo</SelectItem>
+                      <SelectItem value="active">Disponible (Activo)</SelectItem>
+                      <SelectItem value="inactive">No Disponible (Inactivo)</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <DialogFooter className="md:col-span-2 pt-4">
-               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="border-border text-foreground hover:bg-accent hover:text-accent-foreground">
-                  Cancelar
-                </Button>
-                <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                  {product ? 'Actualizar' : 'Crear'} Producto
-                </Button>
+            <DialogFooter className="md:col-span-2 pt-6 border-t border-border/20 mt-2">
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-primary hover:bg-primary/90 min-w-[120px]">
+                {product ? 'Guardar Cambios' : 'Registrar Producto'}
+              </Button>
             </DialogFooter>
           </form>
         </Form>
