@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select'
 import { type Product } from '../page'
 import { useEffect } from 'react'
-import { Package, DollarSign, Hash, Tag, Save, X, ClipboardText, Percent, AlertTriangle } from 'lucide-react'
+import { Package, DollarSign, Hash, Tag, Save, X, ClipboardType, Percent, AlertTriangle } from 'lucide-react'
 
 const formSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido.'),
@@ -216,7 +216,7 @@ export function ProductForm({
                        <InputField name="name" placeholder="Nombre del Producto" icon={Tag} />
                     </div>
                     <div className="md:col-span-2">
-                       <InputField name="description" placeholder="Descripción (Opcional)" icon={ClipboardText} />
+                       <InputField name="description" placeholder="Descripción (Opcional)" icon={ClipboardType} />
                     </div>
                     
                     <SelectField name="category" placeholder="Categoría" icon={Package} items={productCategories.map(c => ({value: c, label: c}))} />
