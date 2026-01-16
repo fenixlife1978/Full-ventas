@@ -14,7 +14,7 @@ import {
   Settings,
   LogOut,
 } from 'lucide-react';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth } from '@/firebase'; // Asegúrate que estas rutas sean correctas
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 
@@ -32,8 +32,12 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
   const router = useRouter();
 
   const handleLogout = async () => {
-    await auth.signOut();
-    router.push('/login');
+    try {
+      await auth.signOut();
+      router.push('/login');
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
   };
 
   const navigation = [
@@ -45,8 +49,8 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
     { name: 'Configuraciones', href: '/configuraciones', icon: Settings },
   ];
 
-  // Tipamos el parámetro href como string
-  const isActive = (href: string) => {
+  // Tipado explícito para evitar errores de TypeScript
+  const isActive = (href: string): boolean => {
     if (href === '/') return pathname === '/';
     return pathname.startsWith(href);
   };
@@ -67,77 +71,58 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div>
-          <div className="flex items-center justify-between h-20 px-6 border-b border-white/10">
+        <div className="flex-1 flex flex-col overflow-y-auto">
+          {/* Header del Sidebar con Logo */}
+          <div className="flex items-center justify-between h-20 px-6 border-b border-white/10 shrink-0">
             <div className="flex items-center gap-3">
-              <svg
-                role="img"
-                aria-label="Full-Ventas Logo"
-                className="w-10 h-10"
-                viewBox="0 0 64 64"
-              >
-                <defs>
-                  <linearGradient id="logo-gold" x1="0.5" y1="0" x2="0.5" y2="1">
-                    <stop offset="0" stopColor="#f4d03f" />
-                    <stop offset="1" stopColor="#b5830d" />
-                  </linearGradient>
-                  <linearGradient id="logo-green" x1="0.5" y1="0" x2="0.5" y2="1">
-                    <stop offset="0" stopColor="#1dd1a1" />
-                    <stop offset="1" stopColor="#108967" />
-                  </linearGradient>
-                </defs>
-                <path
-                  d="M32 2C52 8 62 26 62 38 62 52 48 62 32 62 16 62 2 52 2 38 2 26 12 8 32 2z"
-                  stroke="url(#logo-gold)"
-                  strokeWidth="4"
+              <div className="bg-white p-1 rounded-lg shadow-inner">
+                <svg
+                  width="32"
+                  height="32"
+                  viewBox="0 0 64 64"
                   fill="none"
-                />
-                <path
-                  d="M32 6C49 12 58 27 58 38c0 12-12 20-26 20S6 50 6 38C6 27 15 12 32 6z"
-                  fill="url(#logo-green)"
-                  stroke="none"
-                />
-                <g
-                  fill="none"
-                  stroke="#fff"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
-                  <path d="M16 48l3-18h31l-4.5 13H19" />
-                  <circle cx="22" cy="53" r="3" fill="#fff" stroke="none" />
-                  <circle cx="43" cy="53" r="3" fill="#fff" stroke="none" />
-                  <path d="M16 30l-3-9" />
-                  <path d="M22 42v-8m8 8v-12m8 12v-16" />
-                  <path d="M24 30l12-10 12 4" />
-                  <path d="M42 21l4-5-5-2" />
-                </g>
-                <text
-                  x="32.5"
-                  y="56"
-                  fill="url(#logo-gold)"
-                  stroke="#6c4e06"
-                  strokeWidth="0.5"
-                  fontSize="12"
-                  fontWeight="bold"
-                  textAnchor="middle"
-                >
-                  $
-                </text>
-              </svg>
-              <h1 className="text-xl font-black text-white tracking-tight uppercase">
-                Full-Ventas
+                  <defs>
+                    <linearGradient id="logo-gold" x1="0.5" y1="0" x2="0.5" y2="1">
+                      <stop offset="0" stopColor="#f4d03f" />
+                      <stop offset="1" stopColor="#b5830d" />
+                    </linearGradient>
+                    <linearGradient id="logo-green" x1="0.5" y1="0" x2="0.5" y2="1">
+                      <stop offset="0" stopColor="#1dd1a1" />
+                      <stop offset="1" stopColor="#108967" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d="M32 2C52 8 62 26 62 38 62 52 48 62 32 62 16 62 2 52 2 38 2 26 12 8 32 2z"
+                    stroke="url(#logo-gold)"
+                    strokeWidth="4"
+                  />
+                  <path
+                    d="M32 6C49 12 58 27 58 38c0 12-12 20-26 20S6 50 6 38C6 27 15 12 32 6z"
+                    fill="url(#logo-green)"
+                  />
+                  <path d="M16 48l3-18h31l-4.5 13H19" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="22" cy="53" r="3" fill="#fff" />
+                  <circle cx="43" cy="53" r="3" fill="#fff" />
+                  <path d="M16 30l-3-9M22 42v-8m8 8v-12m8 12v-16M24 30l12-10 12 4M42 21l4-5-5-2" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <text x="32.5" y="56" fill="#f4d03f" fontSize="10" fontWeight="bold" textAnchor="middle">$</text>
+                </svg>
+              </div>
+              <h1 className="text-lg font-black text-white tracking-tighter uppercase leading-none">
+                Full<span className="text-white/60">-</span>Ventas
               </h1>
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden text-white hover:text-white/80"
+              className="lg:hidden text-white hover:text-white/80 transition-colors"
             >
               <X className="h-6 w-6" />
             </button>
           </div>
 
-          <nav className="mt-8 px-4">
+          {/* Navegación */}
+          <nav className="mt-6 px-4 flex-1">
             {navigation.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
@@ -146,34 +131,42 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
                   key={item.name}
                   href={item.href}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center px-4 py-3.5 mb-2 rounded-xl transition-all duration-200 group ${
+                  className={`flex items-center px-4 py-3 mb-2 rounded-xl transition-all duration-200 group ${
                     active
                       ? 'bg-white text-primary font-bold shadow-lg scale-[1.02]'
                       : 'text-white/80 hover:bg-white/10 hover:text-white'
                   }`}
                 >
-                  <Icon className={`h-5 w-5 mr-3 ${active ? 'text-primary' : 'text-white/60 group-hover:text-white'}`} />
-                  <span className="text-sm">{item.name}</span>
+                  <Icon className={`h-5 w-5 mr-3 shrink-0 ${active ? 'text-primary' : 'text-white/60 group-hover:text-white'}`} />
+                  <span className="text-sm tracking-wide">{item.name}</span>
                 </Link>
               );
             })}
           </nav>
         </div>
 
-        <div className="mt-auto p-4 border-t border-white/10">
+        {/* User Profile / Logout Section */}
+        <div className="p-4 border-t border-white/10 bg-black/10">
           <div className="flex items-center gap-3">
-             <Avatar className="h-10 w-10 border-2 border-white/20">
-                <AvatarFallback className="bg-white/10 text-white font-bold">
-                    {user?.email?.charAt(0).toUpperCase()}
-                </AvatarFallback>
-             </Avatar>
-             <div className="flex-1 overflow-hidden">
-                <p className="text-sm font-semibold text-white truncate">{user?.email}</p>
-                <p className="text-xs text-white/60">Administrator</p>
-             </div>
-             <Button variant="ghost" size="icon" onClick={handleLogout} className="text-white/60 hover:bg-white/10 hover:text-white">
-                <LogOut className="h-5 w-5" />
-             </Button>
+            <Avatar className="h-10 w-10 border-2 border-white/20 shrink-0">
+              <AvatarFallback className="bg-primary-foreground text-primary font-bold">
+                {user?.email?.charAt(0).toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-white truncate">
+                {user?.email?.split('@')[0]}
+              </p>
+              <p className="text-[10px] text-white/50 uppercase font-black">Admin</p>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleLogout} 
+              className="text-white/40 hover:bg-destructive hover:text-white transition-all rounded-lg h-9 w-9"
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
           </div>
         </div>
       </aside>
@@ -188,15 +181,15 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
             >
               <Menu className="h-6 w-6" />
             </button>
-            <h2 className="text-lg font-bold text-gray-800 uppercase tracking-tighter italic">
+            <h2 className="text-sm md:text-lg font-black text-gray-800 uppercase tracking-tighter italic">
               {currentPageName || 'Panel de Control'}
             </h2>
           </div>
           
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex flex-col items-end">
-              <span className="text-[10px] font-black text-primary uppercase">Sistema Online</span>
-              <span className="text-xs text-gray-400 font-medium">Full-Ventas App</span>
+              <span className="text-[9px] font-black text-primary uppercase bg-primary/10 px-2 py-0.5 rounded">Sistema Online</span>
+              <span className="text-[10px] text-gray-400 font-medium mt-0.5">Full-Ventas PWA</span>
             </div>
           </div>
         </header>
