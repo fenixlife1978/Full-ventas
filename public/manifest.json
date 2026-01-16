@@ -1,23 +1,25 @@
 {
-  "name": "full-ventas",
-  "short_name": "full-ventas",
+  "name": "Full-Ventas",
+  "short_name": "Full-Ventas",
+  "description": "Sistema Profesional de Ventas e Inventario",
   "icons": [
     {
-      "src": "/public/icon-192x192.png",
+      "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/public/icon-512x512.png",
+      "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     }
   ],
   "theme_color": "#147B5C",
   "background_color": "#F5F2EE",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "scope": "/"
 }

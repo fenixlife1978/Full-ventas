@@ -14,11 +14,10 @@ import {
   Settings,
   LogOut,
 } from 'lucide-react';
-import { useUser, useAuth } from '@/firebase'; // Asegúrate que estas rutas sean correctas
+import { useUser, useAuth } from '@/firebase'; 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 
-// Definimos la interfaz para las props del componente
 interface LayoutAppProps {
   children: React.ReactNode;
   currentPageName?: string;
@@ -34,7 +33,7 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
   const handleLogout = async () => {
     try {
       await auth.signOut();
-      router.push('/login');
+      router.replace('/login'); // Usamos replace para evitar volver atrás
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
     }
@@ -49,14 +48,13 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
     { name: 'Configuraciones', href: '/configuraciones', icon: Settings },
   ];
 
-  // Tipado explícito para evitar errores de TypeScript
   const isActive = (href: string): boolean => {
     if (href === '/') return pathname === '/';
     return pathname.startsWith(href);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -75,7 +73,7 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
           {/* Header del Sidebar con Logo */}
           <div className="flex items-center justify-between h-20 px-6 border-b border-white/10 shrink-0">
             <div className="flex items-center gap-3">
-              <div className="bg-white p-1 rounded-lg shadow-inner">
+              <div className="bg-white p-1 rounded-lg shadow-inner flex items-center justify-center">
                 <svg
                   width="32"
                   height="32"
@@ -85,50 +83,42 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
                 >
                   <defs>
                     <linearGradient id="logo-gold" x1="0.5" y1="0" x2="0.5" y2="1">
-                        <stop offset="0" stopColor="#f4d03f" />
-                        <stop offset="1" stopColor="#b5830d" />
+                      <stop offset="0" stopColor="#f4d03f" />
+                      <stop offset="1" stopColor="#b5830d" />
                     </linearGradient>
                     <linearGradient id="shield-gradient" x1="0.5" y1="0" x2="0.5" y2="1">
-                        <stop offset="0" stopColor="#1faa8d" />
-                        <stop offset="1" stopColor="#226482" />
+                      <stop offset="0" stopColor="#1faa8d" />
+                      <stop offset="1" stopColor="#226482" />
                     </linearGradient>
                   </defs>
-
+                  
                   <path
                     d="M32 2C52 8 62 26 62 38 62 52 48 62 32 62 16 62 2 52 2 38 2 26 12 8 32 2z"
+                    fill="url(#shield-gradient)"
                     stroke="url(#logo-gold)"
                     strokeWidth="4"
                   />
-
-                  <path
-                    d="M32 6C49 12 58 27 58 38c0 12-12 20-26 20S6 50 6 38C6 27 15 12 32 6z"
-                    fill="url(#shield-gradient)"
-                  />
-
-                  <g stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" transform="translate(0, -2)">
-                    {/* Cart */}
-                    <path d="M14 24h-4l-3-4h6l4 18h26l4-14H19"/>
-                    {/* Wheels */}
-                    <circle cx="23" cy="46" r="3" fill="#fff" stroke="none" />
-                    <circle cx="40" cy="46" r="3" fill="#fff" stroke="none" />
-
-                    {/* Graph */}
-                    <g strokeWidth="3.5">
-                        <path d="M26 42V32" />
-                        <path d="M31 42V26" />
-                        <path d="M36 42V34" />
-                        <path d="M41 42V22" />
-                        
-                        <path d="M26 32L31 26L36 34L41 22L47 16" />
-                        <path d="M44 15L47 16L46 19" />
-                    </g>
+                  
+                  <text x="32" y="58" fill="#f4d03f" fontSize="16" fontWeight="bold" textAnchor="middle">$</text>
+                  
+                  <g transform="translate(1 0)" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 24 H 15 L 19 40 H 45 L 49 28 H 17" />
+                    
+                    <circle cx="22" cy="43" r="3" />
+                    <circle cx="39" cy="43" r="3" />
+                    
+                    <path d="M23 39 V 31" />
+                    <path d="M29 39 V 25" />
+                    <path d="M35 39 V 33" />
+                    <path d="M41 39 V 22" />
+                    
+                    <path d="M23 31 L 29 25 L 35 33 L 41 22 L 48 16" />
+                    <path d="M45 15 L 48 16 L 47 19" />
                   </g>
-
-                  <text x="32" y="57" fill="url(#logo-gold)" fontSize="16" fontWeight="bold" textAnchor="middle" stroke="#a1740b" strokeWidth="0.5">$</text>
                 </svg>
               </div>
               <h1 className="text-lg font-black text-white tracking-tighter uppercase leading-none">
-                Full<span className="text-white/60">-</span>Ventas
+                Full<span className="text-white/40">-</span>Ventas
               </h1>
             </div>
             <button
@@ -175,7 +165,7 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
               <p className="text-xs font-bold text-white truncate">
                 {user?.email?.split('@')[0]}
               </p>
-              <p className="text-[10px] text-white/50 uppercase font-black">Admin</p>
+              <p className="text-[10px] text-white/50 uppercase font-black tracking-widest">Admin</p>
             </div>
             <Button 
               variant="ghost" 
@@ -190,7 +180,7 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
       </aside>
 
       {/* Main content */}
-      <div className="lg:pl-64 flex flex-col min-h-screen">
+      <div className="lg:pl-64 flex flex-col min-h-screen w-full">
         <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200 h-16 flex items-center justify-between px-4 lg:px-8">
           <div className="flex items-center">
             <button
@@ -199,7 +189,7 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
             >
               <Menu className="h-6 w-6" />
             </button>
-            <h2 className="text-sm md:text-lg font-black text-gray-800 uppercase tracking-tighter">
+            <h2 className="text-sm md:text-lg font-black text-gray-800 uppercase tracking-tighter italic">
               {currentPageName || 'Panel de Control'}
             </h2>
           </div>
@@ -212,7 +202,7 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
           </div>
         </header>
 
-        <main className="flex-1 bg-background p-4 lg:p-8">
+        <main className="flex-1 bg-gray-50 p-4 lg:p-8">
           {children}
         </main>
       </div>
