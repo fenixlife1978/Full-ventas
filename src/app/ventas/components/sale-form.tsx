@@ -93,8 +93,8 @@ export function SaleForm({
   })
 
   const selectedPriceCheckerProduct = useMemo(() => {
-      if (!selectedPriceCheckerProductId || !products) return null;
-      return products.find(p => p.id === selectedPriceCheckerProductId) || null;
+      if (!selectedPriceCheckerProductId) return null;
+      return products.find(p => p.id === selectedPriceCheckerProductId) ?? null;
   }, [selectedPriceCheckerProductId, products]);
   
   // Reset form on successful sale (indicated by saleCount change)
@@ -124,7 +124,7 @@ export function SaleForm({
         })
       );
     }
-  }, [products, toast]);
+  }, [products, toast, cartItems.length]);
 
 
   const totalUSD = useMemo(() => {
@@ -138,7 +138,6 @@ export function SaleForm({
   const handleAddProduct = (product: Product, quantity: number) => {
     const existingItem = cartItems.find(item => item.id === product.id);
     if (existingItem) {
-        // If item exists, just show a toast and don't add
         toast({
             variant: 'destructive',
             title: 'Producto ya en el recibo',
@@ -205,9 +204,9 @@ export function SaleForm({
 
   return (
     <>
-      <div className="grid grid-cols-1 lg:grid-cols-2 h-[calc(100vh-4rem)]">
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] bg-background">
         {/* Columna Izquierda */}
-        <div className="p-6 flex flex-col bg-background">
+        <div className="w-full lg:w-1/2 p-6 flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl text-foreground font-bold">Nueva Venta</h2>
               <Button onClick={() => setIsPriceCheckerOpen(true)} variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
@@ -216,7 +215,7 @@ export function SaleForm({
               </Button>
             </div>
              <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleFormSubmit)} className="flex-grow flex flex-col space-y-4">
+              <form onSubmit={form.handleSubmit(handleFormSubmit)} className="flex-1 flex flex-col space-y-4">
                 <div className="flex-grow space-y-4">
                   <FormField
                       control={form.control}
@@ -245,12 +244,12 @@ export function SaleForm({
                             value={field.value}
                             className="grid grid-cols-2 md:grid-cols-4 gap-2"
                           >
-                            <FormItem>
+                            <div className="flex items-center space-x-2">
                               <RadioGroupItem value="cash" id="payment-cash" className="sr-only" />
                               <Label
                                 htmlFor="payment-cash"
                                 className={cn(
-                                  "flex items-center justify-center p-2 rounded-md border-2 cursor-pointer transition-colors",
+                                  "flex items-center justify-center p-2 rounded-md border-2 cursor-pointer transition-colors w-full",
                                   field.value === 'cash'
                                     ? "bg-primary border-primary text-primary-foreground"
                                     : "border-border/50 text-foreground hover:bg-accent"
@@ -258,13 +257,13 @@ export function SaleForm({
                               >
                                 <DollarSign className="mr-2 h-4 w-4"/> Efectivo
                               </Label>
-                            </FormItem>
-                            <FormItem>
+                            </div>
+                            <div className="flex items-center space-x-2">
                               <RadioGroupItem value="card" id="payment-card" className="sr-only" />
                               <Label
                                 htmlFor="payment-card"
                                 className={cn(
-                                  "flex items-center justify-center p-2 rounded-md border-2 cursor-pointer transition-colors",
+                                  "flex items-center justify-center p-2 rounded-md border-2 cursor-pointer transition-colors w-full",
                                   field.value === 'card'
                                     ? "bg-primary border-primary text-primary-foreground"
                                     : "border-border/50 text-foreground hover:bg-accent"
@@ -272,13 +271,13 @@ export function SaleForm({
                               >
                                 <CreditCard className="mr-2 h-4 w-4"/> Tarjeta
                               </Label>
-                            </FormItem>
-                            <FormItem>
+                            </div>
+                            <div className="flex items-center space-x-2">
                               <RadioGroupItem value="transfer" id="payment-transfer" className="sr-only" />
                               <Label
                                 htmlFor="payment-transfer"
                                 className={cn(
-                                  "flex items-center justify-center p-2 rounded-md border-2 cursor-pointer transition-colors",
+                                  "flex items-center justify-center p-2 rounded-md border-2 cursor-pointer transition-colors w-full",
                                   field.value === 'transfer'
                                     ? "bg-primary border-primary text-primary-foreground"
                                     : "border-border/50 text-foreground hover:bg-accent"
@@ -286,13 +285,13 @@ export function SaleForm({
                               >
                                 <Landmark className="mr-2 h-4 w-4"/> Transf/PM
                               </Label>
-                            </FormItem>
-                             <FormItem>
+                            </div>
+                             <div className="flex items-center space-x-2">
                               <RadioGroupItem value="other" id="payment-other" className="sr-only" />
                               <Label
                                 htmlFor="payment-other"
                                 className={cn(
-                                  "flex items-center justify-center p-2 rounded-md border-2 cursor-pointer transition-colors",
+                                  "flex items-center justify-center p-2 rounded-md border-2 cursor-pointer transition-colors w-full",
                                   field.value === 'other'
                                     ? "bg-primary border-primary text-primary-foreground"
                                     : "border-border/50 text-foreground hover:bg-accent"
@@ -300,7 +299,7 @@ export function SaleForm({
                               >
                                 Otro
                               </Label>
-                            </FormItem>
+                            </div>
                           </RadioGroup>
                         </FormControl>
                         <FormMessage />
@@ -318,7 +317,7 @@ export function SaleForm({
                               <Button
                                 variant={'outline'}
                                 className={cn(
-                                  'w-full justify-start text-left font-normal',
+                                  'w-full justify-start text-left font-normal border-border/50',
                                   !field.value && 'text-muted-foreground'
                                 )}
                               >
@@ -345,7 +344,7 @@ export function SaleForm({
                     )}
                   />
                 </div>
-                <div className="space-y-4 mt-auto pt-4">
+                <div className="space-y-4 pt-4">
                     <Button type="button" onClick={() => setIsProductSelectorOpen(true)} className="w-full bg-black text-white hover:bg-gray-800">
                         <Plus className="w-4 h-4 mr-2" /> Buscar Productos
                     </Button>
@@ -363,9 +362,9 @@ export function SaleForm({
         </div>
 
         {/* Columna Derecha (Ticket) */}
-        <div className="p-6 bg-muted/40 flex flex-col border-l border-border/50">
+        <div className="w-full lg:w-1/2 p-6 bg-muted/40 flex flex-col border-l border-border/50">
           <div className="flex flex-col h-full">
-              <div className="border-2 border-dashed border-destructive/20 p-5 rounded-md w-full bg-background mb-4 shadow-sm flex-grow flex flex-col">
+              <div className="border-2 border-dashed border-destructive/20 p-5 rounded-md w-full bg-background mb-4 shadow-sm flex-1 flex flex-col">
                 <h3 className="text-xl font-black text-destructive text-center mb-4 italic">Recibo de Venta</h3>
                 <div className="flex font-bold text-[10px] uppercase text-muted-foreground border-b pb-2">
                   <div className="flex-1">Producto</div>
@@ -518,7 +517,6 @@ function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddPr
       return;
     }
     onAddProduct(product, quantity);
-    // Reset quantity for that product to avoid confusion
     setQuantities(prev => {
       const newState = { ...prev };
       delete newState[product.id];
