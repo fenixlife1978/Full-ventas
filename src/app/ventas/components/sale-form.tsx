@@ -106,18 +106,21 @@ export function SaleForm({
     }
   }, [open, form])
 
-  const totalUSD = useMemo(() => {
-    const totalCents = cartItems.reduce((acc, item) => {
+  const totalUSDInCents = useMemo(() => {
+    return cartItems.reduce((acc, item) => {
       const subtotalCents = Math.round(item.price * (item.quantity || 0) * 100);
       return acc + subtotalCents;
     }, 0);
-    return totalCents / 100;
   }, [cartItems])
+  
+  const totalUSD = totalUSDInCents / 100;
 
-  const totalBs = useMemo(() => {
+  const totalBsInCents = useMemo(() => {
     if (!bcvRate) return 0;
-    return Math.round(totalUSD * bcvRate * 100) / 100;
+    return Math.round(totalUSD * bcvRate * 100);
   }, [totalUSD, bcvRate])
+  
+  const totalBs = totalBsInCents / 100
 
   const handleAddProduct = (product: Product, quantity: number) => {
     if (quantity <= 0) {
@@ -134,12 +137,43 @@ export function SaleForm({
         return;
     }
     setCartItems(prev => [...prev, { ...product, quantity }]);
-    // No cerramos el modal para que se puedan agregar más productos
   }
   
   const handleRemoveItem = (productId: string) => {
     setCartItems(prev => prev.filter(item => item.id !== productId));
   };
+  
+    const handleQuantityChange = (productId: string, newQuantity: number) => {
+        const product = cartItems.find(item => item.id === productId);
+        if (!product) return;
+
+        if (isNaN(newQuantity)) {
+          newQuantity = 0;
+        }
+
+        if (newQuantity > product.stock) {
+            toast({
+                variant: 'destructive',
+                title: 'Stock insuficiente',
+                description: `Solo quedan ${product.stock} ${product.unit || ''} de ${product.name}.`,
+            });
+            newQuantity = product.stock;
+        }
+
+        setCartItems(prev =>
+            prev.map(item =>
+                item.id === productId ? { ...item, quantity: newQuantity < 0 ? 0 : newQuantity } : item
+            )
+        );
+    };
+    
+    const handleQuantityBlur = (productId: string) => {
+        const product = cartItems.find(item => item.id === productId);
+        if (product && product.quantity <= 0) {
+            handleRemoveItem(productId);
+        }
+    };
+
 
   const handleFormSubmit = (values: SaleFormValues) => {
     if (cartItems.length === 0) {
@@ -241,7 +275,7 @@ export function SaleForm({
                     <div className="w-full lg:w-3/5 p-6 flex flex-col h-full overflow-hidden bg-gray-50/50">
                         <div className="flex-1 border-2 border-dashed border-gray-200 rounded-[3rem] p-10 bg-white shadow-inner flex flex-col overflow-hidden relative">
                             <div className="text-center mb-10">
-                                <h3 className="text-3xl font-black text-red-600/80 italic tracking-tighter uppercase">Recibo de Venta</h3>
+                                <h3 className="text-3xl font-black text-red-600/80 italic tracking-tighter uppercase">Monitor de Venta</h3>
                                 <div className="h-1 w-20 bg-red-100 mx-auto mt-2 rounded-full" />
                             </div>
                             <div className="grid grid-cols-12 font-black text-[10px] uppercase text-gray-400 border-b border-gray-100 pb-4 mb-2 px-2 tracking-widest">
@@ -258,19 +292,32 @@ export function SaleForm({
                                 </div>
                                 ) : (
                                   cartItems.map((item: CartItem) => {
-                                    const subtotalUSD = Math.round(item.price * (item.quantity || 0) * 100) / 100;
-                                    const subtotalBs = bcvRate ? Math.round(subtotalUSD * bcvRate * 100) / 100 : 0;
+                                    const subtotalInCents = Math.round(item.price * (item.quantity || 0) * 100);
+                                    const subtotalBsInCents = bcvRate ? Math.round(subtotalInCents * bcvRate) : 0;
                                     return (
                                         <div key={item.id} className="grid grid-cols-12 py-5 items-center border-b border-gray-50 group px-2 hover:bg-gray-50/50 rounded-xl transition-colors">
                                             <div className="col-span-6 pr-4">
                                                 <p className="font-bold text-gray-800 text-sm uppercase leading-tight">{item.name}</p>
                                                 <p className="text-[10px] text-gray-400 font-mono mt-1">{formatUSD(item.price)} / {item.unit || 'unidad'}</p>
                                             </div>
-                                            <div className="col-span-2 text-center font-black text-primary text-lg">
-                                              {item.unit === 'kg' || item.unit === 'litro' ? item.quantity.toFixed(3) : item.quantity}
+                                            <div className="col-span-2 flex justify-center items-center">
+                                                <Input
+                                                    type="number"
+                                                    value={item.quantity}
+                                                    onChange={(e) => {
+                                                        const isWeight = item.unit === 'kg' || item.unit === 'litro';
+                                                        const value = e.target.value;
+                                                        const newQuantity = value === '' ? 0 : (isWeight ? parseFloat(value) : parseInt(value, 10));
+                                                        handleQuantityChange(item.id, newQuantity);
+                                                    }}
+                                                    onBlur={() => handleQuantityBlur(item.id)}
+                                                    step={item.unit === 'kg' || item.unit === 'litro' ? '0.001' : '1'}
+                                                    min="0"
+                                                    className="w-24 text-center font-black text-primary text-lg bg-gray-100 border-gray-200 rounded-lg"
+                                                />
                                             </div>
                                             <div className="col-span-3 text-right font-bold text-gray-800">
-                                                {formatBs(subtotalBs)}
+                                                {formatBs(subtotalBsInCents / 100)}
                                             </div>
                                             <div className="col-span-1 flex justify-end">
                                                 <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.id)} className="text-red-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100">
@@ -360,8 +407,8 @@ function ProductListItem({
 
   const isByWeightOrVolume = product.unit === 'kg' || product.unit === 'litro';
 
-  const pricePerUnit = product.price || 0;
-  const pricePerUnitBs = pricePerUnit * (bcvRate || 0);
+  const pricePerUnitInCents = Math.round((product.price || 0) * 100);
+  const pricePerUnitBsInCents = Math.round(pricePerUnitInCents * (bcvRate || 0));
 
   const handleBsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -370,9 +417,9 @@ function ProductListItem({
       setWeightValue('');
       return;
     }
-    const bs = parseFloat(value);
-    if (!isNaN(bs) && pricePerUnitBs > 0) {
-      const calculatedWeight = bs / pricePerUnitBs;
+    const bsInCents = Math.round(parseFloat(value) * 100);
+    if (!isNaN(bsInCents) && pricePerUnitBsInCents > 0) {
+      const calculatedWeight = (bsInCents / pricePerUnitBsInCents);
       setWeightValue(calculatedWeight.toFixed(3));
     }
   };
@@ -385,9 +432,9 @@ function ProductListItem({
       return;
     }
     const weight = parseFloat(value);
-    if (!isNaN(weight) && pricePerUnitBs > 0) {
-      const calculatedBs = weight * pricePerUnitBs;
-      setBsValue(calculatedBs.toFixed(2));
+    if (!isNaN(weight) && pricePerUnitBsInCents > 0) {
+      const calculatedBsInCents = Math.round(weight * pricePerUnitBsInCents);
+      setBsValue((calculatedBsInCents / 100).toFixed(2));
     }
   };
   
