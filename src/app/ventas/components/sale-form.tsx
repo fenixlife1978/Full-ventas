@@ -6,7 +6,6 @@ import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import {
   Form,
-  FormControl,
   FormField,
   FormItem,
 } from '@/components/ui/form'
@@ -42,7 +41,6 @@ const formSchema = z.object({
     required_error: 'La fecha es requerida.',
   }),
   paymentMethod: z.enum(['cash', 'card', 'transfer', 'other']),
-  notes: z.string().optional(),
 })
 
 export type SaleFormValues = z.infer<typeof formSchema>
@@ -54,7 +52,7 @@ export interface CartItem extends Product {
 interface SaleFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (values: SaleFormValues & { items: CartItem[], totalAmount: number, saleNumber: number, notes?: string }) => void
+  onSubmit: (values: SaleFormValues & { items: CartItem[], totalAmount: number, saleNumber: number }) => void
   products: Product[]
   isLoadingProducts: boolean
   bcvRate: number | null
@@ -85,13 +83,12 @@ export function SaleForm({
     defaultValues: {
       saleDate: new Date(),
       paymentMethod: 'cash',
-      notes: '',
     },
   })
 
   useEffect(() => {
     if(open) {
-      form.reset({ saleDate: new Date(), paymentMethod: 'cash', notes: '' });
+      form.reset({ saleDate: new Date(), paymentMethod: 'cash' });
       setCartItems([]);
     }
   }, [open, form])
@@ -130,14 +127,14 @@ export function SaleForm({
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl w-full p-0 overflow-hidden">
+      <DialogContent className="max-w-7xl w-full p-0 overflow-hidden bg-background">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="grid grid-cols-1 lg:grid-cols-2">
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="grid grid-cols-1 lg:grid-cols-2 h-[85vh]">
             
             {/* LEFT PANE */}
-            <div className="p-8 space-y-6 flex flex-col bg-white">
+            <div className="p-8 space-y-6 flex flex-col bg-background">
               <DialogHeader className='p-0 text-left'>
-                <DialogTitle className="text-4xl font-extrabold text-foreground">Nueva<br/>Venta</DialogTitle>
+                <DialogTitle className="text-4xl font-extrabold text-foreground tracking-tighter">Nueva<br/>Venta</DialogTitle>
               </DialogHeader>
 
               <FormField
@@ -152,8 +149,8 @@ export function SaleForm({
                           <Label htmlFor={`pay-${id}`} className={cn(
                             "flex items-center justify-center p-3 rounded-lg border-2 cursor-pointer transition-all min-w-[120px]",
                             field.value === id
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-transparent text-muted-foreground border-gray-200 hover:border-primary/50"
+                              ? "bg-primary text-primary-foreground border-primary shadow-lg"
+                              : "bg-transparent text-muted-foreground border-border hover:border-primary/50"
                           )}>
                             <Icon className="mr-2 h-4 w-4" />
                             <span className="text-sm font-semibold">{label}</span>
@@ -165,17 +162,17 @@ export function SaleForm({
                 )}
               />
 
-              <div className="border-t border-primary/10" />
+              <div className="border-t border-primary/10 my-4" />
               
               <div className="space-y-2">
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Fecha de Registro</p>
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-100/80 border border-gray-200/80">
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border/50">
                     <CalendarIcon className="h-5 w-5 text-primary"/>
                     <span className="font-bold text-foreground">{format(form.getValues('saleDate'), "d 'de' MMMM 'de' yyyy", { locale: es })}</span>
                 </div>
               </div>
               
-              <Button type="button" onClick={() => setIsProductSelectorOpen(true)} className="w-full h-14 bg-gray-900 text-white hover:bg-black rounded-lg font-bold text-lg">
+              <Button type="button" onClick={() => setIsProductSelectorOpen(true)} className="w-full h-14 bg-foreground text-background hover:bg-foreground/90 rounded-lg font-bold text-lg">
                 <Plus className="mr-2"/>
                 AGREGAR PRODUCTOS
               </Button>
@@ -188,20 +185,20 @@ export function SaleForm({
                 <p className="text-md font-bold text-primary/60 uppercase">{formatUSD(totalUSD)}</p>
               </div>
 
-              <Button type="submit" className="w-full h-16 bg-primary hover:bg-primary/90 text-white rounded-lg font-bold text-lg">
+              <Button type="submit" className="w-full h-16 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-bold text-lg">
                 REGISTRAR VENTA
               </Button>
             </div>
 
             {/* RIGHT PANE */}
-            <div className="bg-gray-50/70 p-8 flex flex-col">
-              <div className="flex-1 border-2 border-dashed border-gray-200 rounded-3xl p-8 flex flex-col bg-white shadow-inner">
+            <div className="bg-muted/30 p-8 flex flex-col">
+              <div className="flex-1 border-2 border-dashed border-border/50 rounded-3xl p-8 flex flex-col bg-background shadow-inner">
                 <div className="text-center">
                   <h2 className="text-2xl font-black text-destructive uppercase tracking-wider">Monitor de Venta</h2>
                   <div className="w-12 h-1 bg-destructive/20 mx-auto mt-2 rounded-full"/>
                 </div>
 
-                <div className="grid grid-cols-12 font-bold text-xs uppercase text-gray-400 border-b-2 border-gray-100 pb-3 my-6">
+                <div className="grid grid-cols-12 font-bold text-xs uppercase text-muted-foreground border-b-2 border-border/20 pb-3 my-6">
                   <div className="col-span-6">Descripción</div>
                   <div className="col-span-3 text-center">Cant.</div>
                   <div className="col-span-3 text-right">Subtotal</div>
@@ -209,15 +206,15 @@ export function SaleForm({
 
                 <ScrollArea className="flex-1 pr-4 -mr-4">
                   {cartItems.length === 0 ? (
-                    <div className="h-full flex items-center justify-center flex-col text-gray-300">
-                       <div className="w-16 h-16 border-4 border-gray-200 border-t-transparent rounded-full animate-spin mb-4"/>
+                    <div className="h-full flex items-center justify-center flex-col text-muted-foreground/30">
+                       <div className="w-16 h-16 border-4 border-current border-t-transparent rounded-full animate-spin mb-4"/>
                        <p className="text-sm font-semibold">Esperando productos...</p>
                     </div>
                   ) : (
                     cartItems.map((item) => {
                        const subtotalBs = bcvRate ? (item.price * item.quantity) * bcvRate : 0;
                        return (
-                          <div key={item.id} className="grid grid-cols-12 py-4 items-center text-foreground border-b border-gray-100/80">
+                          <div key={item.id} className="grid grid-cols-12 py-4 items-center text-foreground border-b border-border/30">
                               <div className="col-span-6 font-semibold pr-2">{item.name}</div>
                               <div className="col-span-3 text-center font-semibold text-primary">{item.quantity}</div>
                               <div className="col-span-3 text-right font-bold">{formatBs(subtotalBs)}</div>
@@ -227,7 +224,7 @@ export function SaleForm({
                   )}
                 </ScrollArea>
                 
-                <div className="flex justify-between items-center text-xs text-gray-400 font-semibold pt-4 mt-auto">
+                <div className="flex justify-between items-center text-xs text-muted-foreground font-semibold pt-4 mt-auto">
                     <span>Venta #{saleCount + 1}</span>
                     <span>{format(new Date(), "dd/MM/yyyy, HH:mm")}</span>
                 </div>
@@ -292,8 +289,10 @@ function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddPr
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl h-[70vh] flex flex-col p-0 overflow-hidden rounded-3xl border-none bg-gray-50">
-        <div className="p-8 pb-6">
-          <h2 className="text-2xl font-bold mb-4 tracking-tight">Buscar Artículos</h2>
+        <DialogHeader className="p-8 pb-6">
+          <DialogTitle className="text-2xl font-bold mb-4 tracking-tight">Buscar Artículos</DialogTitle>
+        </DialogHeader>
+        <div className="px-8 pb-6">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <Input 

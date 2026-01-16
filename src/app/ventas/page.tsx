@@ -50,7 +50,6 @@ export interface Sale {
   totalAmount: number
   saleDate: Date
   paymentMethod: 'cash' | 'card' | 'transfer' | 'other'
-  notes?: string
 }
 
 export default function VentasPage() {
@@ -113,7 +112,6 @@ export default function VentasPage() {
       filtered = filtered.filter(s => {
         const lowerSearchTerm = searchTerm.toLowerCase();
         return (
-          s.notes?.toLowerCase().includes(lowerSearchTerm) ||
           s.saleNumber.toString().includes(lowerSearchTerm) ||
           s.items.some(item => item.productName.toLowerCase().includes(lowerSearchTerm))
         )
@@ -128,10 +126,7 @@ export default function VentasPage() {
     return { totalSales, totalRevenue }
   }, [filteredSales])
 
-  /**
-   * CORRECCIÓN: Se agrega 'notes?: string' explícitamente a la intersección del argumento
-   */
-  const handleFormSubmit = async (values: SaleFormValues & { items: CartItem[], totalAmount: number, saleNumber: number, notes?: string }) => {
+  const handleFormSubmit = async (values: SaleFormValues & { items: CartItem[], totalAmount: number, saleNumber: number }) => {
     if (!firestore) return
     const saleData = {
       saleNumber: values.saleNumber,
@@ -143,7 +138,6 @@ export default function VentasPage() {
       })),
       totalAmount: values.totalAmount,
       paymentMethod: values.paymentMethod,
-      notes: values.notes || "", // Aseguramos que si es undefined, guarde un string vacío
       saleDate: Timestamp.fromDate(values.saleDate),
     }
 
@@ -328,11 +322,6 @@ export default function VentasPage() {
                         ))}
                       </div>
 
-                      {sale.notes && (
-                        <div className="pt-2 border-t border-border/50">
-                          <p className="text-[11px] text-muted-foreground italic font-medium">"{sale.notes}"</p>
-                        </div>
-                      )}
                     </div>
 
                     <div className="bg-primary/5 sm:w-48 p-6 flex flex-col items-center justify-center border-l border-border/50 text-center">
