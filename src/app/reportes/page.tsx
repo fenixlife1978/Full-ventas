@@ -94,48 +94,56 @@ export default function ReportesPage() {
 
     // Summary
     const totalSales = filteredSales.length
-    const totalRevenue = filteredSales.reduce((sum, s) => sum + s.totalAmount, 0)
+    const totalRevenueCents = filteredSales.reduce((sum, s) => sum + Math.round(s.totalAmount * 100), 0)
+    const totalRevenue = totalRevenueCents / 100
     const totalQuantity = allItems.reduce((sum, item) => sum + item.quantity, 0)
     const averageTicket = totalSales > 0 ? totalRevenue / totalSales : 0
 
     // Daily Sales
-    const salesByDate: { [key: string]: { date: string, ingresos: number, ventas: number } } = {}
+    const salesByDate: { [key: string]: { date: string, ingresosCents: number, ventas: number } } = {}
     filteredSales.forEach((sale) => {
       const dateKey = format(sale.saleDate, 'yyyy-MM-dd')
       if (!salesByDate[dateKey]) {
         salesByDate[dateKey] = {
           date: format(sale.saleDate, 'dd/MM'),
-          ingresos: 0,
+          ingresosCents: 0,
           ventas: 0
         }
       }
-      salesByDate[dateKey].ingresos += sale.totalAmount
+      salesByDate[dateKey].ingresosCents += Math.round(sale.totalAmount * 100)
       salesByDate[dateKey].ventas += 1;
     })
-    const dailySales = Object.values(salesByDate).sort((a,b) => a.date.localeCompare(b.date));
+    const dailySales = Object.values(salesByDate).map(d => ({ ...d, ingresos: d.ingresosCents / 100 })).sort((a,b) => a.date.localeCompare(b.date));
 
 
     // Top Products
-    const productSales: { [key: string]: { productName: string, quantity: number, revenue: number, sales: number } } = {}
+    const productSales: { [key: string]: { productName: string, quantity: number, revenueCents: number, sales: number } } = {}
     allItems.forEach((item) => {
       if (!productSales[item.productId]) {
         productSales[item.productId] = {
           productName: item.productName,
           quantity: 0,
-          revenue: 0,
+          revenueCents: 0,
           sales: 0, // This is harder to track now, represents how many transactions included this product
         }
       }
       productSales[item.productId].quantity += item.quantity
-      productSales[item.productId].revenue += item.unitPrice * item.quantity
+      const itemRevenueCents = Math.round(item.unitPrice * item.quantity * 100)
+      productSales[item.productId].revenueCents += itemRevenueCents
     })
 
     const topProducts = Object.values(productSales)
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, 10)
+      .map(p => ({
+        productName: p.productName,
+        quantity: p.quantity,
+        sales: p.sales,
+        revenue: p.revenueCents / 100,
+      }))
 
     // Sales by Payment
-    const paymentMethods: { [key: string]: { method: string, total: number, cantidad: number } } = {}
+    const paymentMethods: { [key: string]: { method: string, totalCents: number, cantidad: number } } = {}
      const getPaymentMethodLabel = (method: string) => {
         const labels = { cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia', other: 'Otro' };
         return labels[method] || method;
@@ -145,14 +153,14 @@ export default function ReportesPage() {
       if (!paymentMethods[method]) {
         paymentMethods[method] = {
           method: getPaymentMethodLabel(method),
-          total: 0,
+          totalCents: 0,
           cantidad: 0
         }
       }
-      paymentMethods[method].total += sale.totalAmount
+      paymentMethods[method].totalCents += Math.round(sale.totalAmount * 100)
       paymentMethods[method].cantidad += 1
     })
-    const salesByPayment = Object.values(paymentMethods);
+    const salesByPayment = Object.values(paymentMethods).map(p => ({ ...p, total: p.totalCents / 100 }));
 
     return {
       dailySales,

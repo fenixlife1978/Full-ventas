@@ -97,9 +97,13 @@ export function ProductForm({
     const profitValue = Number(watchedProfit) || 0;
 
     if (costValue >= 0) {
-      const newPrice = costValue + (costValue * (profitValue / 100));
-      // Actualizamos el precio con 2 decimales
-      form.setValue('price', parseFloat(newPrice.toFixed(2)), { 
+      // Calculate in cents to avoid floating point issues
+      const costInCents = Math.round(costValue * 100);
+      const profitAmountInCents = Math.round(costInCents * (profitValue / 100));
+      const newPriceInCents = costInCents + profitAmountInCents;
+      const newPrice = newPriceInCents / 100;
+      
+      form.setValue('price', newPrice, { 
         shouldValidate: true,
         shouldDirty: true 
       });

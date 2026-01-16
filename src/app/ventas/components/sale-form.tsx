@@ -107,11 +107,16 @@ export function SaleForm({
   }, [open, form])
 
   const totalUSD = useMemo(() => {
-    return cartItems.reduce((total, item) => total + item.price * (item.quantity || 0), 0)
+    const totalCents = cartItems.reduce((acc, item) => {
+      const subtotalCents = Math.round(item.price * (item.quantity || 0) * 100);
+      return acc + subtotalCents;
+    }, 0);
+    return totalCents / 100;
   }, [cartItems])
 
   const totalBs = useMemo(() => {
-    return totalUSD * (bcvRate || 0)
+    if (!bcvRate) return 0;
+    return Math.round(totalUSD * bcvRate * 100) / 100;
   }, [totalUSD, bcvRate])
 
   const handleAddProduct = (product: Product, quantity: number) => {
@@ -252,25 +257,29 @@ export function SaleForm({
                                     <p className="font-bold text-lg">Esperando artículos...</p>
                                 </div>
                                 ) : (
-                                cartItems.map((item: CartItem) => (
-                                    <div key={item.id} className="grid grid-cols-12 py-5 items-center border-b border-gray-50 group px-2 hover:bg-gray-50/50 rounded-xl transition-colors">
-                                        <div className="col-span-6 pr-4">
-                                            <p className="font-bold text-gray-800 text-sm uppercase leading-tight">{item.name}</p>
-                                            <p className="text-[10px] text-gray-400 font-mono mt-1">{formatUSD(item.price)} / {item.unit || 'unidad'}</p>
+                                  cartItems.map((item: CartItem) => {
+                                    const subtotalUSD = Math.round(item.price * (item.quantity || 0) * 100) / 100;
+                                    const subtotalBs = bcvRate ? Math.round(subtotalUSD * bcvRate * 100) / 100 : 0;
+                                    return (
+                                        <div key={item.id} className="grid grid-cols-12 py-5 items-center border-b border-gray-50 group px-2 hover:bg-gray-50/50 rounded-xl transition-colors">
+                                            <div className="col-span-6 pr-4">
+                                                <p className="font-bold text-gray-800 text-sm uppercase leading-tight">{item.name}</p>
+                                                <p className="text-[10px] text-gray-400 font-mono mt-1">{formatUSD(item.price)} / {item.unit || 'unidad'}</p>
+                                            </div>
+                                            <div className="col-span-2 text-center font-black text-primary text-lg">
+                                              {item.unit === 'kg' || item.unit === 'litro' ? item.quantity.toFixed(3) : item.quantity}
+                                            </div>
+                                            <div className="col-span-3 text-right font-bold text-gray-800">
+                                                {formatBs(subtotalBs)}
+                                            </div>
+                                            <div className="col-span-1 flex justify-end">
+                                                <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.id)} className="text-red-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100">
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         </div>
-                                        <div className="col-span-2 text-center font-black text-primary text-lg">
-                                          {item.unit === 'kg' || item.unit === 'litro' ? item.quantity.toFixed(3) : item.quantity}
-                                        </div>
-                                        <div className="col-span-3 text-right font-bold text-gray-800">
-                                            {formatBs((item.price * item.quantity) * (bcvRate || 0))}
-                                        </div>
-                                        <div className="col-span-1 flex justify-end">
-                                            <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.id)} className="text-red-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100">
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))
+                                    )
+                                })
                                 )}
                             </ScrollArea>
                             <div className="mt-auto pt-8 border-t-2 border-double border-gray-100 flex justify-between items-end">

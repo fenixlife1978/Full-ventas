@@ -129,9 +129,11 @@ export default function ComprasPage() {
   }, [formattedPurchases, filterPeriod, searchTerm]);
 
   const { totalPurchases, totalAmount, totalUnits } = useMemo(() => {
+    const amountCents = filteredPurchases.reduce((sum, p) => sum + Math.round((p.totalAmount || 0) * 100), 0)
+    
     return {
       totalPurchases: filteredPurchases.length,
-      totalAmount: filteredPurchases.reduce((sum, p) => sum + (p.totalAmount || 0), 0),
+      totalAmount: amountCents / 100,
       totalUnits: filteredPurchases.reduce((sum, p) => sum + (p.quantity || 0), 0)
     }
   }, [filteredPurchases])
@@ -148,6 +150,9 @@ export default function ComprasPage() {
     const product = products?.find(p => p.id === purchase.productId)
     if (product) {
       setPricingModalInfo({ purchase, product })
+      if (product.profitMargin) {
+        setProfitMargin(String(product.profitMargin))
+      }
     } else {
       toast({
         variant: 'destructive',
@@ -171,11 +176,12 @@ export default function ComprasPage() {
     }
 
     const cost = pricingModalInfo.purchase.unitCost
-    const newPrice = cost * (1 + margin / 100)
+    const newPriceInCents = Math.round(cost * (1 + margin / 100) * 100);
+    const newPrice = newPriceInCents / 100;
 
     try {
       const productRef = doc(firestore, 'products', product.id)
-      await updateDoc(productRef, { price: newPrice })
+      await updateDoc(productRef, { price: newPrice, profitMargin: margin })
       toast({
         title: 'Precio Actualizado',
         description: `El precio de "${product.name}" se actualizó a ${formatCurrency(newPrice)}.`,
@@ -195,7 +201,9 @@ export default function ComprasPage() {
     if (!pricingModalInfo || !profitMargin) return null
     const margin = parseFloat(profitMargin)
     if (isNaN(margin)) return null
-    return pricingModalInfo.purchase.unitCost * (1 + margin / 100)
+    const cost = pricingModalInfo.purchase.unitCost
+    const newPriceInCents = Math.round(cost * (1 + margin / 100) * 100);
+    return newPriceInCents / 100;
   }, [pricingModalInfo, profitMargin])
 
   
@@ -250,7 +258,7 @@ export default function ComprasPage() {
     const purchaseData = {
         ...values,
         productName: selectedProduct.name,
-        totalAmount: values.unitCost * values.quantity,
+        totalAmount: Math.round(values.unitCost * values.quantity * 100) / 100,
         purchaseDate: Timestamp.fromDate(values.purchaseDate),
     }
 

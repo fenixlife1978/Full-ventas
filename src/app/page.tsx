@@ -109,48 +109,48 @@ export default function DashboardPage() {
         return isToday(saleDate)
     })
     const todaySalesCount = todaySalesData.length
-    const todayRevenue = todaySalesData.reduce(
-      (sum, s) => sum + s.totalAmount,
-      0
-    )
+    const todayRevenueCents = todaySalesData.reduce((sum, s) => sum + Math.round((s.totalAmount || 0) * 100), 0)
 
     const monthSalesData = sales.filter((s) => {
         const saleDate = (s.saleDate as any).toDate ? (s.saleDate as any).toDate() : new Date(s.saleDate)
         return saleDate >= monthStartDate
     })
     const monthSalesCount = monthSalesData.length
-    const monthRevenue = monthSalesData.reduce(
-      (sum, s) => sum + s.totalAmount,
-      0
-    )
+    const monthRevenueCents = monthSalesData.reduce((sum, s) => sum + Math.round((s.totalAmount || 0) * 100), 0)
 
     // Top products this month
-    const productSales: { [key: string]: TopProduct } = {}
+    const productSales: { [key: string]: { productName: string, quantity: number, revenueCents: number } } = {}
     const monthItems = monthSalesData.flatMap(s => s.items || [])
     monthItems.forEach((item) => {
       if (!productSales[item.productId]) {
         productSales[item.productId] = {
           productName: item.productName,
           quantity: 0,
-          revenue: 0,
+          revenueCents: 0,
         }
       }
       productSales[item.productId].quantity += item.quantity
-      productSales[item.productId].revenue += item.unitPrice * item.quantity
+      const itemRevenueCents = Math.round(item.unitPrice * item.quantity * 100);
+      productSales[item.productId].revenueCents += itemRevenueCents;
     })
 
 
     const topProductsArray = Object.values(productSales)
-      .sort((a, b) => b.revenue - a.revenue)
+      .sort((a, b) => b.revenueCents - a.revenueCents)
       .slice(0, 5)
+       .map(p => ({
+        productName: p.productName,
+        quantity: p.quantity,
+        revenue: p.revenueCents / 100,
+      }))
 
     setStats({
       totalProducts,
       lowStockProducts,
       todaySales: todaySalesCount,
       monthSales: monthSalesCount,
-      todayRevenue,
-      monthRevenue,
+      todayRevenue: todayRevenueCents / 100,
+      monthRevenue: monthRevenueCents / 100,
     })
     setTopProducts(topProductsArray)
   }, [products, sales])
