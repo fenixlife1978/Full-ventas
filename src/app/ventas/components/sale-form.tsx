@@ -82,6 +82,13 @@ export function SaleForm({
   const [selectedPriceCheckerProductId, setSelectedPriceCheckerProductId] = useState<string | null>(null)
   
   const { toast } = useToast()
+
+  const paymentMethods = [
+    { id: 'cash', label: 'Efectivo', icon: DollarSign },
+    { id: 'card', label: 'Tarjeta', icon: CreditCard },
+    { id: 'transfer', label: 'Transferencia', icon: Landmark },
+    { id: 'other', label: 'Otro', icon: Plus },
+  ];
   
   const form = useForm<SaleFormValues>({
     resolver: zodResolver(formSchema),
@@ -94,7 +101,8 @@ export function SaleForm({
 
   const selectedPriceCheckerProduct = useMemo(() => {
       if (!selectedPriceCheckerProductId) return null;
-      return products.find(p => p.id === selectedPriceCheckerProductId) ?? null;
+      const product = products.find(p => p.id === selectedPriceCheckerProductId);
+      return product ?? null;
   }, [selectedPriceCheckerProductId, products]);
   
   useEffect(() => {
@@ -117,6 +125,14 @@ export function SaleForm({
   }, [totalUSD, bcvRate])
 
   const handleAddProduct = (product: Product, quantity: number) => {
+    if (quantity <= 0) {
+      toast({ variant: 'destructive', title: 'Cantidad inválida' });
+      return;
+    }
+    if (quantity > product.stock) {
+      toast({ variant: 'destructive', title: `Stock insuficiente para ${product.name}` });
+      return;
+    }
     const existingItem = cartItems.find(item => item.id === product.id);
     if (existingItem) {
         toast({ variant: 'destructive', title: 'Ya está en el recibo' });
@@ -143,56 +159,62 @@ export function SaleForm({
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl h-[90vh] flex flex-col p-0 bg-gray-50">
-        <DialogHeader className="p-6 pb-0">
-          <div className="flex justify-between items-center">
+      <DialogContent className="max-w-7xl h-[calc(100vh-4rem)] flex flex-col p-0">
+        <DialogHeader className="p-6 pb-4 border-b">
+          <div className="flex justify-between items-center gap-4">
             <DialogTitle className="text-3xl font-black text-gray-800 tracking-tight">Nueva Venta</DialogTitle>
-            <Button onClick={() => setIsPriceCheckerOpen(true)} variant="outline" className="rounded-xl border-gray-200">
-              <DollarSign className="mr-2 h-4 w-4 text-primary" /> Consultar Precio
-            </Button>
+            
+            <div className="flex-grow">
+              <FormField
+                control={form.control}
+                name="paymentMethod"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        className="grid grid-cols-4 gap-2 justify-center"
+                      >
+                        {paymentMethods.map(({ id, label, icon: Icon }) => (
+                          <FormItem key={id} className="flex items-center justify-center">
+                            <FormControl>
+                              <RadioGroupItem value={id} id={`pay-${id}`} className="sr-only" />
+                            </FormControl>
+                            <Label
+                              htmlFor={`pay-${id}`}
+                              className={cn(
+                                "flex items-center justify-center w-full px-3 py-2 rounded-lg border-2 cursor-pointer transition-all h-10 text-xs font-bold",
+                                field.value === id ? "bg-primary border-primary text-white" : "border-gray-200 bg-white hover:bg-gray-50 text-gray-500"
+                              )}
+                            >
+                              <Icon className="mr-2 h-4 w-4" />
+                              <span>{label}</span>
+                            </Label>
+                          </FormItem>
+                        ))}
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage className="text-center" />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button onClick={() => setIsPriceCheckerOpen(true)} variant="outline" className="rounded-xl border-gray-200 whitespace-nowrap">
+                <DollarSign className="mr-2 h-4 w-4 text-primary" /> Consultar Precio
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 
         <div className="flex-1 flex flex-row overflow-hidden">
             {/* Left Column: Form */}
-            <div className="w-full lg:w-2/5 p-6 flex flex-col bg-white border-r border-gray-100 h-full">
+            <div className="w-full lg:w-2/5 p-6 flex flex-col bg-white h-full">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleFormSubmit)} className="flex-1 flex flex-col min-h-0">
                   <div className="flex-1 overflow-y-auto pr-2 space-y-6">
-                    {/* Payment Method */}
-                    <FormField
-                      control={form.control}
-                      name="paymentMethod"
-                      render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <Label className="text-xs font-bold uppercase tracking-widest text-gray-400">Método de Pago</Label>
-                          <FormControl>
-                            <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-2 gap-3">
-                              {[
-                                { id: 'cash', label: 'Efectivo', icon: DollarSign },
-                                { id: 'card', label: 'Tarjeta', icon: CreditCard },
-                                { id: 'transfer', label: 'Pago Móvil', icon: Landmark },
-                                { id: 'other', label: 'Otro', icon: Plus },
-                              ].map((m) => (
-                                <div key={m.id}>
-                                  <RadioGroupItem value={m.id} id={`pay-${m.id}`} className="sr-only" />
-                                  <Label
-                                    htmlFor={`pay-${m.id}`}
-                                    className={cn(
-                                      "flex items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all h-14",
-                                      field.value === m.id ? "bg-primary border-primary text-white shadow-md scale-[1.02]" : "border-gray-100 bg-white hover:bg-gray-50 text-gray-500"
-                                    )}
-                                  >
-                                    <m.icon className="mr-2 h-4 w-4" />
-                                    <span className="font-bold text-sm">{m.label}</span>
-                                  </Label>
-                                </div>
-                              ))}
-                            </RadioGroup>
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
                     {/* Sale Date */}
                     <FormField
                       control={form.control}
@@ -252,7 +274,7 @@ export function SaleForm({
               </Form>
             </div>
             {/* Right Column: Receipt */}
-            <div className="w-full lg:w-3/5 p-6 flex flex-col h-full overflow-hidden">
+            <div className="w-full lg:w-3/5 p-6 flex flex-col h-full overflow-hidden bg-gray-50/50">
                 <div className="flex-1 border-2 border-dashed border-gray-200 rounded-[3rem] p-10 bg-white shadow-inner flex flex-col overflow-hidden relative">
                     <div className="text-center mb-10">
                         <h3 className="text-3xl font-black text-red-600/80 italic tracking-tighter uppercase">Recibo de Venta</h3>
@@ -264,7 +286,7 @@ export function SaleForm({
                         <div className="col-span-3 text-right">Subtotal</div>
                         <div className="col-span-1" />
                     </div>
-                    <ScrollArea className="flex-1 pr-4">
+                    <ScrollArea className="flex-1 pr-4 -mr-4">
                         {cartItems.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-gray-300 py-20">
                             <Search className="w-16 h-16 mb-4" />
@@ -314,9 +336,7 @@ export function SaleForm({
     
     <Dialog open={isPriceCheckerOpen} onOpenChange={setIsPriceCheckerOpen}>
         <DialogContent className="max-w-md rounded-[2.5rem] p-8">
-        <DialogHeader>
-            <DialogTitle className="text-2xl font-black text-center">Consultor de Precios</DialogTitle>
-        </DialogHeader>
+        <DialogHeader><DialogTitle className="text-2xl font-black text-center">Consultor de Precios</DialogTitle></DialogHeader>
         <div className="space-y-6 py-4">
             <Select onValueChange={setSelectedPriceCheckerProductId}>
             <SelectTrigger className="h-14 rounded-2xl border-gray-100 bg-gray-50 font-bold">
