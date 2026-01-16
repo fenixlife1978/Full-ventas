@@ -15,6 +15,9 @@ import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import {
   Select,
@@ -200,15 +203,15 @@ export function ProductForm({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl p-0 bg-transparent border-none shadow-none">
         <div className="bg-card border border-border rounded-2xl shadow-xl overflow-hidden">
-          <div className="bg-primary p-6">
-            <h2 className="text-xl font-black text-white uppercase tracking-tighter italic flex items-center gap-2">
+          <DialogHeader className="bg-primary p-6 text-left">
+            <DialogTitle className="text-xl font-black text-white uppercase tracking-tighter italic flex items-center gap-2">
               <Package className="w-6 h-6" />
               {product ? 'Editar Producto' : 'Registrar Nuevo Producto'}
-            </h2>
-            <p className="text-white/70 text-xs font-medium uppercase mt-1">
+            </DialogTitle>
+            <DialogDescription className="text-white/70 text-xs font-medium uppercase mt-1">
               Completa los datos para actualizar tu inventario
-            </p>
-          </div>
+            </DialogDescription>
+          </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleFormSubmit)} className="p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
