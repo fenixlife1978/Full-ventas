@@ -15,21 +15,22 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       return // Wait until auth state is resolved
     }
 
-    const isLoginPage = pathname === '/login'
+    const isPublicPage = pathname === '/login' || pathname === '/welcome'
 
-    // If user is not logged in and not on the login page, redirect to login
-    if (!user && !isLoginPage) {
-      router.replace('/login')
+    // If user is not logged in and not on a public page, redirect to welcome
+    if (!user && !isPublicPage) {
+      router.replace('/welcome')
     }
 
-    // If user is logged in and on the login page, redirect to dashboard
-    if (user && isLoginPage) {
+    // If user is logged in and on a public page, redirect to dashboard
+    if (user && isPublicPage) {
       router.replace('/')
     }
   }, [user, isUserLoading, pathname, router])
 
+  const isPublicPage = pathname === '/login' || pathname === '/welcome';
   // Show a loader while checking auth state or if a redirect is imminent
-  if (isUserLoading || (!user && pathname !== '/login') || (user && pathname === '/login')) {
+  if (isUserLoading || (!user && !isPublicPage) || (user && isPublicPage)) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
