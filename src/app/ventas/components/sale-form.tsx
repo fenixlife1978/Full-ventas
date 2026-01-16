@@ -1,7 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm, Controller } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -45,6 +45,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/hooks/use-toast'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Card, CardContent } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
 
 
 const formSchema = z.object({
@@ -198,8 +199,8 @@ export function SaleForm({
               </Button>
             </div>
              <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4 flex-grow flex flex-col">
-                <div className="space-y-4 flex-grow">
+              <form onSubmit={form.handleSubmit(handleFormSubmit)} className="flex-grow flex flex-col space-y-4">
+                <div className="flex-grow space-y-4">
                   <FormField
                       control={form.control}
                       name="notes"
@@ -220,52 +221,68 @@ export function SaleForm({
                     control={form.control}
                     name="paymentMethod"
                     render={({ field }) => (
-                      <FormItem className="space-y-3">
+                      <FormItem>
                         <FormControl>
                           <RadioGroup
                             onValueChange={field.onChange}
-                            defaultValue={field.value}
+                            value={field.value}
                             className="grid grid-cols-2 md:grid-cols-4 gap-2"
                           >
                             <FormItem>
-                              <FormControl>
-                                <RadioGroupItem value="cash" className="sr-only" />
-                              </FormControl>
-                              <FormLabel className="w-full">
-                                <Button type="button" variant={field.value === 'cash' ? 'default' : 'outline'} className="w-full">
-                                  <DollarSign className="mr-2"/> Efectivo
-                                </Button>
-                              </FormLabel>
+                              <RadioGroupItem value="cash" id="payment-cash" className="sr-only" />
+                              <Label
+                                htmlFor="payment-cash"
+                                className={cn(
+                                  "flex items-center justify-center p-2 rounded-md border-2 cursor-pointer transition-colors",
+                                  field.value === 'cash'
+                                    ? "bg-primary border-primary text-primary-foreground"
+                                    : "border-border/50 text-foreground hover:bg-accent"
+                                )}
+                              >
+                                <DollarSign className="mr-2 h-4 w-4"/> Efectivo
+                              </Label>
                             </FormItem>
                             <FormItem>
-                              <FormControl>
-                                <RadioGroupItem value="card" className="sr-only" />
-                              </FormControl>
-                              <FormLabel className="w-full">
-                                <Button type="button" variant={field.value === 'card' ? 'default' : 'outline'} className="w-full">
-                                  <CreditCard className="mr-2"/> Tarjeta
-                                </Button>
-                              </FormLabel>
+                              <RadioGroupItem value="card" id="payment-card" className="sr-only" />
+                              <Label
+                                htmlFor="payment-card"
+                                className={cn(
+                                  "flex items-center justify-center p-2 rounded-md border-2 cursor-pointer transition-colors",
+                                  field.value === 'card'
+                                    ? "bg-primary border-primary text-primary-foreground"
+                                    : "border-border/50 text-foreground hover:bg-accent"
+                                )}
+                              >
+                                <CreditCard className="mr-2 h-4 w-4"/> Tarjeta
+                              </Label>
                             </FormItem>
                             <FormItem>
-                              <FormControl>
-                                <RadioGroupItem value="transfer" className="sr-only" />
-                              </FormControl>
-                              <FormLabel className="w-full">
-                                <Button type="button" variant={field.value === 'transfer' ? 'default' : 'outline'} className="w-full">
-                                  <Landmark className="mr-2"/> Transf/PM
-                                </Button>
-                              </FormLabel>
+                              <RadioGroupItem value="transfer" id="payment-transfer" className="sr-only" />
+                              <Label
+                                htmlFor="payment-transfer"
+                                className={cn(
+                                  "flex items-center justify-center p-2 rounded-md border-2 cursor-pointer transition-colors",
+                                  field.value === 'transfer'
+                                    ? "bg-primary border-primary text-primary-foreground"
+                                    : "border-border/50 text-foreground hover:bg-accent"
+                                )}
+                              >
+                                <Landmark className="mr-2 h-4 w-4"/> Transf/PM
+                              </Label>
                             </FormItem>
                              <FormItem>
-                              <FormControl>
-                                <RadioGroupItem value="other" className="sr-only" />
-                              </FormControl>
-                              <FormLabel className="w-full">
-                                <Button type="button" variant={field.value === 'other' ? 'default' : 'outline'} className="w-full">
-                                  Otro
-                                </Button>
-                              </FormLabel>
+                              <RadioGroupItem value="other" id="payment-other" className="sr-only" />
+                              <Label
+                                htmlFor="payment-other"
+                                className={cn(
+                                  "flex items-center justify-center p-2 rounded-md border-2 cursor-pointer transition-colors",
+                                  field.value === 'other'
+                                    ? "bg-primary border-primary text-primary-foreground"
+                                    : "border-border/50 text-foreground hover:bg-accent"
+                                )}
+                              >
+                                Otro
+                              </Label>
                             </FormItem>
                           </RadioGroup>
                         </FormControl>
@@ -312,7 +329,7 @@ export function SaleForm({
                   />
                 </div>
                 <div className="space-y-4 mt-auto pt-4">
-                    <Button type="button" onClick={() => setIsProductSelectorOpen(true)} className="w-full bg-gray-900 text-white hover:bg-gray-700">
+                    <Button type="button" onClick={() => setIsProductSelectorOpen(true)} className="w-full bg-black text-white hover:bg-gray-800">
                         <Plus className="w-4 h-4 mr-2" /> Buscar Productos
                     </Button>
                     <div className="bg-slate-100 dark:bg-slate-900 p-4 rounded-lg border border-border text-center">
@@ -331,16 +348,15 @@ export function SaleForm({
         {/* Columna Derecha (Ticket) */}
         <div className="p-6 bg-muted/40 flex flex-col border-l border-border/50">
           <div className="flex flex-col h-full">
-              <div className="border-2 border-dashed border-destructive/20 p-5 rounded-md w-full bg-background mb-4 shadow-sm flex-grow">
+              <div className="border-2 border-dashed border-destructive/20 p-5 rounded-md w-full bg-background mb-4 shadow-sm flex-grow flex flex-col">
                 <h3 className="text-xl font-black text-destructive text-center mb-4 italic">Recibo de Venta</h3>
-                <div className="space-y-3">
-                  <div className="flex font-bold text-[10px] uppercase text-muted-foreground border-b pb-2">
-                    <div className="flex-1">Producto</div>
-                    <div className="w-16 text-center">Cant.</div>
-                    <div className="text-right w-20">Subtotal</div>
-                    <div className="w-8 ml-2" />
-                  </div>
-                  <ScrollArea className="h-72 pr-4">
+                <div className="flex font-bold text-[10px] uppercase text-muted-foreground border-b pb-2">
+                  <div className="flex-1">Producto</div>
+                  <div className="w-16 text-center">Cant.</div>
+                  <div className="text-right w-20">Subtotal</div>
+                  <div className="w-8 ml-2" />
+                </div>
+                <ScrollArea className="flex-1 -mr-4 pr-4">
                      {cartItems.length === 0 ? (
                        <p className="text-center text-muted-foreground pt-24 text-sm italic">Agregue artículos...</p>
                      ) : (
@@ -362,8 +378,7 @@ export function SaleForm({
                         </div>
                         ))
                      )}
-                  </ScrollArea>
-                </div>
+                </ScrollArea>
               </div>
               <div className="mt-auto flex justify-between items-center">
                 <p className="text-[10px] text-muted-foreground italic">Tasa BCV: {bcvRate ? formatBs(bcvRate) : 'N/A'}</p>
