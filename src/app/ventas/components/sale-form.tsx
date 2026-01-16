@@ -191,7 +191,7 @@ export function SaleForm({
         {/* Columna Izquierda */}
         <div className="p-6 flex flex-col bg-background">
             <div className="flex justify-between items-center mb-4">
-              <DialogTitle className="text-2xl text-foreground font-bold">Nueva Venta</DialogTitle>
+              <h2 className="text-2xl text-foreground font-bold">Nueva Venta</h2>
               <Button onClick={() => setIsPriceCheckerOpen(true)} variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
                 <DollarSign className="mr-2 h-4 w-4" />
                 Consultar Precio
