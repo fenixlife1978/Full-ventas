@@ -4,17 +4,22 @@ import Link from 'next/link'
 import { Hand } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@/firebase'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 export default function WelcomePage() {
   const router = useRouter()
   const { user, isUserLoading } = useUser()
+  const [year, setYear] = useState<number>()
 
   useEffect(() => {
     if (!isUserLoading && user) {
       router.replace('/')
     }
   }, [user, isUserLoading, router])
+
+  useEffect(() => {
+    setYear(new Date().getFullYear())
+  }, [])
 
   return (
     <div className="flex flex-col items-center justify-between min-h-screen bg-gray-900 text-white p-4">
@@ -62,7 +67,7 @@ export default function WelcomePage() {
         </Link>
       </div>
        <footer className="text-center text-xs text-gray-500 py-4">
-        &copy; {new Date().getFullYear()} Full-Ventas. Todos los derechos reservados.
+        {year && `© ${year} Full-Ventas. Todos los derechos reservados.`}
       </footer>
     </div>
   )
