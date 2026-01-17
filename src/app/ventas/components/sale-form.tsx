@@ -43,7 +43,6 @@ const formSchema = z.object({
     required_error: 'La fecha es requerida.',
   }),
   paymentMethod: z.enum(['cash', 'card', 'transfer', 'other']),
-  notes: z.string().optional(),
 })
 
 export type SaleFormValues = z.infer<typeof formSchema>
@@ -86,13 +85,12 @@ export function SaleForm({
     defaultValues: {
       saleDate: new Date(),
       paymentMethod: 'cash',
-      notes: '',
     },
   })
 
   useEffect(() => {
     if(open) {
-      form.reset({ saleDate: new Date(), paymentMethod: 'cash', notes: '' });
+      form.reset({ saleDate: new Date(), paymentMethod: 'cash' });
       setCartItems([]);
     }
   }, [open, form])
@@ -184,23 +182,6 @@ export function SaleForm({
                             >
                                 <Search className="w-5 h-5 mr-3" /> BUSCAR PRODUCTOS
                             </Button>
-
-                            <FormField
-                                control={form.control}
-                                name="notes"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <Label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Observaciones</Label>
-                                        <FormControl>
-                                            <Textarea
-                                                placeholder="Notas sobre la venta..."
-                                                className="resize-none bg-white rounded-2xl h-24"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                    </FormItem>
-                                )}
-                                />
                             
                             <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm text-center space-y-1">
                                 <p className="text-[10px] uppercase font-black text-[#107C41] tracking-widest">TOTAL A PAGAR</p>
@@ -225,7 +206,11 @@ export function SaleForm({
                             
                             <div className="flex justify-between items-end mb-8 px-2">
                                 <div>
-                                    <h3 className="text-3xl font-black text-[#E94E4E] italic tracking-tighter uppercase">RECIBO</h3>
+                                    <DialogHeader>
+                                        <DialogTitle className="text-left">
+                                            <h3 className="text-3xl font-black text-[#E94E4E] italic tracking-tighter uppercase">RECIBO</h3>
+                                        </DialogTitle>
+                                    </DialogHeader>
                                     <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">Venta #{saleCount + 1}</p>
                                 </div>
                                 <div className="text-right">
@@ -338,7 +323,7 @@ function ProductListItem({ product, onAddProduct }: {
   );
 }
 
-function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddProduct }: {
+function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddProduct, bcvRate }: {
   open: boolean; onOpenChange: (open: boolean) => void; products: Product[]; cartItems: CartItem[]; onAddProduct: (product: Product, quantity: number) => void; bcvRate: number | null;
 }) {
   const [searchTerm, setSearchTerm] = useState('')

@@ -158,10 +158,6 @@
           ],
           "default": "cash",
           "description": "Método de pago."
-        },
-        "notes": {
-          "type": "string",
-          "description": "Notas adicionales sobre la venta."
         }
       },
       "required": [

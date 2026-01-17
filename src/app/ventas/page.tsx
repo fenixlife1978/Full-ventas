@@ -50,7 +50,6 @@ export interface Sale {
   totalAmount: number
   saleDate: Date
   paymentMethod: 'cash' | 'card' | 'transfer' | 'other'
-  notes?: string
 }
 
 export default function VentasPage() {
@@ -113,7 +112,6 @@ export default function VentasPage() {
       filtered = filtered.filter(s => {
         const lowerSearchTerm = searchTerm.toLowerCase();
         return (
-          s.notes?.toLowerCase().includes(lowerSearchTerm) ||
           s.saleNumber.toString().includes(lowerSearchTerm) ||
           s.items.some(item => item.productName.toLowerCase().includes(lowerSearchTerm))
         )
@@ -140,7 +138,6 @@ export default function VentasPage() {
       })),
       totalAmount: values.totalAmount,
       paymentMethod: values.paymentMethod,
-      notes: values.notes,
       saleDate: Timestamp.fromDate(values.saleDate),
     }
 
@@ -324,11 +321,6 @@ export default function VentasPage() {
                           </div>
                         ))}
                       </div>
-                       {sale.notes && (
-                        <div className="pt-2 border-t border-border/50">
-                          <p className="text-[11px] text-muted-foreground italic font-medium">"{sale.notes}"</p>
-                        </div>
-                      )}
 
                     </div>
 
