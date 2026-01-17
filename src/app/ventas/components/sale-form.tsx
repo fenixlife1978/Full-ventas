@@ -9,7 +9,6 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import {
@@ -71,6 +70,7 @@ export function SaleForm({
 }: SaleFormProps) {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [isProductSelectorOpen, setIsProductSelectorOpen] = useState(false)
+  const [isPriceListOpen, setIsPriceListOpen] = useState(false)
   const { toast } = useToast()
 
   const paymentMethods = [
@@ -217,13 +217,18 @@ export function SaleForm({
                                 </p>
                                 <div className="flex items-center justify-center gap-2 text-base font-bold text-gray-400">
                                     <span>{formatUSD(totalUSD)}</span>
+                                    {bcvRate && <span className="text-xs">(BCV: {bcvRate.toFixed(2)})</span>}
                                 </div>
                             </section>
 
-                            <div className="bg-[#E7F3ED] px-4 py-2.5 rounded-xl flex justify-between items-center">
-                                <span className="text-[10px] font-black text-[#107C41]/70 uppercase tracking-widest">Tasa BCV</span>
-                                <span className="text-sm font-black text-[#107C41]">{bcvRate ? `Bs. ${bcvRate.toFixed(2)}` : '---'}</span>
-                            </div>
+                            <Button 
+                                type="button" 
+                                variant="outline"
+                                onClick={() => setIsPriceListOpen(true)}
+                                className="w-full h-12 rounded-xl font-bold text-sm text-primary border-primary/20 hover:bg-primary/5 hover:text-primary"
+                            >
+                                <DollarSign className="w-4 h-4 mr-2" /> CONSULTAR PRECIOS
+                            </Button>
                         </div>
 
                         <div className="mt-auto pt-6">
@@ -313,16 +318,72 @@ export function SaleForm({
       </DialogContent>
     </Dialog>
 
+    <PriceListModal
+      open={isPriceListOpen}
+      onOpenChange={setIsPriceListOpen}
+      products={products}
+      bcvRate={bcvRate}
+    />
     <ProductSelectorModal
         open={isProductSelectorOpen}
         onOpenChange={setIsProductSelectorOpen}
         products={products}
         onAddProduct={handleAddProduct}
         cartItems={cartItems}
-        bcvRate={bcvRate}
     />
     </>
   )
+}
+
+function PriceListModal({ open, onOpenChange, products, bcvRate }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  products: Product[];
+  bcvRate: number | null;
+}) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const filteredProducts = useMemo(() => 
+    products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())),
+    [products, searchTerm]
+  );
+
+  const formatUSD = (value: number) => new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(value);
+  const formatBs = (value: number) => `Bs. ${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(value)}`;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl h-[70vh] flex flex-col p-0 overflow-hidden rounded-3xl border-none bg-[#F8F9F8]">
+        <DialogHeader className="p-8 pb-5 bg-white border-b border-gray-100">
+          <DialogTitle className="text-2xl font-black mb-4 tracking-tight">Lista de Precios</DialogTitle>
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300" />
+            <Input 
+              placeholder="Buscar producto..." 
+              value={searchTerm} 
+              onChange={e => setSearchTerm(e.target.value)} 
+              className="pl-12 h-12 rounded-xl bg-[#F8F9F8] border-none text-base font-bold" 
+            />
+          </div>
+        </DialogHeader>
+        <ScrollArea className="flex-1 p-6">
+          <div className="space-y-2">
+            {filteredProducts.map(product => (
+              <div key={product.id} className="grid grid-cols-3 gap-4 items-center p-4 bg-white rounded-2xl border border-gray-100">
+                <div className="col-span-2">
+                  <p className="font-black text-[#1A1C1E] uppercase text-sm tracking-tight">{product.name}</p>
+                  <p className="text-[10px] text-gray-400 font-bold">{product.category || 'Sin categoría'}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-primary">{formatUSD(product.price)}</p>
+                  {bcvRate && <p className="text-xs text-muted-foreground">{formatBs(product.price * bcvRate)}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function ProductListItem({ product, onAddProduct }: {
@@ -330,11 +391,15 @@ function ProductListItem({ product, onAddProduct }: {
   onAddProduct: (product: Product, quantity: number) => void;
 }) {
   const [value, setValue] = useState('1');
+  const formatUSD = (value: number) => new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(value);
   
   return (
     <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 hover:border-[#107C41]/30 transition-all">
       <div className="flex-1">
-        <p className="font-black text-[#1A1C1E] uppercase text-sm tracking-tight">{product.name}</p>
+        <div className="flex items-baseline gap-3">
+          <p className="font-black text-[#1A1C1E] uppercase text-sm tracking-tight">{product.name}</p>
+          <p className="font-bold text-primary text-xs">{formatUSD(product.price)}</p>
+        </div>
         <div className="flex gap-3 mt-1">
             <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-black text-gray-500 uppercase">{product.unit}</span>
             <span className="text-[10px] font-black text-[#107C41]">Stock: {product.stock}</span>
@@ -345,7 +410,8 @@ function ProductListItem({ product, onAddProduct }: {
             type="number" 
             className="w-16 h-10 text-center font-black rounded-xl bg-gray-50 border-none" 
             value={value} 
-            onChange={(e) => setValue(e.target.value)} 
+            onChange={(e) => setValue(e.target.value)}
+            step={product.unit === 'kg' || product.unit === 'litro' ? "0.1" : "1"}
         />
         <Button 
             onClick={() => { onAddProduct(product, parseFloat(value)); setValue('1'); }} 
@@ -358,8 +424,8 @@ function ProductListItem({ product, onAddProduct }: {
   );
 }
 
-function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddProduct, bcvRate }: {
-  open: boolean; onOpenChange: (open: boolean) => void; products: Product[]; cartItems: CartItem[]; onAddProduct: (product: Product, quantity: number) => void; bcvRate: number | null;
+function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddProduct }: {
+  open: boolean; onOpenChange: (open: boolean) => void; products: Product[]; cartItems: CartItem[]; onAddProduct: (product: Product, quantity: number) => void;
 }) {
   const [searchTerm, setSearchTerm] = useState('')
   const cartIds = new Set(cartItems.map(i => i.id))
