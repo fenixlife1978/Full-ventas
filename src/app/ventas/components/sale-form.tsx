@@ -9,10 +9,8 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
@@ -24,9 +22,11 @@ import {
   Plus,
   Search,
   Trash2,
+  DollarSign,
+  CreditCard,
+  Landmark,
+  ShoppingBag
 } from 'lucide-react'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Calendar } from '@/components/ui/calendar'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -36,6 +36,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/hooks/use-toast'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 const formSchema = z.object({
   saleDate: z.date({
@@ -74,10 +75,10 @@ export function SaleForm({
   const { toast } = useToast()
 
   const paymentMethods = [
-    { id: 'cash', label: 'Efectivo' },
-    { id: 'card', label: 'Tarjeta' },
-    { id: 'transfer', label: 'Transferencia' },
-    { id: 'other', label: 'Otro' },
+    { id: 'cash', label: 'Efectivo', icon: DollarSign },
+    { id: 'card', label: 'Tarjeta', icon: CreditCard },
+    { id: 'transfer', label: 'Transferencia', icon: Landmark },
+    { id: 'other', label: 'Otro', icon: Plus },
   ];
   
   const form = useForm<SaleFormValues>({
@@ -106,193 +107,188 @@ export function SaleForm({
     if (quantity <= 0) return;
     const existingItem = cartItems.find(item => item.id === product.id);
     if (existingItem) {
-        toast({ variant: 'destructive', title: 'El producto ya está en el monitor.' });
+        toast({ variant: 'destructive', title: 'Producto ya está en el recibo' });
         return;
     }
-    const newQuantity = isNaN(quantity) ? 1 : quantity;
-
-    if (newQuantity > product.stock) {
-        toast({ variant: 'destructive', title: 'Stock Insuficiente', description: `Solo quedan ${product.stock} unidades de ${product.name}.` });
-        return;
-    }
-
-    setCartItems(prev => [...prev, { ...product, quantity: newQuantity }]);
+    setCartItems(prev => [...prev, { ...product, quantity }]);
   }
   
   const handleRemoveItem = (productId: string) => {
     setCartItems(prev => prev.filter(item => item.id !== productId));
   };
-  
+
   const handleFormSubmit = (values: SaleFormValues) => {
     if (cartItems.length === 0) {
-      toast({ variant: 'destructive', title: 'Venta Vacía', description: 'Agrega productos al monitor antes de registrar.' });
+      toast({ variant: 'destructive', title: 'Venta Vacía', description: 'Debes agregar al menos un producto.' });
       return;
     }
     onSubmit({ ...values, items: cartItems, totalAmount: totalUSD, saleNumber: saleCount + 1 })
   }
 
-  const formatBs = (value: number) => new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
+  const formatBs = (value: number) => `Bs. ${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(value)}`
   const formatUSD = (value: number) => new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(value)
 
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl w-full p-0 bg-gray-100 dark:bg-gray-900 border-none rounded-2xl overflow-hidden">
+      <DialogContent className="max-w-7xl w-full h-[95vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl rounded-[2.5rem]">
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="grid grid-cols-12 h-[700px]">
+            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="h-full flex flex-col bg-[#F8F9F8]">
                 
-                {/* Left Panel */}
-                <div className="col-span-5 bg-white dark:bg-black/20 p-8 flex flex-col">
-                    <DialogHeader>
-                      <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6 text-left">NUEVA VENTA</DialogTitle>
-                    </DialogHeader>
-
-                    <div className="space-y-6">
+                <DialogHeader className="px-8 py-4 bg-white border-b border-gray-100 flex-row justify-between items-center">
+                    <DialogTitle className="flex items-center gap-4 text-left">
+                        <div className="bg-[#107C41] p-3 rounded-2xl">
+                            <ShoppingBag className="text-white h-5 w-5" />
+                        </div>
+                        <h2 className="text-2xl font-black text-[#1A1C1E] tracking-tight">NUEVA VENTA</h2>
+                    </DialogTitle>
+                    
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 text-gray-500 font-bold bg-white px-3 py-1.5 rounded-xl border border-gray-100">
+                            <CalendarIcon className="h-4 w-4 text-[#107C41]" />
+                            <span className="text-xs">{format(new Date(), "d 'de' MMMM", { locale: es })}</span>
+                        </div>
                         <FormField
                             control={form.control}
                             name="paymentMethod"
                             render={({ field }) => (
-                            <FormItem>
-                                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-1 bg-gray-100 dark:bg-black/30 p-1 rounded-lg">
-                                    {paymentMethods.map(({ id, label }) => (
-                                        <div key={id} className="flex-1">
-                                            <RadioGroupItem value={id} id={`pay-${id}`} className="sr-only" />
-                                            <Label
-                                                htmlFor={`pay-${id}`}
-                                                className={cn(
-                                                    "block w-full text-center p-2 rounded-md text-sm font-semibold cursor-pointer transition-colors",
-                                                    field.value === id ? "bg-green-500 text-white shadow" : "text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-black/40"
-                                                )}
-                                            >
-                                                {label}
-                                            </Label>
-                                        </div>
-                                    ))}
-                                </RadioGroup>
-                            </FormItem>
-                            )}
-                        />
-
-                        <FormField
-                            control={form.control}
-                            name="saleDate"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                <FormLabel className="text-xs font-semibold text-gray-500 dark:text-gray-400">FECHA DE VENTA</FormLabel>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                    <FormControl>
-                                        <Button
-                                        variant={'outline'}
-                                        className={cn(
-                                            'w-full pl-3 text-left font-semibold border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-black/30',
-                                            !field.value && 'text-muted-foreground'
-                                        )}
+                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-1.5">
+                                {paymentMethods.map(({ id, label, icon: Icon }) => (
+                                    <div key={id}>
+                                        <RadioGroupItem value={id} id={`pay-${id}`} className="sr-only" />
+                                        <Label
+                                            htmlFor={`pay-${id}`}
+                                            className={cn(
+                                                "flex items-center px-3 py-1 rounded-lg border transition-all h-9 text-[10px] font-black cursor-pointer uppercase tracking-wider",
+                                                field.value === id ? "bg-[#107C41] border-[#107C41] text-white shadow-lg shadow-[#107C41]/20" : "border-gray-200 bg-white text-gray-400 hover:bg-gray-50"
+                                            )}
                                         >
-                                        {field.value ? (
-                                            format(field.value, 'dd/MM/yyyy')
-                                        ) : (
-                                            <span>Seleccione una fecha</span>
-                                        )}
-                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                        </Button>
-                                    </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                        mode="single"
-                                        selected={field.value}
-                                        onSelect={field.onChange}
-                                        disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
-                                        initialFocus
-                                        locale={es}
-                                    />
-                                    </PopoverContent>
-                                </Popover>
-                                </FormItem>
-                            )}
-                        />
-
-                        <Button type="button" onClick={() => setIsProductSelectorOpen(true)} className="w-full bg-black dark:bg-gray-800 text-white font-bold text-base py-6 rounded-lg hover:bg-black/80 dark:hover:bg-gray-700">
-                            <Plus className="mr-2"/> AGREGAR PRODUCTOS
-                        </Button>
-
-                         <FormField
-                            control={form.control}
-                            name="notes"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel className="text-xs font-semibold text-gray-500 dark:text-gray-400">OBSERVACIONES</FormLabel>
-                                <Textarea
-                                    placeholder="Añade notas adicionales..."
-                                    className="resize-none bg-gray-100 dark:bg-black/30 border-gray-200 dark:border-gray-700"
-                                    {...field}
-                                />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                    
-                    <div className="mt-auto space-y-4">
-                        <div className="bg-green-500 text-white p-6 rounded-lg text-center">
-                            <p className="text-4xl font-bold">Bs. {formatBs(totalBs)}</p>
-                            <p className="font-semibold opacity-80">{formatUSD(totalUSD)}</p>
-                        </div>
-                         <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-6 rounded-lg text-lg">
-                            REGISTRAR VENTA
-                        </Button>
-                    </div>
-
-                </div>
-
-                {/* Right Panel */}
-                <div className="col-span-7 p-8 flex flex-col">
-                    <div className="text-center mb-6">
-                        <h2 className="text-2xl font-bold text-red-500">MONITOR DE VENTA</h2>
-                        <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">VENTA Nº {saleCount + 1}</p>
-                    </div>
-
-                    <div className="grid grid-cols-12 gap-4 px-4 pb-2 border-b-2 border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
-                        <div className="col-span-5">Producto</div>
-                        <div className="col-span-2 text-center">Unidad</div>
-                        <div className="col-span-2 text-center">Cant.</div>
-                        <div className="col-span-2 text-right">Monto</div>
-                        <div className="col-span-1"></div>
-                    </div>
-                    
-                    <ScrollArea className="flex-1 -mx-4">
-                        <div className="px-4">
-                        {cartItems.length === 0 ? (
-                            <div className="h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
-                                <p>No hay productos en el monitor</p>
-                            </div>
-                        ) : (
-                            cartItems.map((item) => (
-                                <div key={item.id} className="grid grid-cols-12 gap-4 py-4 items-center border-b border-gray-100 dark:border-gray-800">
-                                    <div className="col-span-5 font-semibold text-gray-800 dark:text-gray-200">{item.name}</div>
-                                    <div className="col-span-2 text-center text-gray-600 dark:text-gray-400 text-sm">{item.unit || 'unidad'}</div>
-                                    <div className="col-span-2 text-center font-bold text-gray-800 dark:text-gray-200">{item.quantity}</div>
-                                    <div className="col-span-2 text-right font-bold text-gray-800 dark:text-gray-200">{formatUSD(item.price * item.quantity)}</div>
-                                    <div className="col-span-1 text-center">
-                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.id)} className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10">
-                                            <Trash2 className="h-4 w-4"/>
-                                        </Button>
+                                            <Icon className="mr-1.5 h-3 w-3" /> {label}
+                                        </Label>
                                     </div>
-                                </div>
-                            ))
-                        )}
-                        </div>
-                    </ScrollArea>
+                                ))}
+                            </RadioGroup>
+                            )}
+                        />
+                    </div>
+                </DialogHeader>
+
+                <div className="flex-1 flex flex-row overflow-hidden">
                     
-                    <div className="pt-4 mt-auto border-t-2 border-gray-200 dark:border-gray-700 flex justify-between items-center text-gray-700 dark:text-gray-300">
-                        <p className="font-bold">TOTAL VENTA</p>
-                        <div className="text-right">
-                           <p className="text-lg font-bold">Bs. {formatBs(totalBs)}</p>
-                           <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">{formatUSD(totalUSD)}</p>
+                    <div className="w-[380px] bg-white p-6 flex flex-col border-r border-gray-100">
+                        <div className="space-y-6">
+                            <Button 
+                                type="button" 
+                                onClick={() => setIsProductSelectorOpen(true)} 
+                                className="w-full h-16 bg-black text-white hover:bg-black/90 rounded-[1.5rem] font-black text-lg shadow-xl transition-transform active:scale-95"
+                            >
+                                <Search className="w-5 h-5 mr-3" /> BUSCAR PRODUCTOS
+                            </Button>
+
+                            <FormField
+                                control={form.control}
+                                name="notes"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <Label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Observaciones</Label>
+                                        <FormControl>
+                                            <Textarea
+                                                placeholder="Notas sobre la venta..."
+                                                className="resize-none bg-white rounded-2xl h-24"
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                                />
+                            
+                            <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm text-center space-y-1">
+                                <p className="text-[10px] uppercase font-black text-[#107C41] tracking-widest">TOTAL A PAGAR</p>
+                                <p className="text-5xl font-black text-[#107C41] tracking-tighter">
+                                    {formatBs(totalBs)}
+                                </p>
+                                <div className="flex items-center justify-center gap-2 text-lg font-bold text-gray-400">
+                                    <span>{formatUSD(totalUSD)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-auto pt-6">
+                            <Button type="submit" className="w-full h-20 text-xl font-black rounded-[2rem] bg-[#8DBDA2] hover:bg-[#7CAF93] text-white shadow-2xl shadow-[#8DBDA2]/30 transition-all active:scale-95">
+                                REGISTRAR VENTA
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 p-6 flex flex-col overflow-hidden">
+                        <div className="flex-1 border-4 border-dashed border-gray-100 rounded-[2.5rem] p-8 flex flex-col overflow-hidden">
+                            
+                            <div className="flex justify-between items-end mb-8 px-2">
+                                <div>
+                                    <h3 className="text-3xl font-black text-[#E94E4E] italic tracking-tighter uppercase">RECIBO</h3>
+                                    <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">Venta #{saleCount + 1}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Artículos</p>
+                                    <p className="text-xl font-black text-gray-800">{cartItems.length}</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-12 font-black text-[9px] uppercase text-gray-400 border-b border-gray-100 pb-3 mb-1 px-4 tracking-widest">
+                                <div className="col-span-5">Descripción</div>
+                                <div className="col-span-2 text-center">Unidad</div>
+                                <div className="col-span-2 text-center">Cant.</div>
+                                <div className="col-span-3 text-right">Sub-total</div>
+                            </div>
+
+                            <ScrollArea className="flex-1 px-4">
+                                {cartItems.length === 0 ? (
+                                    <div className="h-full flex flex-col items-center justify-center text-gray-300 py-24 opacity-60">
+                                        <div className="w-16 h-16 border-4 border-dashed border-current rounded-full flex items-center justify-center mb-4">
+                                            <Plus className="w-6 h-6" />
+                                        </div>
+                                        <p className="font-bold text-sm uppercase tracking-widest">Esperando productos...</p>
+                                    </div>
+                                ) : (
+                                    cartItems.map((item) => {
+                                        const subtotalUSD = item.price * item.quantity;
+                                        const subtotalBs = bcvRate ? subtotalUSD * bcvRate : 0;
+                                        return (
+                                            <div key={item.id} className="grid grid-cols-12 py-3.5 items-center border-b border-gray-50 group transition-all hover:translate-x-1">
+                                                <div className="col-span-5">
+                                                    <p className="font-black text-[#1A1C1E] text-xs uppercase leading-tight">{item.name}</p>
+                                                    <p className="text-[9px] text-gray-400 font-bold">{formatUSD(item.price)} x {item.unit}</p>
+                                                </div>
+                                                <div className="col-span-2 text-center text-[9px] font-black text-gray-400 uppercase">
+                                                    {item.unit}
+                                                </div>
+                                                <div className="col-span-2 flex justify-center">
+                                                    <span className="bg-gray-100 px-2 py-0.5 rounded-md font-black text-[#107C41] text-xs">
+                                                        {item.quantity}
+                                                    </span>
+                                                </div>
+                                                <div className="col-span-3 text-right flex items-center justify-end gap-2">
+                                                    <div className="text-right">
+                                                        <p className="font-black text-[#1A1C1E] text-sm leading-none">{formatBs(subtotalBs)}</p>
+                                                        <p className="text-[9px] text-gray-400 font-bold">{formatUSD(subtotalUSD)}</p>
+                                                    </div>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon" 
+                                                        onClick={() => handleRemoveItem(item.id)} 
+                                                        className="text-red-300 hover:text-red-500 hover:bg-red-50 rounded-full h-7 w-7 opacity-0 group-hover:opacity-100 transition-all"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )
+                                    })
+                                )}
+                            </ScrollArea>
                         </div>
                     </div>
                 </div>
-
             </form>
         </Form>
       </DialogContent>
@@ -302,72 +298,71 @@ export function SaleForm({
         open={isProductSelectorOpen}
         onOpenChange={setIsProductSelectorOpen}
         products={products}
-        onAddProduct={handleAddProduct}
         cartItems={cartItems}
+        onAddProduct={handleAddProduct}
+        bcvRate={bcvRate}
     />
     </>
   )
 }
 
-function ProductListItem({ product, onAddProduct, onSelect }: {
-  product: Product; onAddProduct: (product: Product, quantity: number) => void; onSelect: () => void;
+function ProductListItem({ product, onAddProduct }: {
+  product: Product; onAddProduct: (product: Product, quantity: number) => void;
 }) {
-  const [quantity, setQuantity] = useState('1');
-
-  const handleAdd = () => {
-      const numQuantity = parseFloat(quantity);
-      if (!isNaN(numQuantity) && numQuantity > 0) {
-          onAddProduct(product, numQuantity);
-          onSelect();
-      }
-  }
+  const [value, setValue] = useState('1');
   
   return (
-    <div className="flex items-center justify-between p-4 bg-white dark:bg-black/20 rounded-lg border border-gray-200 dark:border-gray-700">
-      <div>
-        <p className="font-bold text-gray-800 dark:text-gray-200">{product.name}</p>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Stock: {product.stock} {product.unit}</p>
+    <div className="flex items-center justify-between p-4 bg-white rounded-[1.5rem] border border-gray-100 hover:border-[#107C41]/30 transition-all">
+      <div className="flex-1">
+        <p className="font-black text-[#1A1C1E] uppercase text-xs tracking-tight">{product.name}</p>
+        <div className="flex gap-2 mt-1">
+            <span className="text-[9px] bg-gray-100 px-1.5 py-0.5 rounded font-black text-gray-500 uppercase">{product.unit}</span>
+            <span className="text-[9px] font-black text-[#107C41]">Stock: {product.stock}</span>
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <Input 
             type="number" 
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            className="w-20 h-10 text-center font-bold bg-gray-100 dark:bg-black/30 border-gray-200 dark:border-gray-700 rounded-md"
+            className="w-16 h-10 text-center font-black rounded-xl bg-gray-50 border-none" 
+            value={value} 
+            onChange={(e) => setValue(e.target.value)} 
         />
-        <Button onClick={handleAdd} className="bg-green-500 hover:bg-green-600 text-white font-bold h-10">Añadir</Button>
+        <Button 
+            onClick={() => { onAddProduct(product, parseFloat(value)); setValue('1'); }} 
+            className="h-10 px-5 rounded-xl font-black bg-[#107C41] hover:bg-[#0D6334]"
+        >
+            AÑADIR
+        </Button>
       </div>
     </div>
   );
 }
 
 function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddProduct }: {
-  open: boolean; onOpenChange: (open: boolean) => void; products: Product[]; cartItems: CartItem[]; onAddProduct: (product: Product, quantity: number) => void;
+  open: boolean; onOpenChange: (open: boolean) => void; products: Product[]; cartItems: CartItem[]; onAddProduct: (product: Product, quantity: number) => void; bcvRate: number | null;
 }) {
   const [searchTerm, setSearchTerm] = useState('')
   const cartIds = new Set(cartItems.map(i => i.id))
-  const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) && !cartIds.has(p.id) && p.status === 'active' && p.stock > 0)
+  const filtered = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) && !cartIds.has(p.id) && p.status === 'active')
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[70vh] flex flex-col p-0 overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-900 border-none">
-        <DialogHeader className="p-6 bg-white dark:bg-black/20 border-b border-gray-200 dark:border-gray-700">
-            <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">Seleccionar Producto</DialogTitle>
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <Input 
-                    placeholder="Buscar producto..." 
-                    value={searchTerm} 
-                    onChange={e => setSearchTerm(e.target.value)} 
-                    className="pl-10 h-11 rounded-lg bg-gray-100 dark:bg-black/30 border-gray-200 dark:border-gray-700" 
-                />
-            </div>
+      <DialogContent className="max-w-2xl h-[80vh] flex flex-col p-0 overflow-hidden rounded-[2.5rem] border-none bg-[#F8F9F8]">
+        <DialogHeader className="p-8 pb-4 bg-white border-b border-gray-100">
+          <DialogTitle className="text-2xl font-black mb-4 tracking-tight text-left">Buscar Artículos</DialogTitle>
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300" />
+            <Input 
+                placeholder="Nombre del producto..." 
+                value={searchTerm} 
+                onChange={e => setSearchTerm(e.target.value)} 
+                className="pl-12 h-12 rounded-xl bg-[#F8F9F8] border-none text-base font-bold" 
+            />
+          </div>
         </DialogHeader>
-        <ScrollArea className="flex-1 p-6">
+        <ScrollArea className="flex-1 px-6 pt-6">
           <div className="grid gap-3">
-            {filteredProducts.map(p => 
-                <ProductListItem key={p.id} product={p} onAddProduct={onAddProduct} onSelect={() => onOpenChange(false)} />
-            )}
+            {filtered.map(p => <ProductListItem key={p.id} product={p} onAddProduct={onAddProduct} />)}
           </div>
         </ScrollArea>
       </DialogContent>
