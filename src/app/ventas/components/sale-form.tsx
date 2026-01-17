@@ -25,7 +25,8 @@ import {
   DollarSign,
   CreditCard,
   Landmark,
-  ShoppingBag
+  ShoppingBag,
+  FileText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -43,6 +44,7 @@ const formSchema = z.object({
     required_error: 'La fecha es requerida.',
   }),
   paymentMethod: z.enum(['cash', 'card', 'transfer', 'other']),
+  notes: z.string().optional(),
 })
 
 export type SaleFormValues = z.infer<typeof formSchema>
@@ -85,12 +87,13 @@ export function SaleForm({
     defaultValues: {
       saleDate: new Date(),
       paymentMethod: 'cash',
+      notes: '',
     },
   })
 
   useEffect(() => {
     if(open) {
-      form.reset({ saleDate: new Date(), paymentMethod: 'cash' });
+      form.reset({ saleDate: new Date(), paymentMethod: 'cash', notes: '' });
       setCartItems([]);
     }
   }, [open, form])
@@ -115,12 +118,41 @@ export function SaleForm({
     setCartItems(prev => prev.filter(item => item.id !== productId));
   };
 
+  const handleUpdateQuantity = (productId: string, newQuantity: number) => {
+    if (newQuantity < 0) return;
+
+    const productInStock = products.find(p => p.id === productId);
+
+    if (productInStock && newQuantity > productInStock.stock) {
+        toast({
+            variant: 'destructive',
+            title: 'Stock insuficiente',
+            description: `Solo quedan ${productInStock.stock} unidades.`
+        });
+        setCartItems(prev =>
+            prev.map(item =>
+                item.id === productId ? { ...item, quantity: productInStock.stock } : item
+            )
+        );
+        return;
+    }
+
+    setCartItems(prev =>
+        prev.map(item =>
+            item.id === productId ? { ...item, quantity: isNaN(newQuantity) ? 0 : newQuantity } : item
+        )
+    );
+  };
+
+
   const handleFormSubmit = (values: SaleFormValues) => {
-    if (cartItems.length === 0) {
-      toast({ variant: 'destructive', title: 'Venta Vacía', description: 'Debes agregar al menos un producto.' });
+    const validItems = cartItems.filter(item => item.quantity > 0);
+    if (validItems.length === 0) {
+      toast({ variant: 'destructive', title: 'Venta Vacía', description: 'Debes agregar al menos un producto con una cantidad válida.' });
       return;
     }
-    onSubmit({ ...values, items: cartItems, totalAmount: totalUSD, saleNumber: saleCount + 1 })
+    const validTotalUSD = validItems.reduce((acc, item) => acc + (item.price * (item.quantity || 0)), 0);
+    onSubmit({ ...values, items: validItems, totalAmount: validTotalUSD, saleNumber: saleCount + 1 })
   }
 
   const formatBs = (value: number) => `Bs. ${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(value)}`
@@ -129,10 +161,9 @@ export function SaleForm({
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl w-full h-[95vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl rounded-[2.5rem]">
+      <DialogContent className="max-w-6xl w-full h-[95vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl rounded-3xl">
         <Form {...form}>
             <form onSubmit={form.handleSubmit(handleFormSubmit)} className="h-full flex flex-col bg-[#F8F9F8]">
-                
                 <DialogHeader className="px-8 py-4 bg-white border-b border-gray-100 flex-row justify-between items-center">
                     <DialogTitle className="flex items-center gap-4 text-left">
                         <div className="bg-[#107C41] p-3 rounded-2xl">
@@ -178,13 +209,33 @@ export function SaleForm({
                             <Button 
                                 type="button" 
                                 onClick={() => setIsProductSelectorOpen(true)} 
-                                className="w-full h-16 bg-black text-white hover:bg-black/90 rounded-[1.5rem] font-black text-lg shadow-xl transition-transform active:scale-95"
+                                className="w-full h-16 bg-black text-white hover:bg-black/90 rounded-2xl font-black text-lg shadow-xl transition-transform active:scale-95"
                             >
-                                <Search className="w-5 h-5 mr-3" /> BUSCAR PRODUCTOS
+                                <Search className="w-5 h-5 mr-3" /> AGREGAR PRODUCTO
                             </Button>
-                            
-                            <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm text-center space-y-1">
-                                <p className="text-[10px] uppercase font-black text-[#107C41] tracking-widest">TOTAL A PAGAR</p>
+
+                            <FormField
+                              control={form.control}
+                              name="notes"
+                              render={({ field }) => (
+                                <FormItem>
+                                    <Label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 flex items-center gap-1.5">
+                                        <FileText className="w-3 h-3" />
+                                        Observaciones
+                                    </Label>
+                                  <FormControl>
+                                    <Textarea
+                                      placeholder="Añadir nota a la venta..."
+                                      className="resize-none border-border/50 focus:ring-ring rounded-2xl text-xs h-24 bg-background"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+
+                            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-center space-y-1">
+                                <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">TOTAL</p>
                                 <p className="text-5xl font-black text-[#107C41] tracking-tighter">
                                     {formatBs(totalBs)}
                                 </p>
@@ -195,22 +246,18 @@ export function SaleForm({
                         </div>
 
                         <div className="mt-auto pt-6">
-                            <Button type="submit" className="w-full h-20 text-xl font-black rounded-[2rem] bg-[#8DBDA2] hover:bg-[#7CAF93] text-white shadow-2xl shadow-[#8DBDA2]/30 transition-all active:scale-95">
+                            <Button type="submit" className="w-full h-20 text-xl font-black rounded-2xl bg-[#8DBDA2] hover:bg-[#7CAF93] text-white shadow-2xl shadow-[#8DBDA2]/30 transition-all active:scale-95">
                                 REGISTRAR VENTA
                             </Button>
                         </div>
                     </div>
 
                     <div className="flex-1 p-6 flex flex-col overflow-hidden">
-                        <div className="flex-1 border-4 border-dashed border-gray-100 rounded-[2.5rem] p-8 flex flex-col overflow-hidden">
+                        <div className="flex-1 border-4 border-dashed border-gray-100 rounded-3xl p-8 flex flex-col overflow-hidden">
                             
                             <div className="flex justify-between items-end mb-8 px-2">
                                 <div>
-                                    <DialogHeader>
-                                        <DialogTitle className="text-left">
-                                            <h3 className="text-3xl font-black text-[#E94E4E] italic tracking-tighter uppercase">RECIBO</h3>
-                                        </DialogTitle>
-                                    </DialogHeader>
+                                    <h3 className="text-3xl font-black text-[#E94E4E] italic tracking-tighter uppercase">MONITOR DE VENTA</h3>
                                     <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">Venta #{saleCount + 1}</p>
                                 </div>
                                 <div className="text-right">
@@ -221,8 +268,8 @@ export function SaleForm({
 
                             <div className="grid grid-cols-12 font-black text-[9px] uppercase text-gray-400 border-b border-gray-100 pb-3 mb-1 px-4 tracking-widest">
                                 <div className="col-span-5">Descripción</div>
-                                <div className="col-span-2 text-center">Unidad</div>
                                 <div className="col-span-2 text-center">Cant.</div>
+                                <div className="col-span-2 text-right">Precio Unit.</div>
                                 <div className="col-span-3 text-right">Sub-total</div>
                             </div>
 
@@ -236,26 +283,40 @@ export function SaleForm({
                                     </div>
                                 ) : (
                                     cartItems.map((item) => {
-                                        const subtotalUSD = item.price * item.quantity;
-                                        const subtotalBs = bcvRate ? subtotalUSD * bcvRate : 0;
+                                        const subtotalUSD = item.price * (item.quantity || 0);
                                         return (
-                                            <div key={item.id} className="grid grid-cols-12 py-3.5 items-center border-b border-gray-50 group transition-all hover:translate-x-1">
+                                            <div key={item.id} className="grid grid-cols-12 py-3.5 items-center border-b border-gray-50 group transition-all hover:bg-gray-50/50">
                                                 <div className="col-span-5">
-                                                    <p className="font-black text-[#1A1C1E] text-xs uppercase leading-tight">{item.name}</p>
-                                                    <p className="text-[9px] text-gray-400 font-bold">{formatUSD(item.price)} x {item.unit}</p>
+                                                    <p className="font-black text-foreground text-xs uppercase leading-tight">{item.name}</p>
+                                                    <p className="text-[9px] text-muted-foreground font-bold">{item.unit}</p>
                                                 </div>
-                                                <div className="col-span-2 text-center text-[9px] font-black text-gray-400 uppercase">
-                                                    {item.unit}
-                                                </div>
+                                                
                                                 <div className="col-span-2 flex justify-center">
-                                                    <span className="bg-gray-100 px-2 py-0.5 rounded-md font-black text-[#107C41] text-xs">
-                                                        {item.quantity}
-                                                    </span>
+                                                    <Input
+                                                        type="number"
+                                                        value={item.quantity}
+                                                        onChange={(e) => handleUpdateQuantity(item.id, parseFloat(e.target.value))}
+                                                        onBlur={(e) => {
+                                                            if (parseFloat(e.target.value) <= 0) {
+                                                                handleRemoveItem(item.id);
+                                                                toast({
+                                                                    description: `${item.name} fue eliminado del recibo.`
+                                                                })
+                                                            }
+                                                        }}
+                                                        className="w-16 h-8 text-center font-bold rounded-md bg-gray-100 border-none focus-visible:ring-2 focus-visible:ring-primary"
+                                                        min="0"
+                                                        step={item.unit === 'unidad' ? '1' : '0.01'}
+                                                    />
                                                 </div>
+
+                                                <div className="col-span-2 text-right text-xs font-medium text-muted-foreground">
+                                                    {formatUSD(item.price)}
+                                                </div>
+
                                                 <div className="col-span-3 text-right flex items-center justify-end gap-2">
                                                     <div className="text-right">
-                                                        <p className="font-black text-[#1A1C1E] text-sm leading-none">{formatBs(subtotalBs)}</p>
-                                                        <p className="text-[9px] text-gray-400 font-bold">{formatUSD(subtotalUSD)}</p>
+                                                        <p className="font-bold text-foreground text-sm leading-none">{formatUSD(subtotalUSD)}</p>
                                                     </div>
                                                     <Button 
                                                         variant="ghost" 
@@ -271,6 +332,16 @@ export function SaleForm({
                                     })
                                 )}
                             </ScrollArea>
+                             <div className="mt-auto pt-6 border-t-2 border-dashed border-gray-100">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold text-muted-foreground uppercase">SUB-TOTAL</span>
+                                    <span className="font-bold text-foreground">{formatUSD(totalUSD)}</span>
+                                </div>
+                                <div className="flex justify-between items-center mt-2">
+                                    <span className="text-xs font-bold text-muted-foreground uppercase">TOTAL (Bs.)</span>
+                                    <span className="font-bold text-foreground">{formatBs(totalBs)}</span>
+                                </div>
+                             </div>
                         </div>
                     </div>
                 </div>
@@ -297,7 +368,7 @@ function ProductListItem({ product, onAddProduct }: {
   const [value, setValue] = useState('1');
   
   return (
-    <div className="flex items-center justify-between p-4 bg-white rounded-[1.5rem] border border-gray-100 hover:border-[#107C41]/30 transition-all">
+    <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 hover:border-[#107C41]/30 transition-all">
       <div className="flex-1">
         <p className="font-black text-[#1A1C1E] uppercase text-xs tracking-tight">{product.name}</p>
         <div className="flex gap-2 mt-1">
@@ -311,6 +382,8 @@ function ProductListItem({ product, onAddProduct }: {
             className="w-16 h-10 text-center font-black rounded-xl bg-gray-50 border-none" 
             value={value} 
             onChange={(e) => setValue(e.target.value)} 
+            step={product.unit === 'unidad' ? '1' : '0.01'}
+            min="0.01"
         />
         <Button 
             onClick={() => { onAddProduct(product, parseFloat(value)); setValue('1'); }} 
@@ -332,9 +405,12 @@ function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[80vh] flex flex-col p-0 overflow-hidden rounded-[2.5rem] border-none bg-[#F8F9F8]">
-        <DialogHeader className="p-8 pb-4 bg-white border-b border-gray-100">
-          <DialogTitle className="text-2xl font-black mb-4 tracking-tight text-left">Buscar Artículos</DialogTitle>
+      <DialogHeader>
+        <DialogTitle className="sr-only">Buscar Productos</DialogTitle>
+      </DialogHeader>
+      <DialogContent className="max-w-2xl h-[80vh] flex flex-col p-0 overflow-hidden rounded-3xl border-none bg-[#F8F9F8]">
+        <div className="p-8 pb-4 bg-white border-b border-gray-100">
+          <h2 className="text-2xl font-black mb-4 tracking-tight text-left">Buscar Artículos</h2>
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300" />
             <Input 
@@ -344,7 +420,7 @@ function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddPr
                 className="pl-12 h-12 rounded-xl bg-[#F8F9F8] border-none text-base font-bold" 
             />
           </div>
-        </DialogHeader>
+        </div>
         <ScrollArea className="flex-1 px-6 pt-6">
           <div className="grid gap-3">
             {filtered.map(p => <ProductListItem key={p.id} product={p} onAddProduct={onAddProduct} />)}
