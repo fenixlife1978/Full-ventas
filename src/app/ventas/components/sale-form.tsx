@@ -143,7 +143,9 @@ export function SaleForm({
                 
                 {/* Left Panel */}
                 <div className="col-span-5 bg-white dark:bg-black/20 p-8 flex flex-col">
-                    <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6">NUEVA VENTA</h2>
+                    <DialogHeader>
+                      <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6 text-left">NUEVA VENTA</DialogTitle>
+                    </DialogHeader>
 
                     <div className="space-y-6">
                         <FormField
