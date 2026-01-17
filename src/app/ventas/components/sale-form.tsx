@@ -9,8 +9,10 @@ import {
   FormControl,
   FormField,
   FormItem,
+  FormLabel,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
@@ -22,11 +24,9 @@ import {
   Plus,
   Search,
   Trash2,
-  DollarSign,
-  CreditCard,
-  Landmark,
-  X
 } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -42,6 +42,7 @@ const formSchema = z.object({
     required_error: 'La fecha es requerida.',
   }),
   paymentMethod: z.enum(['cash', 'card', 'transfer', 'other']),
+  notes: z.string().optional(),
 })
 
 export type SaleFormValues = z.infer<typeof formSchema>
@@ -73,10 +74,10 @@ export function SaleForm({
   const { toast } = useToast()
 
   const paymentMethods = [
-    { id: 'cash', label: 'Efectivo', icon: DollarSign },
-    { id: 'card', label: 'Tarjeta', icon: CreditCard },
-    { id: 'transfer', label: 'Transferencia', icon: Landmark },
-    { id: 'other', label: 'Otro', icon: Plus },
+    { id: 'cash', label: 'Efectivo' },
+    { id: 'card', label: 'Tarjeta' },
+    { id: 'transfer', label: 'Transferencia' },
+    { id: 'other', label: 'Otro' },
   ];
   
   const form = useForm<SaleFormValues>({
@@ -84,12 +85,13 @@ export function SaleForm({
     defaultValues: {
       saleDate: new Date(),
       paymentMethod: 'cash',
+      notes: '',
     },
   })
 
   useEffect(() => {
     if(open) {
-      form.reset({ saleDate: new Date(), paymentMethod: 'cash' });
+      form.reset({ saleDate: new Date(), paymentMethod: 'cash', notes: '' });
       setCartItems([]);
     }
   }, [open, form])
@@ -104,16 +106,23 @@ export function SaleForm({
     if (quantity <= 0) return;
     const existingItem = cartItems.find(item => item.id === product.id);
     if (existingItem) {
-        toast({ variant: 'destructive', title: 'El producto ya está en el monitor' });
+        toast({ variant: 'destructive', title: 'El producto ya está en el monitor.' });
         return;
     }
-    setCartItems(prev => [...prev, { ...product, quantity }]);
+    const newQuantity = isNaN(quantity) ? 1 : quantity;
+
+    if (newQuantity > product.stock) {
+        toast({ variant: 'destructive', title: 'Stock Insuficiente', description: `Solo quedan ${product.stock} unidades de ${product.name}.` });
+        return;
+    }
+
+    setCartItems(prev => [...prev, { ...product, quantity: newQuantity }]);
   }
   
   const handleRemoveItem = (productId: string) => {
     setCartItems(prev => prev.filter(item => item.id !== productId));
   };
-
+  
   const handleFormSubmit = (values: SaleFormValues) => {
     if (cartItems.length === 0) {
       toast({ variant: 'destructive', title: 'Venta Vacía', description: 'Agrega productos al monitor antes de registrar.' });
@@ -122,172 +131,166 @@ export function SaleForm({
     onSubmit({ ...values, items: cartItems, totalAmount: totalUSD, saleNumber: saleCount + 1 })
   }
 
-  const formatBs = (value: number) => `Bs. ${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(value)}`
+  const formatBs = (value: number) => new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
   const formatUSD = (value: number) => new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(value)
 
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-none w-screen h-screen m-0 p-0 border-none rounded-none bg-[#F8F9F8] flex flex-col overflow-hidden">
+      <DialogContent className="max-w-6xl w-full p-0 bg-gray-100 dark:bg-gray-900 border-none rounded-2xl overflow-hidden">
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="h-full flex flex-col">
+            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="grid grid-cols-12 h-[700px]">
                 
-                <DialogHeader className="h-16 bg-white border-b border-gray-100 px-8 flex items-center justify-between shrink-0">
-                    <div className="flex items-center gap-6">
-                        <DialogTitle className="text-2xl font-black text-[#1A1C1E] tracking-tight">Nueva Venta</DialogTitle>
+                {/* Left Panel */}
+                <div className="col-span-5 bg-white dark:bg-black/20 p-8 flex flex-col">
+                    <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6">NUEVA VENTA</h2>
+
+                    <div className="space-y-6">
                         <FormField
                             control={form.control}
                             name="paymentMethod"
                             render={({ field }) => (
-                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-2">
-                                {paymentMethods.map(({ id, label, icon: Icon }) => (
-                                    <div key={id}>
-                                        <RadioGroupItem value={id} id={`pay-${id}`} className="sr-only" />
-                                        <Label
-                                            htmlFor={`pay-${id}`}
-                                            className={cn(
-                                                "flex items-center px-4 py-2 rounded-xl border transition-all h-10 text-xs font-black cursor-pointer uppercase tracking-wider",
-                                                field.value === id ? "bg-[#107C41] border-[#107C41] text-white shadow-lg shadow-[#107C41]/20" : "border-gray-200 bg-white text-gray-400 hover:bg-gray-50"
-                                            )}
+                            <FormItem>
+                                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-1 bg-gray-100 dark:bg-black/30 p-1 rounded-lg">
+                                    {paymentMethods.map(({ id, label }) => (
+                                        <div key={id} className="flex-1">
+                                            <RadioGroupItem value={id} id={`pay-${id}`} className="sr-only" />
+                                            <Label
+                                                htmlFor={`pay-${id}`}
+                                                className={cn(
+                                                    "block w-full text-center p-2 rounded-md text-sm font-semibold cursor-pointer transition-colors",
+                                                    field.value === id ? "bg-green-500 text-white shadow" : "text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-black/40"
+                                                )}
+                                            >
+                                                {label}
+                                            </Label>
+                                        </div>
+                                    ))}
+                                </RadioGroup>
+                            </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="saleDate"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                <FormLabel className="text-xs font-semibold text-gray-500 dark:text-gray-400">FECHA DE VENTA</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                    <FormControl>
+                                        <Button
+                                        variant={'outline'}
+                                        className={cn(
+                                            'w-full pl-3 text-left font-semibold border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-black/30',
+                                            !field.value && 'text-muted-foreground'
+                                        )}
                                         >
-                                            <Icon className="mr-2 h-4 w-4" /> {label}
-                                        </Label>
-                                    </div>
-                                ))}
-                            </RadioGroup>
+                                        {field.value ? (
+                                            format(field.value, 'dd/MM/yyyy')
+                                        ) : (
+                                            <span>Seleccione una fecha</span>
+                                        )}
+                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                    </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={field.value}
+                                        onSelect={field.onChange}
+                                        disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
+                                        initialFocus
+                                        locale={es}
+                                    />
+                                    </PopoverContent>
+                                </Popover>
+                                </FormItem>
+                            )}
+                        />
+
+                        <Button type="button" onClick={() => setIsProductSelectorOpen(true)} className="w-full bg-black dark:bg-gray-800 text-white font-bold text-base py-6 rounded-lg hover:bg-black/80 dark:hover:bg-gray-700">
+                            <Plus className="mr-2"/> AGREGAR PRODUCTOS
+                        </Button>
+
+                         <FormField
+                            control={form.control}
+                            name="notes"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel className="text-xs font-semibold text-gray-500 dark:text-gray-400">OBSERVACIONES</FormLabel>
+                                <Textarea
+                                    placeholder="Añade notas adicionales..."
+                                    className="resize-none bg-gray-100 dark:bg-black/30 border-gray-200 dark:border-gray-700"
+                                    {...field}
+                                />
+                                </FormItem>
                             )}
                         />
                     </div>
-
-                    <div className="flex items-center gap-4">
-                        <Button type="button" variant="outline" className="rounded-xl border-gray-200 h-10 font-bold text-gray-600">
-                             <DollarSign className="mr-2 h-4 w-4 text-[#107C41]" /> Consultar Precio
-                        </Button>
-                        <Button type="button" onClick={() => onOpenChange(false)} variant="ghost" className="rounded-full h-10 w-10 p-0">
-                            <X className="h-6 w-6 text-gray-400" />
-                        </Button>
-                    </div>
-                </DialogHeader>
-
-                <div className="flex-1 flex overflow-hidden">
                     
-                    <aside className="w-[400px] p-6 flex flex-col justify-between shrink-0 border-r border-gray-100">
-                        <div className="space-y-6">
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">FECHA DE REGISTRO</Label>
-                                <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-100 font-bold text-sm text-gray-600">
-                                    <CalendarIcon className="h-5 w-5 text-[#107C41]" />
-                                    <span>{format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: es })}</span>
-                                </div>
-                            </div>
-
-                            <Button 
-                                type="button" 
-                                onClick={() => setIsProductSelectorOpen(true)} 
-                                className="w-full h-14 bg-black text-white hover:bg-black/90 rounded-2xl font-black text-base shadow-xl"
-                            >
-                                <Plus className="w-5 h-5 mr-2" /> AGREGAR PRODUCTOS
-                            </Button>
-
-                            <div className="bg-[#E7F3ED] p-6 rounded-3xl border border-[#107C41]/10 text-center space-y-1 shadow-inner">
-                                <p className="text-[10px] uppercase font-black text-[#107C41]/60 tracking-widest">TOTAL A PAGAR</p>
-                                <p className="text-5xl font-black text-[#107C41] tracking-tighter">
-                                    {formatBs(totalBs)}
-                                </p>
-                                <p className="text-lg font-bold text-gray-400">
-                                    {formatUSD(totalUSD)}
-                                </p>
-                            </div>
+                    <div className="mt-auto space-y-4">
+                        <div className="bg-green-500 text-white p-6 rounded-lg text-center">
+                            <p className="text-4xl font-bold">Bs. {formatBs(totalBs)}</p>
+                            <p className="font-semibold opacity-80">{formatUSD(totalUSD)}</p>
                         </div>
-
-                        <Button 
-                            type="submit" 
-                            className="w-full h-20 text-xl font-black rounded-2xl bg-[#107C41] hover:bg-[#0D6334] text-white shadow-2xl shadow-[#107C41]/20 transition-all active:scale-95"
-                        >
+                         <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-6 rounded-lg text-lg">
                             REGISTRAR VENTA
                         </Button>
-                    </aside>
+                    </div>
 
-                    <main className="flex-1 p-6 overflow-hidden flex flex-col">
-                        <div className="flex-1 bg-white border-2 border-dashed border-gray-200 rounded-3xl flex flex-col overflow-hidden p-8 shadow-inner">
-                            
-                            <div className="text-center mb-6">
-                                <h3 className="text-4xl font-black text-[#E94E4E] italic tracking-tighter uppercase opacity-90">MONITOR DE VENTA</h3>
-                                <div className="h-1 w-24 bg-[#FDEAEA] mx-auto mt-2 rounded-full" />
-                            </div>
-
-                            <div className="grid grid-cols-12 font-black text-[10px] uppercase text-gray-300 border-b border-gray-100 pb-4 mb-2 px-4 tracking-widest">
-                                <div className="col-span-5">DESCRIPCIÓN</div>
-                                <div className="col-span-2 text-center">UNIDAD</div>
-                                <div className="col-span-2 text-center">CANTIDAD</div>
-                                <div className="col-span-3 text-right">SUB-TOTAL</div>
-                            </div>
-
-                            <ScrollArea className="flex-1 px-4">
-                                {cartItems.length === 0 ? (
-                                    <div className="h-full flex flex-col items-center justify-center text-gray-200 py-20 opacity-30">
-                                        <Plus className="w-12 h-12 mb-4" />
-                                        <p className="font-bold text-base uppercase tracking-widest">Esperando Artículos...</p>
-                                    </div>
-                                ) : (
-                                    cartItems.map((item) => {
-                                        const subUSD = item.price * item.quantity;
-                                        const subBs = bcvRate ? subUSD * bcvRate : 0;
-                                        return (
-                                            <div key={item.id} className="grid grid-cols-12 py-4 items-center border-b border-gray-50 group">
-                                                <div className="col-span-5">
-                                                    <p className="font-bold text-gray-800 text-sm uppercase leading-none mb-1">{item.name}</p>
-                                                    <p className="text-[10px] text-gray-400 font-bold">{formatUSD(item.price)} unitario</p>
-                                                </div>
-                                                <div className="col-span-2 text-center">
-                                                    <span className="text-[10px] font-bold text-gray-400 uppercase bg-gray-50 px-2 py-1 rounded">
-                                                        {item.unit || 'UD'}
-                                                    </span>
-                                                </div>
-                                                <div className="col-span-2 flex justify-center">
-                                                    <span className="text-base font-black text-[#107C41] bg-[#E7F3ED] w-10 h-10 flex items-center justify-center rounded-lg">
-                                                        {item.quantity}
-                                                    </span>
-                                                </div>
-                                                <div className="col-span-3 text-right flex items-center justify-end gap-2">
-                                                    <div>
-                                                        <p className="font-bold text-gray-800 text-base leading-none">{formatBs(subBs)}</p>
-                                                        <p className="text-[10px] text-gray-400 font-bold">{formatUSD(subUSD)}</p>
-                                                    </div>
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="icon" 
-                                                        onClick={() => handleRemoveItem(item.id)}
-                                                        className="h-9 w-9 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-all"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        )
-                                    })
-                                )}
-                            </ScrollArea>
-
-                            <div className="mt-6 pt-6 border-t-2 border-double border-gray-100 flex justify-between items-center px-4">
-                                <div className="flex gap-6">
-                                    <div>
-                                        <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Nº OPERACIÓN</p>
-                                        <p className="font-medium text-xs text-gray-600">VENTA #{saleCount + 1}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">HORA REGISTRO</p>
-                                        <p className="font-medium text-xs text-gray-600">{format(new Date(), "HH:mm:ss")}</p>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                     <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">TASA BCV</p>
-                                     <p className="font-bold text-sm text-[#107C41]">1 USD = {bcvRate ? `Bs. ${bcvRate.toFixed(2)}` : '---'}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </main>
                 </div>
+
+                {/* Right Panel */}
+                <div className="col-span-7 p-8 flex flex-col">
+                    <div className="text-center mb-6">
+                        <h2 className="text-2xl font-bold text-red-500">MONITOR DE VENTA</h2>
+                        <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">VENTA Nº {saleCount + 1}</p>
+                    </div>
+
+                    <div className="grid grid-cols-12 gap-4 px-4 pb-2 border-b-2 border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
+                        <div className="col-span-5">Producto</div>
+                        <div className="col-span-2 text-center">Unidad</div>
+                        <div className="col-span-2 text-center">Cant.</div>
+                        <div className="col-span-2 text-right">Monto</div>
+                        <div className="col-span-1"></div>
+                    </div>
+                    
+                    <ScrollArea className="flex-1 -mx-4">
+                        <div className="px-4">
+                        {cartItems.length === 0 ? (
+                            <div className="h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
+                                <p>No hay productos en el monitor</p>
+                            </div>
+                        ) : (
+                            cartItems.map((item) => (
+                                <div key={item.id} className="grid grid-cols-12 gap-4 py-4 items-center border-b border-gray-100 dark:border-gray-800">
+                                    <div className="col-span-5 font-semibold text-gray-800 dark:text-gray-200">{item.name}</div>
+                                    <div className="col-span-2 text-center text-gray-600 dark:text-gray-400 text-sm">{item.unit || 'unidad'}</div>
+                                    <div className="col-span-2 text-center font-bold text-gray-800 dark:text-gray-200">{item.quantity}</div>
+                                    <div className="col-span-2 text-right font-bold text-gray-800 dark:text-gray-200">{formatUSD(item.price * item.quantity)}</div>
+                                    <div className="col-span-1 text-center">
+                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.id)} className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10">
+                                            <Trash2 className="h-4 w-4"/>
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                        </div>
+                    </ScrollArea>
+                    
+                    <div className="pt-4 mt-auto border-t-2 border-gray-200 dark:border-gray-700 flex justify-between items-center text-gray-700 dark:text-gray-300">
+                        <p className="font-bold">TOTAL VENTA</p>
+                        <div className="text-right">
+                           <p className="text-lg font-bold">Bs. {formatBs(totalBs)}</p>
+                           <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">{formatUSD(totalUSD)}</p>
+                        </div>
+                    </div>
+                </div>
+
             </form>
         </Form>
       </DialogContent>
@@ -299,59 +302,70 @@ export function SaleForm({
         products={products}
         onAddProduct={handleAddProduct}
         cartItems={cartItems}
-        bcvRate={bcvRate}
     />
     </>
   )
 }
 
-function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddProduct, bcvRate }: {
-  open: boolean; onOpenChange: (open: boolean) => void; products: Product[]; cartItems: CartItem[]; onAddProduct: (product: Product, quantity: number) => void; bcvRate: number | null;
+function ProductListItem({ product, onAddProduct, onSelect }: {
+  product: Product; onAddProduct: (product: Product, quantity: number) => void; onSelect: () => void;
+}) {
+  const [quantity, setQuantity] = useState('1');
+
+  const handleAdd = () => {
+      const numQuantity = parseFloat(quantity);
+      if (!isNaN(numQuantity) && numQuantity > 0) {
+          onAddProduct(product, numQuantity);
+          onSelect();
+      }
+  }
+  
+  return (
+    <div className="flex items-center justify-between p-4 bg-white dark:bg-black/20 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div>
+        <p className="font-bold text-gray-800 dark:text-gray-200">{product.name}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Stock: {product.stock} {product.unit}</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <Input 
+            type="number" 
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            className="w-20 h-10 text-center font-bold bg-gray-100 dark:bg-black/30 border-gray-200 dark:border-gray-700 rounded-md"
+        />
+        <Button onClick={handleAdd} className="bg-green-500 hover:bg-green-600 text-white font-bold h-10">Añadir</Button>
+      </div>
+    </div>
+  );
+}
+
+function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddProduct }: {
+  open: boolean; onOpenChange: (open: boolean) => void; products: Product[]; cartItems: CartItem[]; onAddProduct: (product: Product, quantity: number) => void;
 }) {
   const [searchTerm, setSearchTerm] = useState('')
   const cartIds = new Set(cartItems.map(i => i.id))
-  const filtered = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) && !cartIds.has(p.id) && p.status === 'active')
+  const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) && !cartIds.has(p.id) && p.status === 'active' && p.stock > 0)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0 overflow-hidden rounded-3xl border-none bg-[#F8F9F8]">
-        <DialogHeader className="p-8 pb-6 bg-white border-b border-gray-100">
-          <DialogTitle className="text-2xl font-black mb-4 tracking-tight">Seleccionar Productos</DialogTitle>
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300" />
-            <Input 
-                placeholder="Escribe el nombre del producto..." 
-                value={searchTerm} 
-                onChange={e => setSearchTerm(e.target.value)} 
-                className="pl-12 h-12 rounded-xl bg-[#F8F9F8] border-none text-base font-bold" 
-            />
-          </div>
+      <DialogContent className="max-w-2xl h-[70vh] flex flex-col p-0 overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-900 border-none">
+        <DialogHeader className="p-6 bg-white dark:bg-black/20 border-b border-gray-200 dark:border-gray-700">
+            <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">Seleccionar Producto</DialogTitle>
+            <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Input 
+                    placeholder="Buscar producto..." 
+                    value={searchTerm} 
+                    onChange={e => setSearchTerm(e.target.value)} 
+                    className="pl-10 h-11 rounded-lg bg-gray-100 dark:bg-black/30 border-gray-200 dark:border-gray-700" 
+                />
+            </div>
         </DialogHeader>
         <ScrollArea className="flex-1 p-6">
           <div className="grid gap-3">
-            {filtered.map(p => (
-                <div key={p.id} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 hover:border-[#107C41]/30 transition-all group">
-                    <div className="flex-1">
-                        <p className="font-bold text-gray-800 uppercase text-sm">{p.name}</p>
-                        <div className="flex gap-3 mt-1">
-                            <span className="text-[9px] bg-gray-100 px-2 py-0.5 rounded font-black text-gray-500 uppercase">{p.unit}</span>
-                            <span className="text-[9px] font-black text-[#107C41]">Stock: {p.stock}</span>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className="text-right mr-2">
-                            <p className="font-bold text-sm text-gray-800">{bcvRate ? `Bs. ${(p.price * bcvRate).toFixed(2)}` : '--'}</p>
-                            <p className="text-[10px] font-bold text-gray-400">USD {p.price.toFixed(2)}</p>
-                        </div>
-                        <Button 
-                            onClick={() => { onAddProduct(p, 1); onOpenChange(false); }} 
-                            className="h-10 px-5 rounded-lg font-bold bg-[#107C41] hover:bg-[#0D6334]"
-                        >
-                            AÑADIR
-                        </Button>
-                    </div>
-                </div>
-            ))}
+            {filteredProducts.map(p => 
+                <ProductListItem key={p.id} product={p} onAddProduct={onAddProduct} onSelect={() => onOpenChange(false)} />
+            )}
           </div>
         </ScrollArea>
       </DialogContent>
