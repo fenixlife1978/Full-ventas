@@ -256,7 +256,7 @@ export default function VentasPage() {
           <div className="md:col-span-2 relative group">
             <Search className="absolute left-4 top-3.5 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors z-10" />
             <Input
-              placeholder="Buscar por Nº Venta, producto o notas..."
+              placeholder="Buscar por Nº Venta o producto..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-6 bg-card border-border rounded-xl focus:border-primary focus:ring-0 outline-none transition-all font-medium text-sm h-auto"
