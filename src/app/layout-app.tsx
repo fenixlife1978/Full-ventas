@@ -13,6 +13,7 @@ import {
   ShoppingBag, 
   Settings,
   LogOut,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase'; 
 import { doc } from 'firebase/firestore';
@@ -87,45 +88,7 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
                 {settings?.logoUrl ? (
                   <img src={settings.logoUrl} alt="Logo" className="max-h-full max-w-full object-contain" />
                 ) : (
-                  <svg
-                    width="32"
-                    height="32"
-                    viewBox="0 0 64 64"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <defs>
-                      <linearGradient id="logo-gold" x1="0.5" y1="0" x2="0.5" y2="1">
-                        <stop offset="0" stopColor="#e4b335" />
-                        <stop offset="1" stopColor="#b0881a" />
-                      </linearGradient>
-                      <linearGradient id="shield-gradient" x1="0.5" y1="0" x2="0.5" y2="1">
-                        <stop offset="0" stopColor="#2b5040" />
-                        <stop offset="1" stopColor="#1a3025" />
-                      </linearGradient>
-                    </defs>
-                    
-                    <path
-                      d="M32 2C52 8 62 26 62 38 62 52 48 62 32 62 16 62 2 52 2 38 2 26 12 8 32 2z"
-                      fill="url(#shield-gradient)"
-                      stroke="url(#logo-gold)"
-                      strokeWidth="4"
-                    />
-                    
-                    <text x="32" y="58" fill="url(#logo-gold)" fontSize="16" fontWeight="bold" textAnchor="middle">$</text>
-                    
-                    <g transform="translate(1 0)" stroke="hsl(var(--sidebar-foreground))" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 24 H 15 L 19 40 H 45 L 49 28 H 17" />
-                      <circle cx="22" cy="43" r="3" />
-                      <circle cx="39" cy="43" r="3" />
-                      <path d="M23 39 V 31" />
-                      <path d="M29 39 V 25" />
-                      <path d="M35 39 V 33" />
-                      <path d="M41 39 V 22" />
-                      <path d="M23 31 L 29 25 L 35 33 L 41 22 L 48 16" />
-                      <path d="M45 15 L 48 16 L 47 19" />
-                    </g>
-                  </svg>
+                  <ImageIcon className="h-8 w-8 text-sidebar-foreground/50" />
                 )}
               </div>
               <h1 className="text-lg font-black text-sidebar-foreground tracking-tighter uppercase leading-none">
