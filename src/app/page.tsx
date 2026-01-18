@@ -205,6 +205,13 @@ export default function DashboardPage() {
             color="bg-emerald-500"
           />
           <QuickAccessCard 
+            title="Compras" 
+            description="Gestionar compras de inventario" 
+            href="/compras" 
+            icon={ShoppingBag} 
+            color="bg-purple-500"
+          />
+          <QuickAccessCard 
             title="Inventario" 
             description="Control de stock y productos" 
             href="/productos" 
