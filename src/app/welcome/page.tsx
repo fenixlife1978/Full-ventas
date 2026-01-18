@@ -59,13 +59,12 @@ export default function WelcomePage() {
           </g>
         </svg>
 
-        <Link href="/login" passHref legacyBehavior>
-          <button 
-            aria-label="Ir a inicio de sesión"
-            className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center animate-pulse border-2 border-primary/50 hover:bg-primary/40 hover:animate-none transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <Hand className="w-10 h-10 text-primary" />
-          </button>
+        <Link
+          href="/login"
+          aria-label="Ir a inicio de sesión"
+          className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center animate-pulse border-2 border-primary/50 hover:bg-primary/40 hover:animate-none transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          <Hand className="w-10 h-10 text-primary" />
         </Link>
       </div>
       <footer className="text-center text-xs text-muted-foreground py-4">
