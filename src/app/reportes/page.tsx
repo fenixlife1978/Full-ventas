@@ -14,15 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@/components/ui/chart'
-import { Bar, BarChart, XAxis, YAxis } from 'recharts'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-
+import dynamic from 'next/dynamic'
 import {
   startOfToday,
   startOfWeek,
@@ -36,6 +30,22 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { type Sale } from '../ventas/page'
 import { type Product } from '../productos/page'
 import { type Setting } from '../configuraciones/page'
+
+const ReportBody = dynamic(
+  () => import('./components/report-body').then((mod) => mod.ReportBody),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-[358px] w-full" />
+          <Skeleton className="h-[358px] w-full" />
+        </div>
+        <Skeleton className="h-64 w-full" />
+      </div>
+    ),
+  }
+)
 
 export default function ReportesPage() {
   const firestore = useFirestore()
@@ -204,7 +214,8 @@ export default function ReportesPage() {
   }
   
   const formatCurrency = (value: number, currency: 'USD' | 'VES' = 'USD') => {
-    if (currency === 'VES' && bcvRate) {
+    if (currency === 'VES' ) {
+       if (!bcvRate) return 'Bs. --,--'
       value = value * bcvRate
       return `Bs. ${new Intl.NumberFormat('es-VE', {
         minimumFractionDigits: 2,
@@ -231,8 +242,8 @@ export default function ReportesPage() {
     // Summary Section
     const summaryData = [
       ['Total Transacciones', reportData.summary.totalSales.toString()],
-      ['Ingresos Totales', bcvRate ? formatCurrency(reportData.summary.totalRevenue, 'VES') : formatCurrency(reportData.summary.totalRevenue, 'USD')],
-      ['Ticket Promedio', bcvRate ? formatCurrency(reportData.summary.averageTicket, 'VES') : formatCurrency(reportData.summary.averageTicket, 'USD')],
+      ['Ingresos Totales', formatCurrency(reportData.summary.totalRevenue, 'VES')],
+      ['Ticket Promedio', formatCurrency(reportData.summary.averageTicket, 'VES')],
       ['Productos Vendidos', reportData.summary.totalQuantity.toString()],
     ]
 
@@ -241,7 +252,7 @@ export default function ReportesPage() {
       head: [['Métrica', 'Valor']],
       body: summaryData,
       theme: 'striped',
-      headStyles: { fillColor: [31, 122, 85] },
+      headStyles: { fillColor: [26, 48, 37] },
     })
     
     let lastTableY = (doc as any).lastAutoTable.finalY;
@@ -250,15 +261,15 @@ export default function ReportesPage() {
     if (reportData.topProducts.length > 0) {
       autoTable(doc, {
         startY: lastTableY + 10,
-        head: [['#', 'Producto', 'Cantidad', 'Ingresos']],
+        head: [['#', 'Producto', 'Cantidad', 'Ingresos (VES)']],
         body: reportData.topProducts.map((p, i) => [
           i + 1,
           p.productName,
           p.quantity,
-          bcvRate ? formatCurrency(p.revenue, 'VES') : formatCurrency(p.revenue, 'USD'),
+          formatCurrency(p.revenue, 'VES'),
         ]),
         theme: 'striped',
-        headStyles: { fillColor: [31, 122, 85] },
+        headStyles: { fillColor: [26, 48, 37] },
       })
       lastTableY = (doc as any).lastAutoTable.finalY;
     }
@@ -267,14 +278,14 @@ export default function ReportesPage() {
      if (reportData.salesByPayment.length > 0) {
         autoTable(doc, {
             startY: lastTableY + 10,
-            head: [['Método de Pago', 'Cantidad', 'Total']],
+            head: [['Método de Pago', 'Cantidad', 'Total (VES)']],
             body: reportData.salesByPayment.map(p => [
                 p.method,
                 p.cantidad,
-                bcvRate ? formatCurrency(p.total, 'VES') : formatCurrency(p.total, 'USD')
+                formatCurrency(p.total, 'VES')
             ]),
             theme: 'striped',
-            headStyles: { fillColor: [31, 122, 85] },
+            headStyles: { fillColor: [26, 48, 37] },
         })
     }
 
@@ -282,21 +293,41 @@ export default function ReportesPage() {
     doc.save(`reporte-ventas-${period}-${format(new Date(), 'yyyyMMdd')}.pdf`)
   }
 
-  const isLoading = isLoadingSales || isLoadingProducts || isLoadingSettings
-  
-  const chartConfig = {
-      ingresos: { label: "Ingresos", color: "hsl(var(--primary))" },
-      total: { label: "Total", color: "hsl(var(--primary))" },
-  } satisfies React.ComponentProps<typeof ChartContainer>["config"]
+  const isLoading = isLoadingSales || isLoadingProducts || isLoadingSettings;
 
-  if (isLoading || !isClient) {
+  if (isLoading) {
     return (
-        <Layout currentPageName="Reportes">
-            <div className="space-y-6 p-4 md:p-8">
-                {Array.from({length: 8}).map((_, i) => <Skeleton key={i} className="w-full h-24" />)}
+      <Layout currentPageName="Reportes">
+        <div className="space-y-6 p-4 md:p-8">
+          {/* Header skeleton */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <Skeleton className="h-10 w-48" />
+              <Skeleton className="h-4 w-64 mt-2" />
             </div>
-        </Layout>
-    )
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-44" />
+              <Skeleton className="h-10 w-36" />
+            </div>
+          </div>
+          {/* Summary cards skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-28 w-full" />
+          </div>
+          {/* Body Skeleton */}
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Skeleton className="h-[358px] w-full" />
+              <Skeleton className="h-[358px] w-full" />
+            </div>
+            <Skeleton className="h-64 w-full" />
+          </div>
+        </div>
+      </Layout>
+    );
   }
 
   return (
@@ -354,9 +385,9 @@ export default function ReportesPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
-                {bcvRate ? formatCurrency(reportData.summary.totalRevenue, 'VES') : formatCurrency(reportData.summary.totalRevenue, 'USD')}
+                {formatCurrency(reportData.summary.totalRevenue, 'VES')}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">{bcvRate ? formatCurrency(reportData.summary.totalRevenue, 'USD') : getPeriodLabel()}</p>
+              <p className="text-xs text-muted-foreground mt-1">{formatCurrency(reportData.summary.totalRevenue, 'USD')}</p>
             </CardContent>
           </Card>
           <Card className="bg-card border-border/50 shadow-sm">
@@ -367,9 +398,9 @@ export default function ReportesPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
-                {bcvRate ? formatCurrency(reportData.summary.averageTicket, 'VES') : formatCurrency(reportData.summary.averageTicket, 'USD')}
+                {formatCurrency(reportData.summary.averageTicket, 'VES')}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">{bcvRate ? formatCurrency(reportData.summary.averageTicket, 'USD') : 'Por transacción'}</p>
+              <p className="text-xs text-muted-foreground mt-1">{formatCurrency(reportData.summary.averageTicket, 'USD')}</p>
             </CardContent>
           </Card>
           <Card className="bg-card border-border/50 shadow-sm">
@@ -387,107 +418,13 @@ export default function ReportesPage() {
           </Card>
         </div>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Daily Sales Chart */}
-          <Card className="bg-card border-border/50 shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-foreground">
-                <BarChart3 className="h-5 w-5" />
-                Ingresos por Día
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {reportData.dailySales.length > 0 ? (
-                <div className="h-64">
-                   <ChartContainer config={chartConfig} className="w-full h-full">
-                        <BarChart data={reportData.dailySales} accessibilityLayer>
-                          <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
-                          <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => `Bs.${value}`} />
-                           <ChartTooltip content={<ChartTooltipContent />} />
-                          <Bar dataKey="ingresos" fill="var(--color-ingresos)" radius={4} />
-                        </BarChart>
-                    </ChartContainer>
-                </div>
-              ) : (
-                <div className="h-64 flex items-center justify-center text-muted-foreground">
-                  No hay datos para mostrar
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Payment Methods Chart */}
-          <Card className="bg-card border-border/50 shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-foreground">
-                <TrendingUp className="h-5 w-5" />
-                Ingresos por Método de Pago
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {reportData.salesByPayment.length > 0 ? (
-                <div className="h-64">
-                  <ChartContainer config={chartConfig} className="w-full h-full">
-                        <BarChart data={reportData.salesByPayment} accessibilityLayer>
-                           <XAxis dataKey="method" tickLine={false} axisLine={false} tickMargin={8} />
-                           <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => `Bs.${value}`} />
-                           <ChartTooltip content={<ChartTooltipContent />} />
-                           <Bar dataKey="total" fill="var(--color-total)" radius={4} />
-                        </BarChart>
-                    </ChartContainer>
-                </div>
-              ) : (
-                <div className="h-64 flex items-center justify-center text-muted-foreground">
-                  No hay datos para mostrar
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Top Products Table */}
-        <Card className="bg-card border-border/50 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-foreground">Productos Más Vendidos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {reportData.topProducts.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b-2 border-border/50">
-                      <th className="text-left py-3 px-4 font-semibold text-foreground">#</th>
-                      <th className="text-left py-3 px-4 font-semibold text-foreground">Producto</th>
-                      <th className="text-right py-3 px-4 font-semibold text-foreground">Cantidad</th>
-                      <th className="text-right py-3 px-4 font-semibold text-foreground">Ingresos</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reportData.topProducts.map((product, index) => (
-                      <tr
-                        key={index}
-                        className="border-b border-border/20 last:border-0 hover:bg-muted transition-colors"
-                      >
-                        <td className="py-3 px-4 text-muted-foreground">{index + 1}</td>
-                        <td className="py-3 px-4 font-medium text-primary">{product.productName}</td>
-                        <td className="py-3 px-4 text-right text-muted-foreground">{product.quantity}</td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="font-semibold text-primary">{bcvRate ? formatCurrency(product.revenue, 'VES') : formatCurrency(product.revenue, 'USD')}</div>
-                          {bcvRate && <div className="text-xs text-muted-foreground">{formatCurrency(product.revenue, 'USD')}</div>}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                No hay datos de productos para mostrar
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {isClient && (
+          <ReportBody
+            reportData={reportData}
+            formatCurrency={formatCurrency}
+            bcvRate={bcvRate}
+          />
+        )}
       </div>
     </Layout>
   )
