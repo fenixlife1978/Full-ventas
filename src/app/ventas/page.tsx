@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { SaleForm } from './components/sale-form'
 import { Button } from '@/components/ui/button'
 import { Plus, ShoppingBag, Loader2, Search, Trash2 } from 'lucide-react'
@@ -49,10 +50,20 @@ export default function VentasPage() {
   const [deletingSale, setDeletingSale] = useState<Sale | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [isClient, setIsClient] = useState(false)
+  const searchParams = useSearchParams()
+  const router = useRouter()
 
   useEffect(() => {
     setIsClient(true)
   }, [])
+
+  useEffect(() => {
+    if (searchParams.get('new') === 'true') {
+      setIsFormOpen(true)
+      // Use replace to remove the query param from the URL without adding to history
+      router.replace('/ventas', { scroll: false })
+    }
+  }, [searchParams, router])
 
   const { toast } = useToast()
   const firestore = useFirestore()
@@ -94,6 +105,7 @@ export default function VentasPage() {
   }, [formattedSales, searchTerm])
 
   const dailyStats = useMemo(() => {
+    if (!isClient) return { totalSales: 0, totalRevenue: 0 };
     const todayStart = startOfDay(new Date())
     const todaysSales = formattedSales.filter(s => s.saleDate >= todayStart)
     const totalRevenueCents = todaysSales.reduce((sum, s) => sum + Math.round((s.totalAmount || 0) * 100), 0)
@@ -102,7 +114,7 @@ export default function VentasPage() {
       totalSales: todaysSales.length,
       totalRevenue: totalRevenueCents / 100,
     }
-  }, [formattedSales])
+  }, [formattedSales, isClient])
 
   const handleSaleSubmit = async (saleData: any) => {
     if (!firestore) return

@@ -149,7 +149,7 @@ export default function DashboardPage() {
             <p className="text-slate-500 font-medium">Bienvenido al sistema de control de inventario y ventas.</p>
           </div>
           
-          <Link href="/ventas">
+          <Link href="/ventas?new=true">
             <Button className="bg-primary hover:bg-primary/90 text-white font-black px-8 h-14 rounded-2xl shadow-lg shadow-primary/20 transition-all active:scale-95">
               <Plus className="mr-2 h-5 w-5" /> NUEVA VENTA
             </Button>
