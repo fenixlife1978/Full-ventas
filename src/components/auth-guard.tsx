@@ -2,7 +2,7 @@
 
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase'
 import { useRouter, usePathname } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { doc } from 'firebase/firestore'
 import { type Setting } from '@/app/configuraciones/page'
 
@@ -10,6 +10,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser()
   const router = useRouter()
   const pathname = usePathname()
+  const [isClient, setIsClient] = useState(false)
 
   const firestore = useFirestore()
   const settingsDocRef = useMemoFirebase(() => {
@@ -18,6 +19,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [firestore])
   const { data: settings, isLoading: isLoadingSettings } =
     useDoc<Setting>(settingsDocRef)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   useEffect(() => {
     if (isUserLoading) {
@@ -44,7 +49,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <div className="w-24 h-24 rounded-full bg-sidebar flex items-center justify-center overflow-hidden border-4 border-primary/30 shadow-lg animate-pulse">
-            {isLoadingSettings ? (
+            {isLoadingSettings || !isClient ? (
               <div />
             ) : settings?.logoUrl ? (
               <img
