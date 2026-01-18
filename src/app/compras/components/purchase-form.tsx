@@ -78,7 +78,7 @@ export function PurchaseForm({
       productId: '',
       quantity: 1,
       unitCost: 0,
-      purchaseDate: new Date(),
+      purchaseDate: new Date(0),
       supplier: '',
       paymentMethod: 'Efectivo',
       invoiceNumber: '',
@@ -91,7 +91,7 @@ export function PurchaseForm({
   const unitCost = form.watch('unitCost')
 
   useEffect(() => {
-    if(!open) {
+    if(open) {
       form.reset({
         productId: '',
         quantity: 1,

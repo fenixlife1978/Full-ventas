@@ -42,6 +42,7 @@ const formSchema = z.object({
     required_error: 'La fecha es requerida.',
   }),
   paymentMethod: z.enum(['cash', 'card', 'transfer', 'other']),
+  notes: z.string().optional(),
 })
 
 export type SaleFormValues = z.infer<typeof formSchema>
@@ -53,7 +54,7 @@ export interface CartItem extends Product {
 interface SaleFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (values: SaleFormValues & { items: CartItem[], totalAmount: number, saleNumber: number }) => void
+  onSubmit: (values: SaleFormValues & { items: CartItem[], totalAmount: number, saleNumber: number, notes: string }) => void
   products: Product[]
   isLoadingProducts: boolean
   bcvRate: number | null
@@ -82,14 +83,15 @@ export function SaleForm({
   const form = useForm<SaleFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      saleDate: new Date(),
+      saleDate: new Date(0),
       paymentMethod: 'cash',
+      notes: '',
     },
   })
 
   useEffect(() => {
     if(open) {
-      form.reset({ saleDate: new Date(), paymentMethod: 'cash' });
+      form.reset({ saleDate: new Date(), paymentMethod: 'cash', notes: '' });
       setCartItems([]);
     }
   }, [open, form])
@@ -142,7 +144,7 @@ export function SaleForm({
       toast({ variant: 'destructive', title: 'Venta Vacía' });
       return;
     }
-    onSubmit({ ...values, items: cartItems, totalAmount: totalUSD, saleNumber: saleCount + 1 })
+    onSubmit({ ...values, items: cartItems, totalAmount: totalUSD, saleNumber: saleCount + 1, notes: values.notes || '' })
   }
 
   const formatBs = (value: number) => `Bs. ${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(value)}`
