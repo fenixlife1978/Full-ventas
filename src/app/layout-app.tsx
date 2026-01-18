@@ -83,7 +83,7 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
           {/* Header del Sidebar con Logo */}
           <div className="flex items-center justify-between h-20 px-6 border-b border-sidebar-border shrink-0">
             <div className="flex items-center gap-3">
-              <div className="p-1 rounded-lg flex items-center justify-center h-12 w-12">
+              <div className="bg-sidebar-accent rounded-full h-12 w-12 flex items-center justify-center overflow-hidden">
                 {settings?.logoUrl ? (
                   <img src={settings.logoUrl} alt="Logo" className="max-h-full max-w-full object-contain" />
                 ) : (
