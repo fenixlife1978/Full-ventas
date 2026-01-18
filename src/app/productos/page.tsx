@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { Plus, Search, Edit, Trash2, AlertTriangle, Package, Download } from 'lucide-react'
+// Se agregaron los iconos faltantes que causaban errores de tipos
+import { Plus, Search, Edit, Trash2, Package, Download, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
@@ -30,11 +31,11 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+// Importaciones de PDF y fechas
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { format } from 'date-fns'
 import { type Setting } from '../configuraciones/page'
-
 
 export interface Product {
   id: string
@@ -84,7 +85,6 @@ export default function ProductosPage() {
   const isLoading = isLoadingProducts || isLoadingSettings;
 
   const categories = useMemo(() => {
-    if (!products) return []
     const productCategories = [
       "Alimentos Procesados",
       "Refrescos y Bebidas",
@@ -96,14 +96,13 @@ export default function ProductosPage() {
       "Otros",
     ];
     return productCategories;
-  }, [products])
+  }, [])
   
   const filteredProducts = useMemo(() => {
     if (!products) return []
     
     let filtered = [...products];
 
-    // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(
         p =>
@@ -112,12 +111,10 @@ export default function ProductosPage() {
       );
     }
 
-    // Filter by category
     if (categoryFilter !== 'all') {
       filtered = filtered.filter(p => p.category === categoryFilter);
     }
 
-    // Filter by status
     if (statusFilter !== 'all') {
       filtered = filtered.filter(p => p.status === statusFilter);
     }
@@ -125,7 +122,6 @@ export default function ProductosPage() {
     return filtered;
 
   }, [products, searchTerm, categoryFilter, statusFilter])
-
 
   const handleCreateNew = () => {
     setEditingProduct(null)
@@ -158,7 +154,7 @@ export default function ProductosPage() {
     
     if (editingProduct) {
       const productRef = doc(firestore, 'products', editingProduct.id)
-      await updateDoc(productRef, values)
+      await updateDoc(productRef, values as any)
       toast({
         title: 'Producto Actualizado',
         description: 'El producto se ha actualizado exitosamente.',
@@ -176,11 +172,11 @@ export default function ProductosPage() {
   
   const formatCurrency = (value: number, currency: 'USD' | 'VES' = 'USD') => {
     if (currency === 'VES' && bcvRate) {
-      value = value * bcvRate
+      const convertedValue = value * bcvRate
       return `Bs. ${new Intl.NumberFormat('es-VE', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-      }).format(value || 0)}`
+      }).format(convertedValue || 0)}`
     }
     return new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(value || 0)
   }
@@ -224,11 +220,11 @@ export default function ProductosPage() {
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
             <Button onClick={exportToPDF} className="flex items-center justify-center gap-2 bg-white border-2 border-primary text-primary px-6 py-3 rounded-xl font-bold uppercase tracking-tighter hover:bg-primary/5 transition-all duration-200">
-                <Download className="mr-2" />
+                <Download className="h-5 w-5 mr-1" />
                 Exportar PDF
             </Button>
             <Button onClick={handleCreateNew} className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl font-bold uppercase tracking-tighter italic shadow-lg shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] active:scale-95 transition-all duration-200">
-              <Plus className="mr-2" />
+              <Plus className="h-5 w-5 mr-1" />
               Agregar Producto
             </Button>
         </div>

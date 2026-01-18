@@ -33,7 +33,7 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
   const handleLogout = async () => {
     try {
       await auth.signOut();
-      router.replace('/welcome'); // Usamos replace para evitar volver atrás
+      router.replace('/welcome');
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
     }
@@ -103,15 +103,12 @@ export default function Layout({ children, currentPageName }: LayoutAppProps) {
                   
                   <g transform="translate(1 0)" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 24 H 15 L 19 40 H 45 L 49 28 H 17" />
-                    
                     <circle cx="22" cy="43" r="3" />
                     <circle cx="39" cy="43" r="3" />
-                    
                     <path d="M23 39 V 31" />
                     <path d="M29 39 V 25" />
                     <path d="M35 39 V 33" />
                     <path d="M41 39 V 22" />
-                    
                     <path d="M23 31 L 29 25 L 35 33 L 41 22 L 48 16" />
                     <path d="M45 15 L 48 16 L 47 19" />
                   </g>
