@@ -4,22 +4,21 @@ import Link from 'next/link'
 import { Hand } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@/firebase'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 
 export default function WelcomePage() {
   const router = useRouter()
   const { user, isUserLoading } = useUser()
-  const [year, setYear] = useState<number>()
+  
+  // Obtenemos el año directamente; en Client Components esto es seguro 
+  // ya que el componente se hidrata en el cliente.
+  const year = new Date().getFullYear()
 
   useEffect(() => {
     if (!isUserLoading && user) {
       router.replace('/')
     }
   }, [user, isUserLoading, router])
-
-  useEffect(() => {
-    setYear(new Date().getFullYear())
-  }, [])
 
   return (
     <div className="flex flex-col items-center justify-between min-h-screen bg-background text-foreground p-4">
@@ -60,14 +59,17 @@ export default function WelcomePage() {
           </g>
         </svg>
 
-        <Link href="/login" passHref>
-          <button className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center animate-pulse border-2 border-primary/50 hover:bg-primary/40 hover:animate-none transition-colors focus:outline-none focus:ring-2 focus:ring-primary">
+        <Link href="/login" passHref legacyBehavior>
+          <button 
+            aria-label="Ir a inicio de sesión"
+            className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center animate-pulse border-2 border-primary/50 hover:bg-primary/40 hover:animate-none transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+          >
             <Hand className="w-10 h-10 text-primary" />
           </button>
         </Link>
       </div>
-       <footer className="text-center text-xs text-muted-foreground py-4">
-        {year && `© ${year} Full-Ventas. Todos los derechos reservados.`}
+      <footer className="text-center text-xs text-muted-foreground py-4">
+        © {year} Full-Ventas. Todos los derechos reservados.
       </footer>
     </div>
   )
