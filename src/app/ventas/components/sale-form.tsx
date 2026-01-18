@@ -4,29 +4,10 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-} from '@/components/ui/form'
+import { Form, FormControl, FormField, FormItem } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  CalendarIcon,
-  Plus,
-  Search,
-  Trash2,
-  DollarSign,
-  CreditCard,
-  Landmark,
-  ShoppingBag
-} from 'lucide-react'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { CalendarIcon, Plus, Search, Trash2, DollarSign, CreditCard, Landmark, X, ReceiptText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -38,419 +19,233 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 
 const formSchema = z.object({
-  saleDate: z.date({
-    required_error: 'La fecha es requerida.',
-  }),
+  saleDate: z.date({ required_error: 'La fecha es requerida.' }),
   paymentMethod: z.enum(['cash', 'card', 'transfer', 'other']),
-  notes: z.string().optional(),
 })
 
 export type SaleFormValues = z.infer<typeof formSchema>
-
-export interface CartItem extends Product {
-  quantity: number
-}
+export interface CartItem extends Product { quantity: number }
 
 interface SaleFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (values: SaleFormValues & { items: CartItem[], totalAmount: number, saleNumber: number, notes: string }) => void
+  onSubmit: (values: SaleFormValues & { items: CartItem[], totalAmount: number, saleNumber: number }) => void
   products: Product[]
-  isLoadingProducts: boolean
+  isLoadingProducts: boolean // Añadido para resolver el error de TS
   bcvRate: number | null
   saleCount: number
 }
 
-export function SaleForm({
-  open,
-  onOpenChange,
-  onSubmit,
-  products,
-  bcvRate,
-  saleCount,
-}: SaleFormProps) {
+export function SaleForm({ open, onOpenChange, onSubmit, products, bcvRate, saleCount, isLoadingProducts }: SaleFormProps) {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [isProductSelectorOpen, setIsProductSelectorOpen] = useState(false)
-  const [isPriceListOpen, setIsPriceListOpen] = useState(false)
   const { toast } = useToast()
 
   const paymentMethods = [
     { id: 'cash', label: 'Efectivo', icon: DollarSign },
     { id: 'card', label: 'Tarjeta', icon: CreditCard },
     { id: 'transfer', label: 'Transferencia', icon: Landmark },
+    { id: 'other', label: 'Otro', icon: Plus },
   ];
-  
+
   const form = useForm<SaleFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      saleDate: new Date(0),
-      paymentMethod: 'cash',
-      notes: '',
-    },
+    defaultValues: { saleDate: new Date(), paymentMethod: 'cash' },
   })
 
   useEffect(() => {
-    if(open) {
-      form.reset({ saleDate: new Date(), paymentMethod: 'cash', notes: '' });
+    if (open) {
+      form.reset({ saleDate: new Date(), paymentMethod: 'cash' });
       setCartItems([]);
     }
   }, [open, form])
 
-  const totalUSD = useMemo(() => {
-    return cartItems.reduce((acc, item) => acc + (item.price * (item.quantity || 0)), 0);
-  }, [cartItems])
-
+  const totalUSD = useMemo(() => cartItems.reduce((acc, item) => acc + (item.price * (item.quantity || 0)), 0), [cartItems])
   const totalBs = useMemo(() => (bcvRate ? totalUSD * bcvRate : 0), [totalUSD, bcvRate])
 
   const handleAddProduct = (product: Product, quantity: number) => {
-    if (quantity <= 0) return;
-    const existingItem = cartItems.find(item => item.id === product.id);
-    if (existingItem) {
-        toast({ variant: 'destructive', title: 'Producto ya está en el recibo' });
-        return;
-    }
-    if (quantity > product.stock) {
-        toast({ variant: 'destructive', title: 'Stock Insuficiente', description: `Solo hay ${product.stock} unidades de ${product.name}.` });
-        return;
+    if (cartItems.find(item => item.id === product.id)) {
+      toast({ variant: 'destructive', title: 'Ya está en el monitor' });
+      return;
     }
     setCartItems(prev => [...prev, { ...product, quantity }]);
   }
-  
-  const handleRemoveItem = (productId: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== productId));
-  };
-  
-  const handleQuantityChange = (productId: string, newQuantity: number) => {
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
-
-    if (newQuantity <= 0) {
-        handleRemoveItem(productId);
-        toast({ title: 'Producto Eliminado', description: 'La cantidad se estableció en 0.' });
-        return;
-    }
-
-    if (newQuantity > product.stock) {
-        toast({ variant: 'destructive', title: 'Stock Insuficiente', description: `Solo hay ${product.stock} unidades.` });
-        setCartItems(prev => prev.map(item => item.id === productId ? { ...item, quantity: product.stock } : item));
-        return;
-    }
-
-    setCartItems(prev => prev.map(item => item.id === productId ? { ...item, quantity: newQuantity } : item));
-  };
-
-  const handleFormSubmit = (values: SaleFormValues) => {
-    if (cartItems.length === 0) {
-      toast({ variant: 'destructive', title: 'Venta Vacía' });
-      return;
-    }
-    onSubmit({ ...values, items: cartItems, totalAmount: totalUSD, saleNumber: saleCount + 1, notes: values.notes || '' })
-  }
-
-  const formatBs = (value: number) => `Bs. ${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(value)}`
-  const formatUSD = (value: number) => new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(value)
 
   return (
-    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[80vw] w-[1200px] h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl rounded-[2rem]">
+      <DialogContent className="max-w-none w-screen h-screen m-0 p-0 border-none rounded-none bg-[#F3F4F6] flex flex-col overflow-hidden">
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="h-full flex flex-col">
-                
-                {/* Header */}
-                 <DialogHeader className="px-8 py-4 bg-[#F8F9F8] border-b border-gray-100 flex flex-row justify-between items-center text-left">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-[#107C41] p-2 rounded-lg">
-                      <ShoppingBag className="text-white h-5 w-5" />
-                    </div>
-                    <DialogTitle className="text-xl font-black text-[#1A1C1E] tracking-tight">NUEVA VENTA</DialogTitle>
-                  </div>
-                  
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 text-gray-500 font-bold bg-white px-3 py-1.5 rounded-lg border border-gray-100">
-                      <CalendarIcon className="h-4 w-4 text-[#107C41]" />
-                      <span className="text-xs">{format(new Date(), "d 'de' MMMM", { locale: es })}</span>
-                    </div>
-                    <FormField
-                      control={form.control}
-                      name="paymentMethod"
-                      render={({ field }) => (
-                      <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-1">
-                          {paymentMethods.map(({ id, label, icon: Icon }) => (
-                            <div key={id}>
-                              <RadioGroupItem value={id} id={`pay-${id}`} className="sr-only" />
-                              <Label
-                                htmlFor={`pay-${id}`}
-                                className={cn(
-                                  "flex items-center px-3 py-1 rounded-lg border transition-all h-8 text-[10px] font-black cursor-pointer uppercase tracking-wider",
-                                  field.value === id ? "bg-[#107C41] border-[#107C41] text-white shadow-lg shadow-[#107C41]/20" : "border-gray-200 bg-white text-gray-400 hover:bg-gray-50"
-                                )}
-                              >
-                                <Icon className="mr-1.5 h-3 w-3" /> {label}
-                              </Label>
-                            </div>
-                          ))}
-                      </RadioGroup>
-                      )}
-                    />
-                  </div>
-                </DialogHeader>
-
-                <div className="flex-1 flex flex-row overflow-hidden bg-white">
-                    
-                    {/* COLUMNA IZQUIERDA: BUSQUEDA Y TOTALES */}
-                    <div className="w-[380px] bg-[#F8F9F8] p-6 flex flex-col border-r border-gray-100">
-                        <div className="space-y-6">
-                            <section>
-                                <Label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-2 mb-2 block">Acciones</Label>
-                                <Button 
-                                    type="button" 
-                                    onClick={() => setIsProductSelectorOpen(true)} 
-                                    className="w-full h-14 bg-black text-white hover:bg-black/90 rounded-2xl font-black text-sm shadow-xl transition-transform active:scale-95"
-                                >
-                                    <Search className="w-4 h-4 mr-2" /> BUSCAR PRODUCTOS
-                                </Button>
-                            </section>
-
-                            <section className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm text-center space-y-1">
-                                <p className="text-[10px] uppercase font-black text-[#107C41] tracking-[0.15em]">TOTAL A PAGAR</p>
-                                <p className="text-4xl font-black text-[#107C41] tracking-tighter">
-                                    {formatBs(totalBs)}
-                                </p>
-                                <div className="flex items-center justify-center gap-2 text-base font-bold text-gray-400">
-                                    <span>{formatUSD(totalUSD)}</span>
-                                    {bcvRate && <span className="text-xs">(BCV: {bcvRate.toFixed(2)})</span>}
-                                </div>
-                            </section>
-
-                            <Button 
-                                type="button" 
-                                variant="outline"
-                                onClick={() => setIsPriceListOpen(true)}
-                                className="w-full h-12 rounded-xl font-bold text-sm text-primary border-primary/20 hover:bg-primary/5 hover:text-primary"
-                            >
-                                <DollarSign className="w-4 h-4 mr-2" /> CONSULTAR PRECIOS
-                            </Button>
-                        </div>
-
-                        <div className="mt-auto pt-6">
-                            <Button type="submit" className="w-full h-20 text-xl font-black rounded-3xl bg-[#8DBDA2] hover:bg-[#7CAF93] text-white shadow-2xl shadow-[#8DBDA2]/30 transition-all active:scale-95">
-                                REGISTRAR VENTA
-                            </Button>
-                        </div>
-                    </div>
-
-                    {/* COLUMNA DERECHA: MONITOR DE VENTA (RECIBO) */}
-                    <div className="flex-1 p-8 flex flex-col overflow-hidden">
-                        <div className="flex-1 border-2 border-dashed border-gray-100 rounded-3xl p-8 flex flex-col overflow-hidden">
-                            
-                            <div className="flex justify-between items-end mb-6 px-2">
-                                <div>
-                                    <h3 className="text-2xl font-black text-[#E94E4E] italic tracking-tighter uppercase">RECIBO</h3>
-                                    <p className="text-[10px] font-bold text-gray-400 mt-0 uppercase tracking-widest">Venta #{saleCount + 1}</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Artículos</p>
-                                    <p className="text-xl font-black text-gray-800">{cartItems.length}</p>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-12 font-black text-[9px] uppercase text-gray-400 border-b border-gray-100 pb-3 mb-1 px-2 tracking-[0.1em]">
-                                <div className="col-span-5">Descripción</div>
-                                <div className="col-span-2 text-center">Unidad</div>
-                                <div className="col-span-2 text-center">Cant.</div>
-                                <div className="col-span-3 text-right">Sub-total</div>
-                            </div>
-
-                            <ScrollArea className="flex-1 px-2">
-                                {cartItems.length === 0 ? (
-                                    <div className="h-full flex flex-col items-center justify-center text-gray-200 py-20 opacity-40">
-                                        <div className="w-16 h-16 border-4 border-dashed border-gray-200 rounded-full flex items-center justify-center mb-3">
-                                            <Plus className="w-6 h-6" />
-                                        </div>
-                                        <p className="font-bold text-sm uppercase tracking-widest">Esperando productos...</p>
-                                    </div>
-                                ) : (
-                                    cartItems.map((item) => {
-                                        const subtotalUSD = item.price * item.quantity;
-                                        const subtotalBs = bcvRate ? subtotalUSD * bcvRate : 0;
-                                        return (
-                                            <div key={item.id} className="grid grid-cols-12 py-4 items-center border-b border-gray-50 group transition-all hover:bg-gray-50/50 rounded-lg -mx-2 px-2">
-                                                <div className="col-span-5">
-                                                    <p className="font-black text-[#1A1C1E] text-sm uppercase leading-tight">{item.name}</p>
-                                                    <p className="text-[10px] text-gray-400 font-bold">{formatUSD(item.price)} x {item.unit}</p>
-                                                </div>
-                                                <div className="col-span-2 text-center text-[10px] font-black text-gray-400 uppercase">
-                                                    {item.unit}
-                                                </div>
-                                                <div className="col-span-2 flex justify-center">
-                                                    <Input
-                                                        type="number"
-                                                        value={item.quantity}
-                                                        onChange={(e) => handleQuantityChange(item.id, parseFloat(e.target.value) || 0)}
-                                                        min="1"
-                                                        max={item.stock}
-                                                        className="w-16 h-8 text-center rounded-md bg-gray-100 border-none font-bold text-primary text-sm"
-                                                    />
-                                                </div>
-                                                <div className="col-span-3 text-right flex items-center justify-end gap-2">
-                                                    <div className="text-right">
-                                                        <p className="font-black text-[#1A1C1E] text-sm leading-none">{formatBs(subtotalBs)}</p>
-                                                        <p className="text-[10px] text-gray-400 font-bold">{formatUSD(subtotalUSD)}</p>
-                                                    </div>
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="icon" 
-                                                        onClick={() => handleRemoveItem(item.id)} 
-                                                        className="text-red-200 hover:text-red-500 hover:bg-red-50 rounded-full h-7 w-7 opacity-0 group-hover:opacity-100 transition-all"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        )
-                                    })
-                                )}
-                            </ScrollArea>
-                        </div>
-                    </div>
+          <form onSubmit={form.handleSubmit((v) => onSubmit({ ...v, items: cartItems, totalAmount: totalUSD, saleNumber: saleCount + 1 }))} className="h-full flex flex-col">
+            
+            {/* BARRA SUPERIOR ESTATICA */}
+            <div className="h-16 bg-white border-b border-gray-200 px-10 flex items-center justify-between shrink-0 z-20">
+              <div className="flex items-center gap-10">
+                <div className="flex items-center gap-3">
+                  <div className="bg-[#107C41] p-2 rounded-lg"><ReceiptText className="text-white h-5 w-5" /></div>
+                  <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight">Sistema de Ventas</h2>
                 </div>
-            </form>
+                
+                <FormField
+                  control={form.control}
+                  name="paymentMethod"
+                  render={({ field }) => (
+                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-2">
+                      {paymentMethods.map(({ id, label, icon: Icon }) => (
+                        <Label key={id} htmlFor={`pay-${id}`} className={cn(
+                          "flex items-center px-4 py-2 rounded-xl border transition-all h-10 text-[10px] font-black cursor-pointer uppercase tracking-widest",
+                          field.value === id ? "bg-[#107C41] border-[#107C41] text-white shadow-lg shadow-[#107C41]/30" : "border-gray-200 bg-white text-gray-400 hover:bg-gray-50"
+                        )}>
+                          <RadioGroupItem value={id} id={`pay-${id}`} className="sr-only" />
+                          <Icon className="mr-2 h-4 w-4" /> {label}
+                        </Label>
+                      ))}
+                    </RadioGroup>
+                  )}
+                />
+              </div>
+              <Button type="button" onClick={() => onOpenChange(false)} variant="ghost" className="rounded-full h-10 w-10 p-0 hover:bg-red-50 hover:text-red-500 transition-colors">
+                <X className="h-6 w-6" />
+              </Button>
+            </div>
+
+            {/* CUERPO DE DOS COLUMNAS */}
+            <div className="flex-1 flex overflow-hidden">
+              
+              {/* COLUMNA IZQUIERDA: NUEVA VENTA */}
+              <aside className="w-[460px] p-10 flex flex-col shrink-0 bg-white shadow-[15px_0_30px_-15px_rgba(0,0,0,0.05)] z-10">
+                <div className="flex-1 space-y-10">
+                  <h3 className="text-3xl font-black text-gray-800 tracking-tighter">NUEVA VENTA</h3>
+                  
+                  <div className="space-y-3">
+                    <Label className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] ml-1">Fecha de Venta</Label>
+                    <div className="flex items-center gap-4 bg-gray-50 p-5 rounded-[1.5rem] border border-gray-100 font-bold text-gray-600">
+                      <CalendarIcon className="h-5 w-5 text-[#107C41]" />
+                      <span className="text-lg">{format(new Date(), "dd 'de' MMMM, yyyy", { locale: es })}</span>
+                    </div>
+                  </div>
+
+                  <Button type="button" onClick={() => setIsProductSelectorOpen(true)} className="w-full h-20 bg-gray-900 text-white hover:bg-black rounded-[2rem] font-black text-xl shadow-xl transition-transform active:scale-95">
+                    <Plus className="w-7 h-7 mr-3" /> {isLoadingProducts ? 'CARGANDO...' : 'AGREGAR PRODUCTOS'}
+                  </Button>
+
+                  {/* CAJA DE TOTAL VERDE */}
+                  <div className="bg-[#E7F3ED] p-10 rounded-[3.5rem] border border-[#107C41]/10 text-center shadow-inner">
+                    <p className="text-[11px] uppercase font-black text-[#107C41] tracking-[0.3em] mb-4">Total a Pagar</p>
+                    <p className="text-7xl font-black text-[#107C41] tracking-tighter leading-none mb-3">
+                      Bs. {new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(totalBs)}
+                    </p>
+                    <p className="text-2xl font-bold text-gray-400">USD {totalUSD.toFixed(2)}</p>
+                  </div>
+                </div>
+
+                <Button type="submit" className="w-full h-24 text-2xl font-black rounded-[2.5rem] bg-[#107C41] hover:bg-[#0D6334] text-white shadow-2xl shadow-[#107C41]/30 transition-all active:scale-95 uppercase tracking-widest mt-8">
+                  Registrar Venta
+                </Button>
+              </aside>
+
+              {/* COLUMNA DERECHA: MONITOR (LISTADO) */}
+              <main className="flex-1 p-10 flex flex-col overflow-hidden bg-[#F3F4F6]">
+                <div className="flex-1 bg-white rounded-[4rem] shadow-sm flex flex-col overflow-hidden p-12 border border-gray-200/50">
+                  <div className="text-center mb-12">
+                    <h3 className="text-5xl font-black text-red-500 italic tracking-tighter uppercase opacity-90">Monitor de Venta</h3>
+                    <div className="h-1.5 w-32 bg-red-100 mx-auto mt-4 rounded-full" />
+                    <p className="text-sm font-black text-gray-300 tracking-[0.4em] mt-4">VENTA Nº 00{saleCount + 1}</p>
+                  </div>
+
+                  <div className="grid grid-cols-12 font-black text-[11px] uppercase text-gray-300 border-b border-gray-100 pb-6 mb-4 px-8 tracking-[0.2em]">
+                    <div className="col-span-5">Producto</div>
+                    <div className="col-span-2 text-center">Unidad</div>
+                    <div className="col-span-2 text-center">Cant.</div>
+                    <div className="col-span-3 text-right">Sub-Total (Bs.)</div>
+                  </div>
+
+                  <ScrollArea className="flex-1 px-4">
+                    {cartItems.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center text-gray-200 py-32 opacity-40 italic">
+                        <ReceiptText className="w-20 h-20 mb-4" />
+                        <p className="text-xl font-black uppercase tracking-widest">Esperando Artículos...</p>
+                      </div>
+                    ) : (
+                      cartItems.map((item) => (
+                        <div key={item.id} className="grid grid-cols-12 py-5 items-center bg-gray-50/50 mb-3 rounded-3xl border border-gray-100/50 px-6 group transition-all hover:bg-white hover:shadow-md">
+                          <div className="col-span-5">
+                            <p className="font-black text-gray-800 text-base uppercase leading-tight">{item.name}</p>
+                            <p className="text-[10px] text-gray-400 font-bold">Precio Ref: ${item.price.toFixed(2)}</p>
+                          </div>
+                          <div className="col-span-2 text-center">
+                            <span className="text-[11px] font-black text-gray-400 bg-white border border-gray-100 px-3 py-1 rounded-lg uppercase">{item.unit || 'UND'}</span>
+                          </div>
+                          <div className="col-span-2 flex justify-center">
+                            <span className="text-xl font-black text-[#107C41]">{item.quantity}</span>
+                          </div>
+                          <div className="col-span-3 text-right flex items-center justify-end gap-5">
+                            <p className="font-black text-gray-800 text-xl tracking-tighter">
+                              {new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(item.price * item.quantity * (bcvRate || 0))}
+                            </p>
+                            <Button variant="ghost" size="icon" onClick={() => setCartItems(prev => prev.filter(i => i.id !== item.id))} className="h-10 w-10 text-gray-300 hover:text-red-500 rounded-full transition-colors">
+                              <Trash2 className="h-5 w-5" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </ScrollArea>
+
+                  <div className="mt-8 pt-8 border-t-2 border-dashed border-gray-100 flex justify-between items-center px-8 text-gray-400 font-bold">
+                    <p className="text-sm uppercase tracking-widest">Resumen de Venta</p>
+                    <p className="text-lg">Tasa del día: <span className="text-[#107C41] font-black">Bs. {bcvRate?.toFixed(2)}</span></p>
+                  </div>
+                </div>
+              </main>
+            </div>
+          </form>
         </Form>
       </DialogContent>
-    </Dialog>
 
-    <PriceListModal
-      open={isPriceListOpen}
-      onOpenChange={setIsPriceListOpen}
-      products={products}
-      bcvRate={bcvRate}
-    />
-    <ProductSelectorModal
-        open={isProductSelectorOpen}
-        onOpenChange={setIsProductSelectorOpen}
-        products={products}
-        onAddProduct={handleAddProduct}
-        cartItems={cartItems}
-    />
-    </>
+      <ProductSelectorModal 
+        open={isProductSelectorOpen} 
+        onOpenChange={setIsProductSelectorOpen} 
+        products={products} 
+        onAddProduct={handleAddProduct} 
+        bcvRate={bcvRate} 
+      />
+    </Dialog>
   )
 }
 
-function PriceListModal({ open, onOpenChange, products, bcvRate }: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  products: Product[];
-  bcvRate: number | null;
-}) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const filteredProducts = useMemo(() => 
-    products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())),
-    [products, searchTerm]
-  );
-
-  const formatUSD = (value: number) => new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(value);
-  const formatBs = (value: number) => `Bs. ${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(value)}`;
+function ProductSelectorModal({ open, onOpenChange, products, onAddProduct, bcvRate }: any) {
+  const [searchTerm, setSearchTerm] = useState('')
+  const filtered = products.filter((p: any) => p.name.toLowerCase().includes(searchTerm.toLowerCase()) && p.status === 'active')
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[70vh] flex flex-col p-0 overflow-hidden rounded-3xl border-none bg-[#F8F9F8]">
-        <DialogHeader className="p-8 pb-5 bg-white border-b border-gray-100">
-          <DialogTitle className="text-2xl font-black mb-4 tracking-tight">Lista de Precios</DialogTitle>
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300" />
-            <Input 
-              placeholder="Buscar producto..." 
-              value={searchTerm} 
-              onChange={e => setSearchTerm(e.target.value)} 
-              className="pl-12 h-12 rounded-xl bg-[#F8F9F8] border-none text-base font-bold" 
-            />
-          </div>
-        </DialogHeader>
-        <ScrollArea className="flex-1 p-6">
-          <div className="space-y-2">
-            {filteredProducts.map(product => (
-              <div key={product.id} className="grid grid-cols-3 gap-4 items-center p-4 bg-white rounded-2xl border border-gray-100">
-                <div className="col-span-2">
-                  <p className="font-black text-[#1A1C1E] uppercase text-sm tracking-tight">{product.name}</p>
-                  <p className="text-[10px] text-gray-400 font-bold">{product.category || 'Sin categoría'}</p>
+      <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-10 rounded-[3.5rem] border-none shadow-2xl">
+        <DialogTitle className="text-3xl font-black mb-6 tracking-tight">Seleccionar Producto</DialogTitle>
+        <div className="relative mb-8">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 h-6 w-6" />
+          <Input 
+            className="pl-14 h-16 rounded-2xl bg-gray-50 border-none text-xl font-bold" 
+            placeholder="Escribe el nombre del producto..." 
+            value={searchTerm} 
+            onChange={e => setSearchTerm(e.target.value)} 
+          />
+        </div>
+        <ScrollArea className="flex-1">
+          <div className="grid gap-4 pr-4">
+            {filtered.map((p: any) => (
+              <div key={p.id} className="flex items-center justify-between p-6 bg-gray-50 rounded-[2rem] border border-transparent hover:border-[#107C41]/30 transition-all group">
+                <div>
+                  <p className="font-black uppercase text-base text-gray-800">{p.name}</p>
+                  <p className="text-sm font-bold text-[#107C41]">Precio: Bs. {(p.price * (bcvRate || 0)).toFixed(2)}</p>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-primary">{formatUSD(product.price)}</p>
-                  {bcvRate && <p className="text-xs text-muted-foreground">{formatBs(product.price * bcvRate)}</p>}
-                </div>
+                <Button 
+                  onClick={() => { onAddProduct(p, 1); onOpenChange(false); }} 
+                  className="bg-[#107C41] hover:bg-[#0D6334] h-12 px-8 font-black rounded-xl text-white transition-all active:scale-95"
+                >
+                  AÑADIR AL MONITOR
+                </Button>
               </div>
             ))}
-          </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function ProductListItem({ product, onAddProduct }: {
-  product: Product;
-  onAddProduct: (product: Product, quantity: number) => void;
-}) {
-  const [value, setValue] = useState('1');
-  const formatUSD = (value: number) => new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(value);
-  
-  return (
-    <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 hover:border-[#107C41]/30 transition-all">
-      <div className="flex-1">
-        <div className="flex items-baseline gap-3">
-          <p className="font-black text-[#1A1C1E] uppercase text-sm tracking-tight">{product.name}</p>
-          <p className="font-bold text-primary text-xs">{formatUSD(product.price)}</p>
-        </div>
-        <div className="flex gap-3 mt-1">
-            <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-black text-gray-500 uppercase">{product.unit}</span>
-            <span className="text-[10px] font-black text-[#107C41]">Stock: {product.stock}</span>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <Input 
-            type="number" 
-            className="w-16 h-10 text-center font-black rounded-xl bg-gray-50 border-none" 
-            value={value} 
-            onChange={(e) => setValue(e.target.value)}
-            step={product.unit === 'kg' || product.unit === 'litro' ? "0.1" : "1"}
-        />
-        <Button 
-            onClick={() => { onAddProduct(product, parseFloat(value)); setValue('1'); }} 
-            className="h-10 px-5 rounded-xl font-black bg-[#107C41] hover:bg-[#0D6334]"
-        >
-            AÑADIR
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function ProductSelectorModal({ open, onOpenChange, products, cartItems, onAddProduct }: {
-  open: boolean; onOpenChange: (open: boolean) => void; products: Product[]; cartItems: CartItem[]; onAddProduct: (product: Product, quantity: number) => void;
-}) {
-  const [searchTerm, setSearchTerm] = useState('')
-  const cartIds = new Set(cartItems.map(i => i.id))
-  const filtered = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) && !cartIds.has(p.id) && p.status === 'active')
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[70vh] flex flex-col p-0 overflow-hidden rounded-3xl border-none bg-[#F8F9F8]">
-        <DialogHeader className="p-8 pb-5 bg-white border-b border-gray-100">
-          <DialogTitle className="text-2xl font-black mb-4 tracking-tight">Buscar Artículos</DialogTitle>
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300" />
-            <Input 
-                placeholder="Nombre del producto..." 
-                value={searchTerm} 
-                onChange={e => setSearchTerm(e.target.value)} 
-                className="pl-12 h-12 rounded-xl bg-[#F8F9F8] border-none text-base font-bold" 
-            />
-          </div>
-        </DialogHeader>
-        <ScrollArea className="flex-1 p-6">
-          <div className="grid gap-3">
-            {filtered.map(p => <ProductListItem key={p.id} product={p} onAddProduct={onAddProduct} />)}
           </div>
         </ScrollArea>
       </DialogContent>

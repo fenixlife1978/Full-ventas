@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useCollection, useFirestore, useDoc } from '@/firebase'
 import { collection, doc } from 'firebase/firestore'
 import { useMemoFirebase } from '@/firebase/provider'
@@ -40,6 +40,11 @@ import { type Setting } from '../configuraciones/page'
 export default function ReportesPage() {
   const firestore = useFirestore()
   const [period, setPeriod] = useState('month')
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   const salesCollection = useMemoFirebase(
     () => (firestore ? collection(firestore, 'sales') : null),
@@ -283,7 +288,7 @@ export default function ReportesPage() {
       total: { label: "Total", color: "hsl(var(--primary))" },
   } satisfies React.ComponentProps<typeof ChartContainer>["config"]
 
-  if (isLoading) {
+  if (isLoading || !isClient) {
     return (
         <Layout currentPageName="Reportes">
             <div className="space-y-6 p-4 md:p-8">

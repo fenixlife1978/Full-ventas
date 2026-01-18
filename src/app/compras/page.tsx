@@ -64,6 +64,11 @@ export default function ComprasPage() {
   const [filterPeriod, setFilterPeriod] = useState('all');
   const [pricingModalInfo, setPricingModalInfo] = useState<PricingModalInfo | null>(null)
   const [profitMargin, setProfitMargin] = useState<string>('')
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
   
   const { toast } = useToast()
   const firestore = useFirestore()
@@ -344,7 +349,7 @@ export default function ComprasPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-9 w-1/4"/> : <div className="text-3xl font-bold text-foreground">{monthlyStats.totalPurchases}</div> }
+              {isLoading || !isClient ? <Skeleton className="h-9 w-1/4"/> : <div className="text-3xl font-bold text-foreground">{monthlyStats.totalPurchases}</div> }
             </CardContent>
           </Card>
 
@@ -356,7 +361,7 @@ export default function ComprasPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-             {isLoading ? <Skeleton className="h-9 w-1/2"/> : (
+             {isLoading || !isClient ? <Skeleton className="h-9 w-1/2"/> : (
               <>
                 <div className="text-3xl font-bold text-foreground">{formatCurrency(monthlyStats.totalAmount, 'USD')}</div>
                 {bcvRate && <div className="text-sm text-muted-foreground">{formatCurrency(monthlyStats.totalAmount, 'VES')}</div>}
@@ -373,7 +378,7 @@ export default function ComprasPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-9 w-1/3"/> : <div className="text-3xl font-bold text-foreground">{monthlyStats.totalUnits}</div>}
+              {isLoading || !isClient ? <Skeleton className="h-9 w-1/3"/> : <div className="text-3xl font-bold text-foreground">{monthlyStats.totalUnits}</div>}
             </CardContent>
           </Card>
         </div>
@@ -414,7 +419,7 @@ export default function ComprasPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {isLoading || !isClient ? (
                <div className="space-y-2">
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
