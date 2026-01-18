@@ -56,8 +56,8 @@ const ProductListItem = ({ product, onSelect, bcvRate, formatCurrency }: any) =>
       <p className="text-sm text-gray-500">Stock: {product.stock}</p>
     </div>
     <div className="text-right">
-       <p className="font-bold">{formatCurrency(product.price, 'USD')}</p>
-       {bcvRate && <p className="text-sm text-gray-500">{formatCurrency(product.price, 'VES')}</p>}
+       <p className="font-bold">{formatCurrency(product.price, 'VES')}</p>
+       <p className="text-sm text-gray-500">{formatCurrency(product.price, 'USD')}</p>
     </div>
   </div>
 );
@@ -161,16 +161,16 @@ const PriceListModal = ({ isOpen, onClose, products, bcvRate, formatCurrency }: 
                         <thead>
                             <tr className="border-b">
                                 <th className="p-2 text-left">Producto</th>
-                                <th className="p-2 text-right">Precio USD</th>
                                 <th className="p-2 text-right">Precio Bs.</th>
+                                <th className="p-2 text-right">Precio USD</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredProducts.map((p: any) => (
                                 <tr key={p.id} className="border-b">
                                     <td className="p-2 font-medium">{p.name}</td>
-                                    <td className="p-2 text-right font-semibold">{formatCurrency(p.price, 'USD')}</td>
-                                    <td className="p-2 text-right">{bcvRate ? formatCurrency(p.price, 'VES') : 'N/A'}</td>
+                                    <td className="p-2 text-right font-semibold">{formatCurrency(p.price, 'VES')}</td>
+                                    <td className="p-2 text-right">{formatCurrency(p.price, 'USD')}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -206,12 +206,15 @@ export function SaleForm({ open, onOpenChange, onSubmit, products, bcvRate, sale
   const totalBs = useMemo(() => (bcvRate ? totalUSD * bcvRate : 0), [totalUSD, bcvRate])
   
   const formatCurrency = (value: number, currency: 'USD' | 'VES' = 'USD') => {
-    if (currency === 'VES' && bcvRate) {
-      value = value * bcvRate
-      return `Bs. ${new Intl.NumberFormat('es-VE', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(value)}`
+    if (currency === 'VES') {
+      if (bcvRate) {
+        value = value * bcvRate
+        return `Bs. ${new Intl.NumberFormat('es-VE', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(value)}`
+      }
+      return 'Bs. --,--'
     }
     return new Intl.NumberFormat('es-VE', {
       style: 'currency',
@@ -324,15 +327,13 @@ export function SaleForm({ open, onOpenChange, onSubmit, products, bcvRate, sale
               <div className="mt-auto space-y-4">
                  <div className="p-4 bg-gray-100 rounded-lg">
                     <div className="flex justify-between items-center text-xl font-bold">
-                        <span>TOTAL USD</span>
+                        <span>TOTAL A PAGAR (Bs.)</span>
+                        <span>{formatCurrency(totalUSD, 'VES')}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm text-gray-500 mt-1">
+                        <span>Total en USD (Ref.)</span>
                         <span>{formatCurrency(totalUSD, 'USD')}</span>
                     </div>
-                    {bcvRate && (
-                        <div className="flex justify-between items-center text-lg text-gray-500 mt-1">
-                            <span>TOTAL Bs.</span>
-                            <span>{formatCurrency(totalUSD, 'VES')}</span>
-                        </div>
-                    )}
                  </div>
                  <Button type="button" onClick={() => setIsPriceListOpen(true)} variant="outline" className="w-full">
                     <Info className="mr-2" />
@@ -360,7 +361,7 @@ export function SaleForm({ open, onOpenChange, onSubmit, products, bcvRate, sale
                                     <div key={item.id} className="flex items-center bg-white p-2 rounded-lg shadow-sm">
                                         <div className="flex-1">
                                             <p className="font-bold">{item.name}</p>
-                                            <p className="text-sm text-gray-500">{formatCurrency(item.price, 'USD')} c/u</p>
+                                            <p className="text-sm text-gray-500">{formatCurrency(item.price, 'VES')} c/u</p>
                                         </div>
                                         <div className="flex items-center gap-2">
                                            <Input
@@ -370,7 +371,10 @@ export function SaleForm({ open, onOpenChange, onSubmit, products, bcvRate, sale
                                                 className="w-20 h-9 text-center"
                                                 min="0"
                                             />
-                                            <p className="w-24 text-right font-bold">{formatCurrency(item.price * item.quantity, 'USD')}</p>
+                                            <div className="w-28 text-right">
+                                                <p className="font-bold">{formatCurrency(item.price * item.quantity, 'VES')}</p>
+                                                <p className="text-xs text-gray-500">{formatCurrency(item.price * item.quantity, 'USD')}</p>
+                                            </div>
                                             <Button variant="ghost" size="icon" onClick={() => handleUpdateQuantity(item.id, 0)}>
                                                 <Trash2 className="h-4 w-4 text-red-500" />
                                             </Button>
