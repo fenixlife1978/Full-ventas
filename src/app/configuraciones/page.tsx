@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Settings, DollarSign, Save } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Settings, DollarSign, Save, Upload, Trash2, Image as ImageIcon } from 'lucide-react'
 import Layout from '../layout-app'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -11,15 +11,20 @@ import { useFirestore, useDoc } from '@/firebase'
 import { doc, setDoc } from 'firebase/firestore'
 import { useMemoFirebase } from '@/firebase/provider'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
+
 
 export interface Setting {
   id: string
   bcvRate: number
+  logoUrl?: string
 }
 
 export default function ConfiguracionesPage() {
   const [bcvRate, setBcvRate] = useState<number | ''>('')
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
   const firestore = useFirestore()
 
@@ -31,10 +36,62 @@ export default function ConfiguracionesPage() {
   const { data: settings, isLoading } = useDoc<Setting>(settingsDocRef)
 
   useEffect(() => {
-    if (settings && settings.bcvRate) {
-      setBcvRate(settings.bcvRate)
+    if (settings) {
+      if (settings.bcvRate) {
+        setBcvRate(settings.bcvRate)
+      }
+      if (settings.logoUrl) {
+        setLogoPreview(settings.logoUrl)
+      } else {
+        setLogoPreview(null)
+      }
     }
   }, [settings])
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && (file.type === 'image/jpeg' || file.type === 'image/png')) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const result = reader.result as string
+        const img = document.createElement('img')
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          const MAX_WIDTH = 200
+          const MAX_HEIGHT = 200
+          let width = img.width
+          let height = img.height
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width
+              width = MAX_WIDTH
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height
+              height = MAX_HEIGHT
+            }
+          }
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext('2d')
+          ctx?.drawImage(img, 0, 0, width, height)
+          const dataUrl = canvas.toDataURL(file.type, 0.8) // 80% quality compression
+          setLogoPreview(dataUrl)
+        }
+        img.src = result
+      }
+      reader.readAsDataURL(file)
+    } else if (file) {
+      toast({
+        variant: 'destructive',
+        title: 'Archivo inválido',
+        description: 'Por favor, selecciona una imagen JPG o PNG.',
+      })
+    }
+  }
+
 
   const handleSave = async () => {
     if (!firestore) return
@@ -49,10 +106,15 @@ export default function ConfiguracionesPage() {
 
     setIsSaving(true)
     try {
-      await setDoc(doc(firestore, 'settings', 'global'), { bcvRate })
+      const settingsData: { bcvRate: number, logoUrl?: string | null } = { 
+        bcvRate: Number(bcvRate),
+        logoUrl: logoPreview 
+      };
+
+      await setDoc(doc(firestore, 'settings', 'global'), settingsData, { merge: true })
       toast({
         title: 'Configuración Guardada',
-        description: 'La tasa de cambio BCV ha sido actualizada.',
+        description: 'La configuración ha sido actualizada.',
       })
     } catch (error) {
       toast({
@@ -80,38 +142,98 @@ export default function ConfiguracionesPage() {
 
         <Card className="max-w-2xl bg-card border-border/50 shadow-sm">
           <CardHeader>
-            <CardTitle>Tasa de Cambio</CardTitle>
-            <CardDescription>
-              Establece la tasa de cambio del Banco Central de Venezuela (BCV) para las conversiones de moneda.
-            </CardDescription>
+            <CardTitle>Ajustes Generales</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
             {isLoading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-24" />
+              <div className="space-y-6">
+                 <div>
+                    <Skeleton className="h-5 w-32 mb-2" />
+                    <Skeleton className="h-4 w-64 mb-4" />
+                    <Skeleton className="h-10 w-full" />
+                 </div>
+                 <Separator />
+                 <div>
+                    <Skeleton className="h-5 w-32 mb-2" />
+                    <Skeleton className="h-4 w-64 mb-4" />
+                    <div className="flex items-center gap-4">
+                        <Skeleton className="h-24 w-24 rounded-lg" />
+                        <div className="space-y-2">
+                            <Skeleton className="h-10 w-32" />
+                            <Skeleton className="h-10 w-24" />
+                        </div>
+                    </div>
+                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    id="bcv-rate"
-                    type="number"
-                    placeholder="Introduce la tasa BCV"
-                    value={bcvRate}
-                    onChange={(e) => setBcvRate(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                    className="pl-10 border-border/50 focus:ring-ring"
-                  />
+              <>
+                <div>
+                  <h3 className="font-semibold text-foreground">Tasa de Cambio</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Establece la tasa de cambio del Banco Central de Venezuela (BCV) para las conversiones de moneda.
+                  </p>
+                  <div className="relative max-w-sm">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="bcv-rate"
+                      type="number"
+                      placeholder="Introduce la tasa BCV"
+                      value={bcvRate}
+                      onChange={(e) => setBcvRate(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                      className="pl-10 border-border/50 focus:ring-ring"
+                    />
+                  </div>
                 </div>
-                <Button onClick={handleSave} disabled={isSaving}>
-                  <Save className="mr-2" />
-                  {isSaving ? 'Guardando...' : 'Guardar'}
-                </Button>
-              </div>
+                
+                <Separator />
+
+                <div>
+                   <h3 className="font-semibold text-foreground">Logo de la Empresa</h3>
+                   <p className="text-sm text-muted-foreground mb-4">
+                     Sube el logo de tu empresa (JPG o PNG). Se mostrará en la barra lateral.
+                   </p>
+                   <div className="flex items-center gap-6">
+                     <div className="w-24 h-24 rounded-lg bg-muted flex items-center justify-center overflow-hidden border-2 border-border">
+                       {logoPreview ? (
+                         <img src={logoPreview} alt="Logo Preview" className="w-full h-full object-contain" />
+                       ) : (
+                         <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                       )}
+                     </div>
+                     <div className="flex flex-col gap-2">
+                       <Button onClick={() => fileInputRef.current?.click()}>
+                         <Upload className="mr-2 h-4 w-4" />
+                         Cambiar Logo
+                       </Button>
+                       <input
+                         type="file"
+                         ref={fileInputRef}
+                         onChange={handleFileChange}
+                         className="hidden"
+                         accept="image/png, image/jpeg"
+                       />
+                       {logoPreview && (
+                         <Button variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setLogoPreview(null)}>
+                           <Trash2 className="mr-2 h-4 w-4" />
+                           Eliminar
+                         </Button>
+                       )}
+                     </div>
+                   </div>
+                </div>
+
+              </>
             )}
           </CardContent>
         </Card>
+        
+        <div className="max-w-2xl flex justify-end">
+            <Button onClick={handleSave} disabled={isSaving || isLoading}>
+              <Save className="mr-2 h-4 w-4" />
+              {isSaving ? 'Guardando...' : 'Guardar Cambios'}
+            </Button>
+        </div>
+
       </div>
     </Layout>
   )
