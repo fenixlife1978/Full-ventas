@@ -128,7 +128,7 @@ export function ProductForm({ open, onOpenChange, onSubmit, product }: ProductFo
         <div className="bg-card border border-border rounded-2xl shadow-xl overflow-hidden flex flex-col">
           
           <DialogHeader className="bg-primary p-4 shrink-0">
-            <DialogTitle className="text-lg font-black text-white uppercase tracking-tighter italic flex items-center gap-2">
+            <DialogTitle className="text-lg font-black text-primary-foreground uppercase tracking-tighter italic flex items-center gap-2">
               <Package className="w-5 h-5" />
               {product ? 'Editar Producto' : 'Nuevo Producto'}
             </DialogTitle>
@@ -166,7 +166,7 @@ export function ProductForm({ open, onOpenChange, onSubmit, product }: ProductFo
                       <Input
                         readOnly
                         value={form.watch('price')}
-                        className="w-full pl-9 py-2 bg-white border-2 border-primary/20 rounded-lg font-bold text-primary text-sm h-10 cursor-not-allowed"
+                        className="w-full pl-9 py-2 bg-gray-100 border-2 border-gray-300 rounded-lg font-bold text-gray-900 text-sm h-10 cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -195,7 +195,7 @@ export function ProductForm({ open, onOpenChange, onSubmit, product }: ProductFo
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-primary text-white px-6 py-2 rounded-xl font-black uppercase tracking-tighter italic shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all text-xs"
+                  className="bg-primary text-primary-foreground px-6 py-2 rounded-xl font-black uppercase tracking-tighter italic shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all text-xs"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {product ? 'Actualizar' : 'Guardar Producto'}
@@ -235,7 +235,7 @@ const InputField = ({ form, name, label, icon: Icon, type = "text", step }: Fiel
               type={type}
               step={step}
               {...field}
-              className="w-full pl-9 pr-4 py-2 bg-background border-2 border-transparent rounded-lg focus:border-primary focus:bg-white outline-none transition-all text-sm h-10 font-medium"
+              className="w-full pl-9 pr-4 py-2 bg-background border-2 border-transparent rounded-lg focus:border-primary focus:bg-gray-100 focus:text-gray-900 outline-none transition-all text-sm h-10 font-medium"
             />
           </FormControl>
         </div>
@@ -256,7 +256,7 @@ const SelectField = ({ form, name, label, icon: Icon, items = [] }: FieldProps) 
           <Icon className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors z-10" />
           <Select onValueChange={field.onChange} value={field.value}>
             <FormControl>
-              <SelectTrigger className="w-full pl-9 py-2 bg-background border-2 border-transparent rounded-lg focus:border-primary focus:bg-white transition-all text-sm h-10 font-medium">
+              <SelectTrigger className="w-full pl-9 py-2 bg-background border-2 border-transparent rounded-lg focus:border-primary focus:bg-gray-100 focus:text-gray-900 transition-all text-sm h-10 font-medium">
                 <SelectValue placeholder="-" />
               </SelectTrigger>
             </FormControl>
@@ -274,4 +274,3 @@ const SelectField = ({ form, name, label, icon: Icon, items = [] }: FieldProps) 
     )}
   />
 );
-

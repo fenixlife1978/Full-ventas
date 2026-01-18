@@ -323,7 +323,7 @@ export default function ReportesPage() {
             </Select>
             <Button
               onClick={exportToPDF}
-              className="bg-white border-2 border-primary text-primary px-6 py-3 rounded-xl font-bold uppercase tracking-tighter hover:bg-primary/5 transition-all duration-200"
+              className="bg-gray-100 border-2 border-gray-300 text-gray-900 px-6 py-3 rounded-xl font-bold uppercase tracking-tighter hover:bg-gray-200 transition-all duration-200"
             >
               <Download className="mr-2" />
               Exportar
