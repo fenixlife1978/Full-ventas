@@ -12,6 +12,8 @@
  * and cannot be updated or deleted by anyone. This ensures data integrity and
  * prevents tampering in an environment where documents do not have explicit owners.
  * Products, sales and purchases can be created, read, updated, and deleted by authenticated users.
+ * Global settings are publicly readable to allow elements like the company logo to be
+ * displayed on public-facing pages, but are only writable by authenticated users.
  *
  * @section Data Structure
  * The data is organized into four top-level collections:
@@ -24,6 +26,9 @@
  * @section Key Security Decisions
  * - Public Read Access for Reports: All reports in the `/reports` collection are publicly readable
  *   to support application features that display report data to any user.
+ * - Public Read Access for Settings: The `/settings` collection is publicly readable to allow
+ *   the application to load configuration like the company logo on public pages (login, welcome).
+ *   Write access is restricted to authenticated users.
  * - Authenticated CRUD for Products, Sales and Purchases: All operations on products, sales and purchases require authentication.
  * - Immutability for Reports: To prevent any user from modifying or deleting another user's report
  *   (especially since there is no `ownerId` field), all update and delete operations
@@ -108,12 +113,16 @@ service cloud.firestore {
     }
 
      /**
-     * @description Allows authenticated users to manage global settings.
+     * @description Allows public read access to global settings, but write
+     *   access is restricted to authenticated users. This is necessary for
+     *   displaying elements like the company logo on public pages (e.g., login).
      * @path /settings/{settingId}
-     * @allow (read, write) Any signed-in user can read and update settings.
+     * @allow (get, list) Any user, signed-in or not, can read settings.
+     * @allow (write) Only an authenticated user can create, update, or delete settings.
      */
     match /settings/{settingId} {
-        allow read, write: if isSignedIn();
+        allow get, list: if true;
+        allow write: if isSignedIn();
     }
   }
 }
