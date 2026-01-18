@@ -64,13 +64,13 @@ const ProductListItem = ({ product, onSelect, bcvRate, formatCurrency }: any) =>
 
 const ProductSelectorModal = ({ isOpen, onClose, products, onSelectProduct, bcvRate, formatCurrency }: any) => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [quantity, setQuantity] = useState(1);
+    const [quantity, setQuantity] = useState('1');
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
     useEffect(() => {
         if (!isOpen) {
             setSearchTerm('');
-            setQuantity(1);
+            setQuantity('1');
             setSelectedProduct(null);
         }
     }, [isOpen]);
@@ -82,10 +82,15 @@ const ProductSelectorModal = ({ isOpen, onClose, products, onSelectProduct, bcvR
 
     const handleAdd = () => {
         if (selectedProduct) {
-            onSelectProduct(selectedProduct, quantity);
-            onClose();
+            const numQuantity = parseFloat(quantity);
+            if (!isNaN(numQuantity) && numQuantity > 0) {
+                onSelectProduct(selectedProduct, numQuantity);
+                onClose();
+            }
         }
     };
+    
+    const isWeightBased = selectedProduct && (selectedProduct.unit === 'kg' || selectedProduct.unit === 'litro');
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -107,7 +112,7 @@ const ProductSelectorModal = ({ isOpen, onClose, products, onSelectProduct, bcvR
                          <ProductListItem
                             key={p.id}
                             product={p}
-                            onSelect={() => setSelectedProduct(p)}
+                            onSelect={setSelectedProduct}
                             bcvRate={bcvRate}
                             formatCurrency={formatCurrency}
                         />
@@ -117,14 +122,19 @@ const ProductSelectorModal = ({ isOpen, onClose, products, onSelectProduct, bcvR
                     <DialogFooter className="!justify-between items-center gap-2 bg-gray-50 p-4 rounded-lg">
                         <p className="font-bold text-lg">{selectedProduct.name}</p>
                         <div className="flex items-center gap-2">
-                            <Input
-                                type="number"
-                                value={quantity}
-                                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                                className="w-20 text-center"
-                                min="1"
-                            />
-                            <Button onClick={handleAdd}>Agregar</Button>
+                            <div className="flex flex-col items-start">
+                               <Label htmlFor="quantity-input" className="text-xs mb-1 font-semibold">{isWeightBased ? `Peso (${selectedProduct.unit})` : 'Cantidad'}</Label>
+                               <Input
+                                  id="quantity-input"
+                                  type="number"
+                                  value={quantity}
+                                  onChange={(e) => setQuantity(e.target.value)}
+                                  className="w-24 text-center h-9"
+                                  step={isWeightBased ? "0.01" : "1"}
+                                  min={isWeightBased ? "0.01" : "1"}
+                               />
+                            </div>
+                            <Button onClick={handleAdd} className="self-end">Agregar</Button>
                         </div>
                     </DialogFooter>
                 )}
@@ -269,10 +279,10 @@ export function SaleForm({ open, onOpenChange, onSubmit, products, bcvRate, sale
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogHeader className="sr-only">
-        <DialogTitle>Registro de Venta</DialogTitle>
-      </DialogHeader>
       <DialogContent className="max-w-6xl h-[95vh] flex p-0">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Registro de Venta</DialogTitle>
+        </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit((v) => onSubmit({ ...v, items: cartItems, totalAmount: totalUSD, saleNumber: saleCount + 1 }))} className="flex flex-1">
             
@@ -357,30 +367,34 @@ export function SaleForm({ open, onOpenChange, onSubmit, products, bcvRate, sale
                             </div>
                         ) : (
                             <div className="space-y-2">
-                                {cartItems.map(item => (
-                                    <div key={item.id} className="flex items-center bg-white p-2 rounded-lg shadow-sm">
-                                        <div className="flex-1">
-                                            <p className="font-bold">{item.name}</p>
-                                            <p className="text-sm text-gray-500">{formatCurrency(item.price, 'VES')} c/u</p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                           <Input
-                                                type="number"
-                                                value={item.quantity}
-                                                onChange={(e) => handleUpdateQuantity(item.id, parseInt(e.target.value) || 0)}
-                                                className="w-20 h-9 text-center"
-                                                min="0"
-                                            />
-                                            <div className="w-28 text-right">
-                                                <p className="font-bold">{formatCurrency(item.price * item.quantity, 'VES')}</p>
-                                                <p className="text-xs text-gray-500">{formatCurrency(item.price * item.quantity, 'USD')}</p>
+                                {cartItems.map(item => {
+                                    const isItemWeightBased = item.unit === 'kg' || item.unit === 'litro';
+                                    return (
+                                        <div key={item.id} className="flex items-center bg-white p-2 rounded-lg shadow-sm">
+                                            <div className="flex-1">
+                                                <p className="font-bold">{item.name}</p>
+                                                <p className="text-sm text-gray-500">{formatCurrency(item.price, 'VES')} por {item.unit}</p>
                                             </div>
-                                            <Button variant="ghost" size="icon" onClick={() => handleUpdateQuantity(item.id, 0)}>
-                                                <Trash2 className="h-4 w-4 text-red-500" />
-                                            </Button>
+                                            <div className="flex items-center gap-2">
+                                               <Input
+                                                    type="number"
+                                                    value={item.quantity}
+                                                    onChange={(e) => handleUpdateQuantity(item.id, parseFloat(e.target.value) || 0)}
+                                                    className="w-24 h-9 text-center"
+                                                    min="0"
+                                                    step={isItemWeightBased ? "0.01" : "1"}
+                                                />
+                                                <div className="w-28 text-right">
+                                                    <p className="font-bold">{formatCurrency(item.price * item.quantity, 'VES')}</p>
+                                                    <p className="text-xs text-gray-500">{formatCurrency(item.price * item.quantity, 'USD')}</p>
+                                                </div>
+                                                <Button variant="ghost" size="icon" onClick={() => handleUpdateQuantity(item.id, 0)}>
+                                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                                </Button>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    )
+                                })}
                             </div>
                         )}
                     </div>
