@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Plus, Search, Edit, Trash2, AlertTriangle, Package, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -58,6 +58,11 @@ export default function ProductosPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   const { toast } = useToast()
   const firestore = useFirestore()
@@ -278,7 +283,7 @@ export default function ProductosPage() {
                   <th className="p-4 text-xs font-black uppercase text-primary tracking-wider text-center">Acciones</th>
                 </tr>
               </thead>
-               {isLoading ? (
+               {isLoading || !isClient ? (
                 <tbody>
                   {Array.from({ length: 5 }).map((_, i) => (
                       <tr key={i} className="border-b border-border/20">

@@ -103,6 +103,7 @@ export default function ComprasPage() {
 
 
   const monthlyStats = useMemo(() => {
+    if (!isClient) return { totalPurchases: 0, totalAmount: 0, totalUnits: 0 };
     const now = new Date();
     const monthStartDate = startOfMonth(now);
     const monthlyPurchases = formattedPurchases.filter(p => p.purchaseDate >= monthStartDate);
@@ -114,10 +115,11 @@ export default function ComprasPage() {
         totalAmount: amountCents / 100,
         totalUnits: monthlyPurchases.reduce((sum, p) => sum + (p.quantity || 0), 0)
     };
-  }, [formattedPurchases]);
+  }, [formattedPurchases, isClient]);
 
 
   const filteredPurchases = useMemo(() => {
+    if (!isClient) return [];
     let filtered = formattedPurchases;
 
     if (filterPeriod !== 'all') {
@@ -146,7 +148,7 @@ export default function ComprasPage() {
     }
 
     return filtered;
-  }, [formattedPurchases, filterPeriod, searchTerm]);
+  }, [formattedPurchases, filterPeriod, searchTerm, isClient]);
 
   const handleCreateNew = () => {
     setIsFormOpen(true)

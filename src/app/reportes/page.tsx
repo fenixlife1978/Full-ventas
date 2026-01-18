@@ -73,7 +73,7 @@ export default function ReportesPage() {
 
 
   const reportData = useMemo(() => {
-    if (!sales) {
+    if (!sales || !isClient) {
       return {
         dailySales: [],
         topProducts: [],
@@ -90,17 +90,18 @@ export default function ReportesPage() {
     let filteredSales = formattedSales
     let startDate
 
+    const now = new Date();
     if (period === 'today') {
       startDate = startOfToday()
       filteredSales = filteredSales.filter((s) => s.saleDate >= startDate)
     } else if (period === 'week') {
-      startDate = startOfWeek(new Date())
+      startDate = startOfWeek(now)
       filteredSales = filteredSales.filter((s) => s.saleDate >= startDate)
     } else if (period === 'month') {
-      startDate = startOfMonth(new Date())
+      startDate = startOfMonth(now)
       filteredSales = filteredSales.filter((s) => s.saleDate >= startDate)
     } else if (period === 'year') {
-      startDate = startOfYear(new Date())
+      startDate = startOfYear(now)
       filteredSales = filteredSales.filter((s) => s.saleDate >= startDate)
     }
 
@@ -188,7 +189,7 @@ export default function ReportesPage() {
         totalQuantity,
       },
     }
-  }, [formattedSales, period])
+  }, [formattedSales, period, isClient])
 
   const getPeriodLabel = () => {
     const labels = {
