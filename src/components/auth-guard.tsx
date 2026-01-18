@@ -16,7 +16,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     if (!firestore) return null
     return doc(firestore, 'settings', 'global')
   }, [firestore])
-  const { data: settings } = useDoc<Setting>(settingsDocRef)
+  const { data: settings, isLoading: isLoadingSettings } =
+    useDoc<Setting>(settingsDocRef)
 
   useEffect(() => {
     if (isUserLoading) {
@@ -43,7 +44,9 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <div className="w-24 h-24 rounded-full bg-sidebar flex items-center justify-center overflow-hidden border-4 border-primary/30 shadow-lg animate-pulse">
-            {settings?.logoUrl ? (
+            {isLoadingSettings ? (
+              <div />
+            ) : settings?.logoUrl ? (
               <img
                 src={settings.logoUrl}
                 alt="Logo de la empresa"
