@@ -117,8 +117,8 @@ export default function DashboardPage() {
       subValue: bcvRate ? formatCurrency(monthlySalesStats.totalRevenue, 'VES') : null,
       change: `${monthlySalesStats.salesCount} ventas`,
       icon: Wallet,
-      color: "text-emerald-600",
-      bg: "bg-emerald-50"
+      color: "text-primary",
+      bg: "bg-primary/10"
     },
     {
       title: "Productos Activos",
@@ -126,8 +126,8 @@ export default function DashboardPage() {
       change: `${productStats.lowStock} con bajo stock`,
       trending: productStats.lowStock > 0 ? "down" : "up",
       icon: Package,
-      color: "text-blue-600",
-      bg: "bg-blue-50"
+      color: "text-primary",
+      bg: "bg-primary/10"
     },
     {
       title: "Compras del Mes",
@@ -135,8 +135,8 @@ export default function DashboardPage() {
       subValue: bcvRate ? formatCurrency(monthlyPurchasesStats.totalAmount, 'VES') : null,
       change: `${monthlyPurchasesStats.purchasesCount} compras`,
       icon: ShoppingBag,
-      color: "text-purple-600",
-      bg: "bg-purple-50"
+      color: "text-primary",
+      bg: "bg-primary/10"
     }
   ]
 
@@ -145,12 +145,12 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-8 p-4 md:p-8 max-w-7xl mx-auto">
         <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Dashboard</h1>
-            <p className="text-slate-500 font-medium">Bienvenido al sistema de control de inventario y ventas.</p>
+            <h1 className="text-4xl font-black text-foreground tracking-tight uppercase">Dashboard</h1>
+            <p className="text-muted-foreground font-medium">Bienvenido al sistema de control de inventario y ventas.</p>
           </div>
           
           <Link href="/ventas?new=true">
-            <Button className="bg-primary hover:bg-primary/90 text-white font-black px-8 h-14 rounded-2xl shadow-lg shadow-primary/20 transition-all active:scale-95">
+            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-black px-8 h-14 rounded-2xl shadow-lg shadow-primary/20 transition-all active:scale-95">
               <Plus className="mr-2 h-5 w-5" /> NUEVA VENTA
             </Button>
           </Link>
@@ -169,7 +169,7 @@ export default function DashboardPage() {
             ))
           ) : (
             stats.map((stat, index) => (
-              <Card key={index} className="border-none shadow-sm rounded-[2rem] overflow-hidden">
+              <Card key={index} className="border-border/10 shadow-sm rounded-[2rem] overflow-hidden">
                 <CardContent className="p-8">
                   <div className="flex justify-between items-start">
                     <div className={cn("p-4 rounded-2xl", stat.bg)}>
@@ -178,7 +178,7 @@ export default function DashboardPage() {
                     {stat.change && (
                       <div className={cn(
                         "flex items-center text-xs font-black px-2 py-1 rounded-lg",
-                        stat.trending === 'down' ? "text-red-600 bg-red-50" : "text-slate-500 bg-slate-100"
+                        stat.trending === 'down' ? "text-destructive bg-destructive/10" : "text-muted-foreground bg-muted/50"
                       )}>
                         {stat.trending === 'down' && <ArrowDownRight className="h-3 w-3 mr-1" />}
                         {stat.change}
@@ -186,9 +186,9 @@ export default function DashboardPage() {
                     )}
                   </div>
                   <div className="mt-6">
-                    <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">{stat.title}</p>
-                    <h3 className="text-3xl font-black text-slate-900 mt-1">{stat.value}</h3>
-                    {stat.subValue && <p className="text-sm text-slate-500 font-medium">{stat.subValue}</p>}
+                    <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">{stat.title}</p>
+                    <h3 className="text-3xl font-black text-foreground mt-1">{stat.value}</h3>
+                    {stat.subValue && <p className="text-sm text-muted-foreground font-medium">{stat.subValue}</p>}
                   </div>
                 </CardContent>
               </Card>
@@ -202,35 +202,35 @@ export default function DashboardPage() {
             description="Registrar y monitorear transacciones" 
             href="/ventas" 
             icon={ShoppingCart} 
-            color="bg-emerald-500"
+            color="bg-primary"
           />
           <QuickAccessCard 
             title="Compras" 
             description="Gestionar compras de inventario" 
             href="/compras" 
             icon={ShoppingBag} 
-            color="bg-purple-500"
+            color="bg-primary"
           />
           <QuickAccessCard 
             title="Inventario" 
             description="Control de stock y productos" 
             href="/productos" 
             icon={Package} 
-            color="bg-blue-500"
+            color="bg-primary"
           />
           <QuickAccessCard 
             title="Reportes" 
             description="Análisis de rendimiento" 
             href="/reportes" 
             icon={BarChart3} 
-            color="bg-amber-500"
+            color="bg-primary"
           />
           <QuickAccessCard 
             title="Configuración" 
             description="Ajustes del sistema y tasas" 
             href="/configuraciones" 
             icon={Settings} 
-            color="bg-slate-700"
+            color="bg-secondary"
           />
         </div>
       </div>
@@ -241,12 +241,12 @@ export default function DashboardPage() {
 function QuickAccessCard({ title, description, href, icon: Icon, color }: any) {
   return (
     <Link href={href}>
-      <div className="group bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer h-full flex flex-col">
+      <div className="group bg-card p-8 rounded-[2.5rem] shadow-sm border border-border/20 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer h-full flex flex-col">
         <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110 shadow-lg", color)}>
-          <Icon className="text-white h-7 w-7" />
+          <Icon className="text-primary-foreground h-7 w-7" />
         </div>
-        <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">{title}</h3>
-        <p className="text-sm text-slate-400 font-bold mt-2 leading-relaxed">{description}</p>
+        <h3 className="text-xl font-black text-foreground uppercase tracking-tight">{title}</h3>
+        <p className="text-sm text-muted-foreground font-bold mt-2 leading-relaxed">{description}</p>
       </div>
     </Link>
   )

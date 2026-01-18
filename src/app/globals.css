@@ -5,74 +5,80 @@
 
 @layer base {
   :root {
-    /* Paleta de colores inspirada en el logo "Full-Ventas" con fondo claro */
-    --background: 220 20% 98%; /* Gris muy claro */
-    --foreground: 220 25% 20%; /* Gris oscuro para texto */
+    /* Forest Green & Gold Theme */
+    --background: 140 25% 20%;      /* Deep Forest Green */
+    --foreground: 0 0% 98%;          /* Pure White */
 
-    --card: 220 20% 100%; /* Blanco */
-    --card-foreground: 220 25% 20%;
+    --card: 140 25% 25%;             /* Slightly Lighter Green */
+    --card-foreground: 0 0% 98%;
 
-    --popover: 220 20% 100%;
-    --popover-foreground: 220 25% 20%;
+    --popover: 140 25% 15%;          /* Darker Green */
+    --popover-foreground: 0 0% 98%;
 
-    /* Azul oscuro del logo como primario */
-    --primary: 198 56% 32%; /* #226482 */
-    --primary-foreground: 210 40% 98%; /* Blanco */
+    --primary: 45 80% 55%;           /* Metallic Gold */
+    --primary-foreground: 140 25% 10%; /* Dark Green for contrast */
 
-    /* Un azul más claro para elementos secundarios */
-    --secondary: 198 50% 90%;
-    --secondary-foreground: 198 56% 22%;
+    --secondary: 140 25% 30%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 220 20% 94%;
-    --muted-foreground: 220 20% 40%;
+    --muted: 140 20% 30%;
+    --muted-foreground: 140 20% 65%;
 
-    /* Acento sutil para hovers */
-    --accent: 198 50% 95%;
-    --accent-foreground: 198 56% 22%;
+    --accent: 45 80% 60%;             /* Lighter Gold for hover/accent */
+    --accent-foreground: 140 25% 10%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 70% 55%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 220 20% 88%;
-    --input: 220 20% 88%;
-    
-    /* Dorado del logo para el anillo de foco */
-    --ring: 47 90% 60%; /* #f4d03f */
+    --border: 140 20% 40%;
+    --input: 140 20% 30%;
+    --ring: 45 80% 60%;
 
-    /* Radio de borde para estilo "rounded-xl" */
     --radius: 0.75rem;
+
+    /* Sidebar specific colors */
+    --sidebar-background: 140 25% 12%;   /* Darker Green/Black */
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-border: 140 20% 20%;
+    --sidebar-accent: 140 25% 25%;
+    --sidebar-accent-foreground: 0 0% 98%;
   }
 
   .dark {
-    /* Tema oscuro con azules profundos */
-    --background: 200 30% 8%;
-    --foreground: 210 40% 98%;
+    /* A slightly darker variant for consistency */
+    --background: 140 25% 15%;
+    --foreground: 0 0% 98%;
 
-    --card: 200 30% 12%;
-    --card-foreground: 210 40% 98%;
+    --card: 140 25% 20%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 200 30% 8%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 140 25% 10%;
+    --popover-foreground: 0 0% 98%;
 
-    /* Azul primario más brillante para modo oscuro */
-    --primary: 198 70% 60%;
-    --primary-foreground: 198 56% 12%;
+    --primary: 45 80% 55%;
+    --primary-foreground: 140 25% 10%;
 
-    --secondary: 200 30% 20%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 140 25% 25%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 200 30% 20%;
-    --muted-foreground: 210 20% 65%;
+    --muted: 140 20% 20%;
+    --muted-foreground: 140 20% 60%;
 
-    --accent: 200 30% 25%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 45 80% 60%;
+    --accent-foreground: 140 25% 10%;
 
-    --destructive: 0 63% 40%;
+    --destructive: 0 70% 55%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 200 30% 22%;
-    --input: 200 30% 22%;
-    --ring: 47 90% 60%; /* #f4d03f */
+    --border: 140 20% 35%;
+    --input: 140 20% 25%;
+    --ring: 45 80% 60%;
+    
+    --sidebar-background: 140 25% 8%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-border: 140 20% 15%;
+    --sidebar-accent: 140 25% 20%;
+    --sidebar-accent-foreground: 0 0% 98%;
   }
 }
 

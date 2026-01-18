@@ -54,10 +54,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
-      <Card className="w-full max-w-sm rounded-2xl shadow-2xl border-none">
+    <main className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-sm rounded-2xl shadow-2xl border-none bg-card">
         <CardHeader className="p-0 relative flex items-center justify-center mb-6">
-            <div className="absolute top-0 -translate-y-1/2 bg-gradient-to-br from-primary via-primary to-green-400 h-32 w-32 rounded-full shadow-lg border-8 border-white flex items-center justify-center">
+            <div className="absolute top-0 -translate-y-1/2 bg-card h-32 w-32 rounded-full shadow-lg border-8 border-background flex items-center justify-center">
                  <svg
                     role="img"
                     aria-label="Full-Ventas Logo"
@@ -66,8 +66,8 @@ export default function LoginPage() {
                     >
                     <defs>
                         <linearGradient id="logo-gold" x1="0.5" y1="0" x2="0.5" y2="1">
-                        <stop offset="0" stopColor="#f4d03f" />
-                        <stop offset="1" stopColor="#b5830d" />
+                          <stop offset="0" stopColor="#e4b335" />
+                          <stop offset="1" stopColor="#b0881a" />
                         </linearGradient>
                     </defs>
                     <path
@@ -78,7 +78,7 @@ export default function LoginPage() {
                     />
                     <path
                         d="M32 6C49 12 58 27 58 38c0 12-12 20-26 20S6 50 6 38C6 27 15 12 32 6z"
-                        fill="white"
+                        fill="hsl(var(--card))"
                         stroke="none"
                     />
                     <g
@@ -114,7 +114,7 @@ export default function LoginPage() {
         <CardContent className="pt-20">
           <form onSubmit={handleLogin} className="space-y-6">
              <div className="text-center">
-                <h1 className="text-2xl font-bold text-foreground">Bienvenido de Nuevo</h1>
+                <h1 className="text-2xl font-bold text-foreground uppercase">Bienvenido</h1>
                 <p className="text-muted-foreground">Inicia sesión para continuar</p>
             </div>
             <div className="space-y-4">
@@ -149,7 +149,7 @@ export default function LoginPage() {
                 </div>
                 </div>
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full uppercase font-bold" disabled={isLoading}>
               {isLoading ? 'Ingresando...' : 'Iniciar Sesión'}
             </Button>
           </form>

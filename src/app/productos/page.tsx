@@ -204,7 +204,7 @@ export default function ProductosPage() {
       head: [['Nombre', 'Categoría', 'Precio (USD)', 'Costo (USD)', 'Stock', 'Estado']],
       body: tableData,
       theme: 'striped',
-      headStyles: { fillColor: [34, 100, 130] },
+      headStyles: { fillColor: [26, 48, 37] }, // Dark green from theme
     })
 
     doc.save(`listado-productos-${format(new Date(), 'yyyyMMdd')}.pdf`)
@@ -215,22 +215,22 @@ export default function ProductosPage() {
     <div className="space-y-6 p-4 md:p-8">
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground">Productos</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground uppercase">Productos</h1>
           <p className="text-muted-foreground mt-2">Gestiona el inventario de tu bodega</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-            <Button onClick={exportToPDF} className="flex items-center justify-center gap-2 bg-white border-2 border-primary text-primary px-6 py-3 rounded-xl font-bold uppercase tracking-tighter hover:bg-primary/5 transition-all duration-200">
+            <Button onClick={exportToPDF} variant="secondary" className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold uppercase tracking-tighter transition-all duration-200">
                 <Download className="h-5 w-5 mr-1" />
                 Exportar PDF
             </Button>
-            <Button onClick={handleCreateNew} className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl font-bold uppercase tracking-tighter italic shadow-lg shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] active:scale-95 transition-all duration-200">
+            <Button onClick={handleCreateNew} className="flex items-center justify-center gap-2 text-primary-foreground px-6 py-3 rounded-xl font-bold uppercase tracking-tighter italic shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all duration-200">
               <Plus className="h-5 w-5 mr-1" />
               Agregar Producto
             </Button>
         </div>
       </header>
 
-      <Card className="bg-card border-border/50 shadow-sm">
+      <Card>
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="relative">
@@ -239,11 +239,11 @@ export default function ProductosPage() {
                   placeholder="Buscar por nombre o descripción..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 border-border/50 focus:ring-ring"
+                  className="pl-10"
                 />
               </div>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="border-border/50 focus:ring-ring">
+                <SelectTrigger>
                   <SelectValue placeholder="Todas las categorías" />
                 </SelectTrigger>
                 <SelectContent>
@@ -254,7 +254,7 @@ export default function ProductosPage() {
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="border-border/50 focus:ring-ring">
+                <SelectTrigger>
                   <SelectValue placeholder="Todos los estados" />
                 </SelectTrigger>
                 <SelectContent>
@@ -267,10 +267,10 @@ export default function ProductosPage() {
           </CardContent>
         </Card>
 
-        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
-              <thead className="bg-primary/5 border-b border-border">
+              <thead className="bg-card/50 border-b border-border">
                 <tr>
                   <th className="p-4 text-xs font-black uppercase text-primary tracking-wider">Producto</th>
                   <th className="p-4 text-xs font-black uppercase text-primary tracking-wider">Stock</th>
@@ -282,7 +282,7 @@ export default function ProductosPage() {
                {isLoading || !isClient ? (
                 <tbody>
                   {Array.from({ length: 5 }).map((_, i) => (
-                      <tr key={i} className="border-b border-border/20">
+                      <tr key={i} className="border-b border-border/50">
                           <td className="p-4"><Skeleton className="h-5 w-3/4" /></td>
                           <td className="p-4"><Skeleton className="h-5 w-1/2" /></td>
                           <td className="p-4 text-right"><Skeleton className="h-5 w-1/4 ml-auto" /></td>
@@ -294,7 +294,7 @@ export default function ProductosPage() {
               ) : filteredProducts.length > 0 ? (
               <tbody className="divide-y divide-border/50">
                 {filteredProducts.map(product => (
-                  <tr key={product.id} className="hover:bg-primary/5 transition-colors group">
+                  <tr key={product.id} className="hover:bg-black/10 transition-colors group">
                     <td className="p-4">
                       <p className="font-bold text-foreground uppercase text-sm">{product.name}</p>
                       <p className="text-[10px] text-muted-foreground font-medium italic">{product.category || 'Sin categoría'}</p>
@@ -302,8 +302,8 @@ export default function ProductosPage() {
                     <td className="p-4">
                        <span className={`px-2 py-1 rounded-md text-xs font-bold ${
                           product.stock <= (product.minStock || 0)
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-emerald-100 text-emerald-700'
+                            ? 'bg-destructive/20 text-destructive'
+                            : 'bg-green-500/20 text-green-400'
                         }`}>
                         {product.stock} {product.unit}
                       </span>

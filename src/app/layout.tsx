@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: 'Full-Ventas',
   description: 'Sistema profesional de gestión de inventario y ventas',
   manifest: '/manifest.json',
-  themeColor: '#226482',
+  themeColor: '#1a3025',
   icons: {
     apple: '/icon-512x512.png',
   },
@@ -25,7 +25,7 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </head>
       <body className={cn('font-body antialiased', 'min-h-screen bg-background')}>
         <FirebaseClientProvider>

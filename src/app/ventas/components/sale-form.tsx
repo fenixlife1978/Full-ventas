@@ -47,16 +47,16 @@ const formSchema = z.object({
 
 const ProductListItem = ({ product, onSelect, formatCurrency }: any) => (
   <div
-    className="flex items-center justify-between p-3 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
+    className="flex items-center justify-between p-3 hover:bg-black/10 rounded-lg cursor-pointer transition-colors"
     onClick={() => onSelect(product)}
   >
     <div>
       <p className="font-bold">{product.name}</p>
-      <p className="text-sm text-gray-500">Stock: {product.stock} {product.unit}</p>
+      <p className="text-sm text-muted-foreground">Stock: {product.stock} {product.unit}</p>
     </div>
     <div className="text-right">
-       <p className="font-bold">{formatCurrency(product.price, 'VES')}</p>
-       <p className="text-sm text-gray-500">{formatCurrency(product.price, 'USD')}</p>
+       <p className="font-bold text-primary">{formatCurrency(product.price, 'VES')}</p>
+       <p className="text-sm text-muted-foreground">{formatCurrency(product.price, 'USD')}</p>
     </div>
   </div>
 );
@@ -97,7 +97,7 @@ const ProductSelectorModal = ({ isOpen, onClose, products, onSelectProduct, form
                  <DialogHeader>
                     <DialogTitle>Buscar Artículos</DialogTitle>
                     <div className="relative mt-2">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                             placeholder="Buscar por nombre..."
                             value={searchTerm}
@@ -117,7 +117,7 @@ const ProductSelectorModal = ({ isOpen, onClose, products, onSelectProduct, form
                     ))}
                 </ScrollArea>
                 {selectedProduct && (
-                    <DialogFooter className="!justify-between items-center gap-4 bg-gray-50 p-4 rounded-lg mt-4">
+                    <DialogFooter className="!justify-between items-center gap-4 bg-muted/50 p-4 rounded-lg mt-4">
                         <div className="flex flex-col">
                           <span className="text-xs text-muted-foreground uppercase font-bold">Seleccionado</span>
                           <p className="font-bold text-lg leading-tight">{selectedProduct.name}</p>
@@ -162,7 +162,7 @@ const PriceListModal = ({ isOpen, onClose, products, formatCurrency }: any) => {
                 <DialogHeader>
                     <DialogTitle>Lista de Precios</DialogTitle>
                     <div className="relative mt-2">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                             placeholder="Buscar producto..."
                             value={searchTerm}
@@ -173,7 +173,7 @@ const PriceListModal = ({ isOpen, onClose, products, formatCurrency }: any) => {
                 </DialogHeader>
                 <ScrollArea className="h-[60vh] border rounded-md mt-4">
                     <table className="w-full text-sm">
-                        <thead className="sticky top-0 bg-white shadow-sm">
+                        <thead className="sticky top-0 bg-card shadow-sm">
                             <tr className="border-b">
                                 <th className="p-3 text-left font-bold">Producto</th>
                                 <th className="p-3 text-right font-bold">Precio Bs.</th>
@@ -182,7 +182,7 @@ const PriceListModal = ({ isOpen, onClose, products, formatCurrency }: any) => {
                         </thead>
                         <tbody>
                             {filteredProducts.map((p: any) => (
-                                <tr key={p.id} className="border-b hover:bg-gray-50">
+                                <tr key={p.id} className="border-b hover:bg-black/10">
                                     <td className="p-3 font-medium">{p.name}</td>
                                     <td className="p-3 text-right font-bold text-primary">{formatCurrency(p.price, 'VES')}</td>
                                     <td className="p-3 text-right text-muted-foreground">{formatCurrency(p.price, 'USD')}</td>
@@ -289,7 +289,7 @@ export function SaleForm({ open, onOpenChange, onSubmit, products = [], bcvRate,
             className="flex flex-1 overflow-hidden"
           >
             {/* Lado Izquierdo: Configuración y Totales */}
-            <div className="w-1/2 flex flex-col bg-white p-6 border-r">
+            <div className="w-1/2 flex flex-col bg-card p-6 border-r border-border">
                 <div className="mb-6">
                   <h2 className="text-3xl font-black italic tracking-tighter text-primary uppercase">Nueva Venta</h2>
                   <p className="text-sm text-muted-foreground">ID de Transacción: #{String(saleCount + 1).padStart(5, '0')}</p>
@@ -309,8 +309,8 @@ export function SaleForm({ open, onOpenChange, onSubmit, products = [], bcvRate,
                                           <RadioGroupItem value={method} id={method} className="sr-only" />
                                         </FormControl>
                                         <Label htmlFor={method} className={cn(
-                                          "flex flex-col items-center justify-center rounded-xl border-2 border-muted bg-popover p-4 cursor-pointer transition-all hover:bg-accent",
-                                          field.value === method && "border-primary bg-primary/5 text-primary"
+                                          "flex flex-col items-center justify-center rounded-xl border-2 border-muted bg-popover p-4 cursor-pointer transition-all hover:bg-accent hover:text-accent-foreground",
+                                          field.value === method && "border-primary bg-primary/10 text-primary"
                                         )}>
                                             {method === 'cash' && <DollarSign className="mb-2 h-6 w-6" />}
                                             {method === 'card' && <CreditCard className="mb-2 h-6 w-6" />}
@@ -348,7 +348,7 @@ export function SaleForm({ open, onOpenChange, onSubmit, products = [], bcvRate,
                     </Button>
                     <Button 
                       type="submit" 
-                      className="bg-green-600 hover:bg-green-700 text-white font-black uppercase italic tracking-tighter" 
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground font-black uppercase italic tracking-tighter" 
                       disabled={cartItems.length === 0}
                     >
                       Facturar
@@ -358,15 +358,14 @@ export function SaleForm({ open, onOpenChange, onSubmit, products = [], bcvRate,
             </div>
 
             {/* Lado Derecho: Recibo */}
-            <div className="w-1/2 flex flex-col bg-gray-50 p-6">
-                <div className="mb-4 flex justify-between items-end border-b-2 border-dashed border-gray-300 pb-2">
-                    <h2 className="text-xl font-black text-gray-400 uppercase tracking-widest">Recibo de Venta</h2>
-                    <span className="text-xs font-mono text-gray-400">{new Date().toLocaleDateString()}</span>
+            <div className="w-1/2 flex flex-col bg-background p-6">
+                <div className="mb-4 flex justify-center items-end border-b-2 border-dashed border-border/50 pb-2">
+                    <h2 className="text-xl font-black text-destructive uppercase tracking-widest">Recibo</h2>
                 </div>
                 <ScrollArea className="flex-1 -mx-2 pr-2">
                     <div className="space-y-3">
                         {cartItems.length === 0 ? (
-                            <div className="text-center text-gray-400 py-20 flex flex-col items-center">
+                            <div className="text-center text-muted-foreground py-20 flex flex-col items-center">
                                 <ShoppingCart className="h-12 w-12 mb-2 opacity-20" />
                                 <p className="text-sm italic">El carrito está vacío</p>
                             </div>
@@ -374,7 +373,7 @@ export function SaleForm({ open, onOpenChange, onSubmit, products = [], bcvRate,
                             cartItems.map(item => {
                                 const isItemWeightBased = item.unit === 'kg' || item.unit === 'litro';
                                 return (
-                                    <div key={item.id} className="flex items-center bg-white p-3 rounded-xl shadow-sm border border-gray-100">
+                                    <div key={item.id} className="flex items-center bg-card p-3 rounded-xl shadow-sm border border-border/50">
                                         <div className="flex-1 min-w-0">
                                             <p className="font-bold truncate text-sm">{item.name}</p>
                                             <p className="text-[10px] text-muted-foreground uppercase">{formatCurrency(item.price, 'VES')} / {item.unit}</p>
@@ -403,7 +402,7 @@ export function SaleForm({ open, onOpenChange, onSubmit, products = [], bcvRate,
                 </ScrollArea>
                 
                 {cartItems.length > 0 && bcvRate && (
-                    <div className="mt-4 pt-4 border-t border-dashed border-gray-300 flex justify-between items-center text-[10px] font-mono text-gray-400 uppercase">
+                    <div className="mt-4 pt-4 border-t border-dashed border-border/50 flex justify-between items-center text-[10px] font-mono text-muted-foreground uppercase">
                         <span>Tasa Oficial BCV</span>
                         <span>{bcvRate.toFixed(2)} Bs./USD</span>
                     </div>

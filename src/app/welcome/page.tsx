@@ -22,7 +22,7 @@ export default function WelcomePage() {
   }, [])
 
   return (
-    <div className="flex flex-col items-center justify-between min-h-screen bg-gray-900 text-white p-4">
+    <div className="flex flex-col items-center justify-between min-h-screen bg-background text-foreground p-4">
       <div className="flex-1 flex flex-col items-center justify-center">
         <svg
           role="img"
@@ -32,12 +32,12 @@ export default function WelcomePage() {
         >
           <defs>
             <linearGradient id="logo-gold" x1="0.5" y1="0" x2="0.5" y2="1">
-              <stop offset="0" stopColor="#f4d03f" />
-              <stop offset="1" stopColor="#b5830d" />
+              <stop offset="0" stopColor="#e4b335" />
+              <stop offset="1" stopColor="#b0881a" />
             </linearGradient>
             <linearGradient id="shield-gradient" x1="0.5" y1="0" x2="0.5" y2="1">
-              <stop offset="0" stopColor="#1faa8d" />
-              <stop offset="1" stopColor="#226482" />
+               <stop offset="0" stopColor="#2b5040" />
+               <stop offset="1" stopColor="#1a3025" />
             </linearGradient>
           </defs>
           <path
@@ -46,8 +46,8 @@ export default function WelcomePage() {
             stroke="url(#logo-gold)"
             strokeWidth="4"
           />
-          <text x="32" y="58" fill="#f4d03f" fontSize="16" fontWeight="bold" textAnchor="middle">$</text>
-          <g transform="translate(1 0)" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round">
+          <text x="32" y="58" fill="url(#logo-gold)" fontSize="16" fontWeight="bold" textAnchor="middle">$</text>
+          <g transform="translate(1 0)" stroke="hsl(var(--foreground))" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 24 H 15 L 19 40 H 45 L 49 28 H 17" />
             <circle cx="22" cy="43" r="3" />
             <circle cx="39" cy="43" r="3" />
@@ -66,7 +66,7 @@ export default function WelcomePage() {
           </button>
         </Link>
       </div>
-       <footer className="text-center text-xs text-gray-500 py-4">
+       <footer className="text-center text-xs text-muted-foreground py-4">
         {year && `© ${year} Full-Ventas. Todos los derechos reservados.`}
       </footer>
     </div>
