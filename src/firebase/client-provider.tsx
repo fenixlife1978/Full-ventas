@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, type ReactNode } from 'react';
+import React, { useMemo, type ReactNode, useEffect } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
 
@@ -13,6 +13,18 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     // Initialize Firebase on the client side, once per component mount.
     return initializeFirebase();
   }, []); // Empty dependency array ensures this runs only once on mount
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js').then(function(registration) {
+          console.log('Service Worker registration successful with scope: ', registration.scope);
+        }, function(err) {
+          console.log('Service Worker registration failed: ', err);
+        });
+      });
+    }
+  }, []);
 
   return (
     <FirebaseProvider
