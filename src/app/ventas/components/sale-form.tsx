@@ -357,7 +357,7 @@ export function SaleForm({ open, onOpenChange, onSubmit, products, bcvRate, sale
 
             <div className="w-1/2 flex flex-col bg-gray-50 p-6">
                 <div className="mb-4">
-                    <h2 className="text-2xl font-bold">RECIBO</h2>
+                    <h2 className="text-2xl font-bold text-center text-destructive">RECIBO</h2>
                 </div>
                 <ScrollArea className="flex-1 -mx-6">
                     <div className="px-6">
